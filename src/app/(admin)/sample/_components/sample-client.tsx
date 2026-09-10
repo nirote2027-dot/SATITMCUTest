@@ -135,7 +135,7 @@ export function SampleClient({ initialItems, canManage }: Props) {
       key: "status",
       header: t("sample.statusField"),
       render: (row) => (
-        <StatusPill tone={row.status === "ACTIVE" ? "success" : "neutral"}>
+        <StatusPill tone={row.status === "ACTIVE" ? "success" : "neutral" as any}>
           {row.status === "ACTIVE" ? t("status.active") : t("status.inactive")}
         </StatusPill>
       ),
@@ -156,7 +156,7 @@ export function SampleClient({ initialItems, canManage }: Props) {
           <p className="text-sm text-muted-foreground">{t("sample.subtitle")}</p>
         </div>
         {canManage && (
-          <Button onClick={openCreateDialog} className="gap-2">
+          <Button onSelect={openCreateDialog} className="gap-2">
             <Plus className="h-4 w-4" />
             {t("sample.create")}
           </Button>
@@ -164,7 +164,7 @@ export function SampleClient({ initialItems, canManage }: Props) {
       </div>
 
       <LiyonCard>
-        <DataTable<SampleItemDto>
+        <DataTable<SampleItemDto> headHeading="Data"
           state={items.length === 0 ? "empty" : "data"}
           rows={items}
           columns={columns}
@@ -173,10 +173,10 @@ export function SampleClient({ initialItems, canManage }: Props) {
             canManage
               ? (row) => (
                   <>
-                    <RowMenuItem onClick={() => openEditDialog(row)} icon={<Edit2 className="h-4 w-4" />}>
+                    <RowMenuItem onSelect={() => openEditDialog(row)} icon={<Edit2 className="h-4 w-4" />}>
                       {t("sample.edit")}
                     </RowMenuItem>
-                    <RowMenuItem onClick={() => setDeleteConfirmItem(row)} destructive icon={<Trash2 className="h-4 w-4" />}>
+                    <RowMenuItem onSelect={() => setDeleteConfirmItem(row)} danger icon={<Trash2 className="h-4 w-4" />}>
                       {t("sample.delete")}
                     </RowMenuItem>
                   </>
@@ -196,31 +196,16 @@ export function SampleClient({ initialItems, canManage }: Props) {
       </LiyonCard>
 
       {/* Dialog สร้าง/แก้ไขข้อมูล */}
-      <LiyonDialog open={modalOpen} onOpenChange={setModalOpen} size="md">
+      <LiyonDialog open={modalOpen} onOpenChange={setModalOpen}>
         <LiyonDialogHeader
           title={editingItem ? t("sample.edit") : t("sample.create")}
           description={t("sample.subtitle")}
-          onClose={() => setModalOpen(false)}
+         
         />
         <LiyonDialogBody>
           <div className="space-y-4 py-2">
-            <LiyonField
-              label={t("sample.titleField")}
-              required
-              inputProps={{
-                value: formTitle,
-                onChange: (e) => setFormTitle(e.target.value),
-                placeholder: "เช่น ข้อมูลทดสอบ 1",
-              }}
-            />
-            <LiyonField
-              label={t("sample.descField")}
-              inputProps={{
-                value: formDescription,
-                onChange: (e) => setFormDescription(e.target.value),
-                placeholder: "รายละเอียดเพิ่มเติม...",
-              }}
-            />
+            <LiyonField label={t("sample.titleField")}><input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="เช่น ข้อมูลทดสอบ 1" required /></LiyonField>
+            <LiyonField label={t("sample.descField")}><input value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="รายละเอียดเพิ่มเติม..." /></LiyonField>
             <LiyonSelect
               label={t("sample.statusField")}
               value={formStatus}
@@ -233,21 +218,21 @@ export function SampleClient({ initialItems, canManage }: Props) {
           </div>
         </LiyonDialogBody>
         <LiyonDialogFooter>
-          <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isPending}>
+          <Button variant="outline" onSelect={() => setModalOpen(false)} disabled={isPending}>
             {t("sample.cancel")}
           </Button>
-          <Button onClick={handleSave} disabled={isPending}>
+          <Button onSelect={handleSave} disabled={isPending}>
             {t("sample.save")}
           </Button>
         </LiyonDialogFooter>
       </LiyonDialog>
 
       {/* Dialog ยืนยันการลบ */}
-      <LiyonDialog open={!!deleteConfirmItem} onOpenChange={(open) => !open && setDeleteConfirmItem(null)} size="sm">
+      <LiyonDialog open={!!deleteConfirmItem} onOpenChange={(open) => !open && setDeleteConfirmItem(null)}>
         <LiyonDialogHeader
           title={t("sample.delete")}
           description={t("sample.deleteConfirm")}
-          onClose={() => setDeleteConfirmItem(null)}
+         
         />
         <LiyonDialogBody>
           <p className="text-sm text-muted-foreground">
@@ -255,12 +240,12 @@ export function SampleClient({ initialItems, canManage }: Props) {
           </p>
         </LiyonDialogBody>
         <LiyonDialogFooter>
-          <Button variant="outline" onClick={() => setDeleteConfirmItem(null)} disabled={isPending}>
+          <Button variant="outline" onSelect={() => setDeleteConfirmItem(null)} disabled={isPending}>
             {t("sample.cancel")}
           </Button>
           <Button
             variant="destructive"
-            onClick={() => deleteConfirmItem && handleDelete(deleteConfirmItem)}
+            onSelect={() => deleteConfirmItem && handleDelete(deleteConfirmItem)}
             disabled={isPending}
           >
             {t("sample.delete")}
@@ -270,3 +255,4 @@ export function SampleClient({ initialItems, canManage }: Props) {
     </div>
   );
 }
+

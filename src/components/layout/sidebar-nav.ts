@@ -1,6 +1,22 @@
-import { LayoutDashboard, Users, Settings, Layers, type LucideIcon } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  Layers,
+  Newspaper,
+  UserCheck,
+  GraduationCap,
+  FileText,
+  Building2,
+  type LucideIcon,
+} from "lucide-react";
 import { hasPermission, P } from "@/features/identity";
 import { SAMPLE_P } from "@/features/sample";
+import { NEWS_P } from "@/features/news";
+import { PERSONNEL_P } from "@/features/personnel";
+import { CURRICULUM_P } from "@/features/curriculum";
+import { DOCUMENT_P } from "@/features/document";
+import { FACILITY_P } from "@/features/facility";
 
 export interface NavItem {
   /** i18n key */
@@ -16,6 +32,16 @@ export interface NavCrumb { title: string; href: string }
 
 export const sidebarGroups: NavGroup[] = [
   { label: "nav.group.overview", items: [{ title: "nav.dashboard", href: "/dashboard", icon: LayoutDashboard }] },
+  {
+    label: "nav.group.faculty",
+    items: [
+      { title: "news.title", href: "/news", icon: Newspaper, permission: NEWS_P.read },
+      { title: "personnel.title", href: "/personnel", icon: UserCheck, permission: PERSONNEL_P.read },
+      { title: "curriculum.title", href: "/curriculum", icon: GraduationCap, permission: CURRICULUM_P.read },
+      { title: "document.title", href: "/document", icon: FileText, permission: DOCUMENT_P.read },
+      { title: "facility.title", href: "/facility", icon: Building2, permission: FACILITY_P.read },
+    ],
+  },
   {
     label: "nav.group.sample",
     items: [{ title: "sample.nav", href: "/sample", icon: Layers, permission: SAMPLE_P.sampleRead }],
