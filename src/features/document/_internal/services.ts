@@ -42,7 +42,7 @@ export async function createDocument(tenantId: string, requesterId: string, inpu
       title: input.title,
       docType: input.docType,
       fileUrl: input.fileUrl ?? null,
-      status: input.status as any,
+      status: input.status,
     },
   });
   return {
@@ -67,7 +67,7 @@ export async function updateDocument(tenantId: string, input: UpdateDocumentInpu
       title: input.title,
       docType: input.docType,
       fileUrl: input.fileUrl ?? null,
-      status: input.status as any,
+      status: input.status,
     },
   });
   return {

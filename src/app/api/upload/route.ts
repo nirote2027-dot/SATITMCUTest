@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { randomUUID } from "crypto";
+import { logger } from "@/shared/lib/infra/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,8 +30,9 @@ export async function POST(req: NextRequest) {
 
     const fileUrl = `/uploads/${filename}`;
     return NextResponse.json({ ok: true, url: fileUrl, filename: originalName });
-  } catch (error: any) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ ok: false, error: error?.message || "Upload failed" }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Upload failed";
+    logger.error("Upload failed", { error: message });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

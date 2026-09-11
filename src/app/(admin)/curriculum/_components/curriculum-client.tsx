@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Edit2, Trash2, Layers, AlertCircle, BookOpen, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, Layers, AlertCircle, BookOpen } from "lucide-react";
 import { toast } from "sonner";
-import { useT, useLocale } from "@/shared/lib/i18n/client";
-import { formatDate } from "@/shared/lib/format";
 import {
   LiyonCard,
   DataTable,
@@ -18,24 +16,13 @@ import {
 } from "@/shared/components/liyon";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
+import type { CurriculumDto } from "@/features/curriculum";
 import {
   createCurriculumAction,
   updateCurriculumAction,
   deleteCurriculumAction,
   getCurriculaAction,
-} from "@/features/curriculum/_internal/actions";
-
-type CurriculumDto = {
-  id: string;
-  code: string;
-  name: string;
-  degreeLevel: string;
-  totalCredits: number;
-  description: string | null;
-  imageUrl?: string | null;
-  isActive: boolean;
-  createdAt: Date | string;
-};
+} from "@/features/curriculum/actions";
 
 interface Props {
   initialItems: CurriculumDto[];
@@ -43,8 +30,6 @@ interface Props {
 }
 
 export function CurriculumClient({ initialItems, canManage }: Props) {
-  const t = useT();
-  const locale = useLocale();
   const [items, setItems] = useState<CurriculumDto[]>(initialItems);
   const [isPending, startTransition] = useTransition();
 
@@ -88,7 +73,7 @@ export function CurriculumClient({ initialItems, canManage }: Props) {
   const refreshItems = async () => {
     const res = await getCurriculaAction();
     if (res.ok && res.data) {
-      setItems(res.data as any);
+      setItems(res.data);
     }
   };
 
@@ -122,7 +107,7 @@ export function CurriculumClient({ initialItems, canManage }: Props) {
           toast.error("ไม่สามารถแก้ไขหลักสูตรได้");
         }
       } else {
-        const res = await createCurriculumAction(payload as any);
+        const res = await createCurriculumAction(payload);
         if (res.ok) {
           toast.success("เพิ่มหลักสูตรใหม่เรียบร้อยแล้ว");
           setModalOpen(false);
@@ -202,7 +187,7 @@ export function CurriculumClient({ initialItems, canManage }: Props) {
       header: "สถานะ",
       className: "nowrap",
       render: (row) => (
-        <StatusPill tone={row.isActive ? ("positive" as any) : "neutral"}>
+        <StatusPill tone={row.isActive ? "ok" : "off"}>
           {row.isActive ? "เปิดสอน" : "ปิดรับสมัคร"}
         </StatusPill>
       ),

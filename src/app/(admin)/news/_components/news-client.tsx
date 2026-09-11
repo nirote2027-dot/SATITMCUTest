@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, Edit2, Trash2, Layers, AlertCircle, Newspaper, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useT, useLocale } from "@/shared/lib/i18n/client";
+import { useLocale } from "@/shared/lib/i18n/client";
 import { formatDate } from "@/shared/lib/format";
 import {
   LiyonCard,
@@ -18,7 +18,7 @@ import {
 } from "@/shared/components/liyon";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
-import type { ArticleDto } from "@/features/news/server";
+import type { ArticleDto } from "@/features/news";
 import {
   createArticleAction,
   updateArticleAction,
@@ -32,7 +32,6 @@ interface Props {
 }
 
 export function NewsClient({ initialItems, canManage }: Props) {
-  const t = useT();
   const locale = useLocale();
   const [items, setItems] = useState<ArticleDto[]>(initialItems);
   const [isPending, startTransition] = useTransition();
@@ -156,7 +155,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
       header: "สถานะ",
       className: "nowrap",
       render: (row) => (
-        <StatusPill tone={row.status === "PUBLISHED" ? ("positive" as any) : "neutral"}>
+        <StatusPill tone={row.status === "PUBLISHED" ? "ok" : "off"}>
           {row.status === "PUBLISHED" ? "เผยแพร่" : "ร่าง"}
         </StatusPill>
       ),

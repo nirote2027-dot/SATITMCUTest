@@ -1,9 +1,9 @@
 import type { PermissionDef } from "@/shared/lib/permission-def";
 export const DOCUMENT_P = {
-  read: "DOCUMENT_READ",
-  manage: "DOCUMENT_MANAGE",
-  documentRead: "DOCUMENT_READ",
-  documentManage: "DOCUMENT_MANAGE",
+  read: "document:read",
+  manage: "document:manage",
+  documentRead: "document:read",
+  documentManage: "document:manage",
 } as const;
 export const DOCUMENT_PERMISSIONS: readonly PermissionDef[] = [
   { code: DOCUMENT_P.documentRead, module: "document", action: "read", description: "Read document" },

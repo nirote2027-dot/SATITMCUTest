@@ -8,6 +8,8 @@ export async function listCurricula(tenantId: string) {
   });
 }
 
+export type CurriculumDto = Awaited<ReturnType<typeof listCurricula>>[number];
+
 export async function getCurriculum(id: string, tenantId: string) {
   return prisma.curriculum.findUnique({
     where: { id, tenantId },

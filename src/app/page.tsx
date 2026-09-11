@@ -14,7 +14,6 @@ import {
   BookOpen,
   Car,
   Sparkles,
-  CheckCircle2,
   Layers,
   LogIn,
 } from "lucide-react";
@@ -25,7 +24,7 @@ export default async function HomePage() {
   // Fetch real data from DB if available
   const [articles, employees, curricula, facilities] = await Promise.all([
     prisma.article.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
-    prisma.employee.findMany({ take: 8, orderBy: { createdAt: "desc" } }).catch(() => []),
+    prisma.employee.findMany({ take: 8, include: { department: true }, orderBy: { createdAt: "desc" } }).catch(() => []),
     prisma.curriculum.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
     prisma.facility.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
   ]);
@@ -88,40 +87,49 @@ export default async function HomePage() {
     },
   ];
 
-  const displayEmployees = employees.length > 0 ? employees : [
-    {
-      id: "1",
-      firstName: "ศ.ดร.สมชาย",
-      lastName: "ปัญญาวงศ์",
-      position: "คณบดี / อาจารย์ประจำคณะ",
-      imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
-      department: "สำนักงานคณบดี",
-    },
-    {
-      id: "2",
-      firstName: "รศ.ดร.นภาพร",
-      lastName: "เกียรติสกุล",
-      position: "รองคณบดีฝ่ายวิชาการและวิจัย",
-      imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80",
-      department: "ภาควิชาหลักสูตรและการสอน",
-    },
-    {
-      id: "3",
-      firstName: "ผศ.วิชัย",
-      lastName: "รัตนมงคล",
-      position: "หัวหน้าภาควิชาเทคโนโลยีการศึกษา",
-      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
-      department: "ภาควิชาเทคโนโลยีการศึกษา",
-    },
-    {
-      id: "4",
-      firstName: "ดร.พิมพ์ใจ",
-      lastName: "สุขเกษม",
-      position: "ผู้ช่วยคณบดีฝ่ายพัฒนานิสิต",
-      imageUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80",
-      department: "กิจการนิสิต",
-    },
-  ];
+  const displayEmployees = employees.length > 0
+    ? employees.map((e) => ({
+        id: e.id,
+        firstName: e.firstName,
+        lastName: e.lastName,
+        position: e.position,
+        imageUrl: e.imageUrl,
+        departmentName: e.department?.name || "สำนักงานคณะ",
+      }))
+    : [
+        {
+          id: "1",
+          firstName: "ศ.ดร.สมชาย",
+          lastName: "ปัญญาวงศ์",
+          position: "คณบดี / อาจารย์ประจำคณะ",
+          imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+          departmentName: "สำนักงานคณบดี",
+        },
+        {
+          id: "2",
+          firstName: "รศ.ดร.นภาพร",
+          lastName: "เกียรติสกุล",
+          position: "รองคณบดีฝ่ายวิชาการและวิจัย",
+          imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80",
+          departmentName: "ภาควิชาหลักสูตรและการสอน",
+        },
+        {
+          id: "3",
+          firstName: "ผศ.วิชัย",
+          lastName: "รัตนมงคล",
+          position: "หัวหน้าภาควิชาเทคโนโลยีการศึกษา",
+          imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
+          departmentName: "ภาควิชาเทคโนโลยีการศึกษา",
+        },
+        {
+          id: "4",
+          firstName: "ดร.พิมพ์ใจ",
+          lastName: "สุขเกษม",
+          position: "ผู้ช่วยคณบดีฝ่ายพัฒนานิสิต",
+          imageUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80",
+          departmentName: "กิจการนิสิต",
+        },
+      ];
 
   const displayFacilities = facilities.length > 0 ? facilities : [
     {
@@ -415,7 +423,7 @@ export default async function HomePage() {
                 {emp.firstName} {emp.lastName}
               </h3>
               <p className="text-xs text-blue-700 font-semibold mb-1">{emp.position || "อาจารย์ประจำคณะ"}</p>
-              <p className="text-xs text-slate-500">{(emp as any).department?.name || (emp as any).department || "สำนักงานคณะ"}</p>
+              <p className="text-xs text-slate-500">{emp.departmentName || "สำนักงานคณะ"}</p>
             </div>
           ))}
         </div>

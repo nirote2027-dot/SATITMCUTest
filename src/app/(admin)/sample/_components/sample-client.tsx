@@ -135,7 +135,7 @@ export function SampleClient({ initialItems, canManage }: Props) {
       key: "status",
       header: t("sample.statusField"),
       render: (row) => (
-        <StatusPill tone={row.status === "ACTIVE" ? "success" : "neutral" as any}>
+        <StatusPill tone={row.status === "ACTIVE" ? "ok" : "off"}>
           {row.status === "ACTIVE" ? t("status.active") : t("status.inactive")}
         </StatusPill>
       ),
@@ -206,15 +206,15 @@ export function SampleClient({ initialItems, canManage }: Props) {
           <div className="space-y-4 py-2">
             <LiyonField label={t("sample.titleField")}><input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="เช่น ข้อมูลทดสอบ 1" required /></LiyonField>
             <LiyonField label={t("sample.descField")}><input value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="รายละเอียดเพิ่มเติม..." /></LiyonField>
-            <LiyonSelect
-              label={t("sample.statusField")}
-              value={formStatus}
-              onChange={(e) => setFormStatus(e.target.value as "ACTIVE" | "INACTIVE")}
-              options={[
-                { value: "ACTIVE", label: t("status.active") },
-                { value: "INACTIVE", label: t("status.inactive") },
-              ]}
-            />
+            <LiyonField label={t("sample.statusField")}>
+              <LiyonSelect
+                value={formStatus}
+                onChange={(e) => setFormStatus(e.target.value as "ACTIVE" | "INACTIVE")}
+              >
+                <option value="ACTIVE">{t("status.active")}</option>
+                <option value="INACTIVE">{t("status.inactive")}</option>
+              </LiyonSelect>
+            </LiyonField>
           </div>
         </LiyonDialogBody>
         <LiyonDialogFooter>
