@@ -9,9 +9,10 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   label?: string;
   placeholder?: string;
+  aspect?: "cover" | "contain";
 }
 
-export function ImageUpload({ value, onChange, label = "รูปภาพประกอบ / แนบไฟล์รูป", placeholder = "อัปโหลดรูปภาพ หรือระบุ URL" }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, label = "รูปภาพประกอบ / แนบไฟล์รูป", placeholder = "อัปโหลดรูปภาพ หรือระบุ URL", aspect = "cover" }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState("");
@@ -67,7 +68,11 @@ export function ImageUpload({ value, onChange, label = "รูปภาพปร
       {value ? (
         <div className="relative group rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center max-h-48">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="Preview" className="object-cover w-full h-40 max-h-48" />
+          <img
+            src={value}
+            alt="Preview"
+            className={aspect === "contain" ? "object-contain w-full h-36 max-h-48 p-2" : "object-cover w-full h-40 max-h-48"}
+          />
           <button
             type="button"
             onClick={() => onChange("")}

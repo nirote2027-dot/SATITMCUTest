@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Edit2, Trash2, Users, AlertCircle, User } from "lucide-react";
+import { Plus, Edit2, Trash2, Users, AlertCircle, User, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useT, useLocale } from "@/shared/lib/i18n/client";
+import { formatDate } from "@/shared/lib/format";
 import {
   LiyonCard,
   DataTable,
@@ -30,6 +32,8 @@ interface Props {
 }
 
 export function PersonnelClient({ initialItems, canManage }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const [items, setItems] = useState<EmployeeDto[]>(initialItems);
   const [isPending, startTransition] = useTransition();
 
@@ -168,7 +172,7 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
       header: "สถานะ",
       className: "nowrap",
       render: (row) => (
-        <StatusPill tone={row.isActive ? "ok" : "off"}>
+        <StatusPill tone={row.isActive ? ("positive" as any) : "neutral"}>
           {row.isActive ? "ปฏิบัติงาน" : "พ้นสภาพ/ระงับ"}
         </StatusPill>
       ),

@@ -8,7 +8,7 @@ export const createEmployeeSchema = z.object({
   imageUrl: z.string().optional().nullable(),
   departmentId: z.string().uuid().optional().nullable(),
   userId: z.string().uuid().optional().nullable(),
-  contactInfo: z.record(z.string(), z.unknown()).optional().nullable(),
+  contactInfo: z.any().optional(), // Or a more specific object schema
   isActive: z.boolean().default(true),
 });
 

@@ -1,11 +1,11 @@
 import type { PermissionDef } from "@/shared/lib/permission-def";
 import { IDENTITY_PERMISSIONS } from "@/features/identity/permissions";
-import { SAMPLE_PERMISSIONS } from "@/features/sample/server";
-import { NEWS_PERMISSIONS } from "@/features/news/server";
-import { PERSONNEL_PERMISSIONS } from "@/features/personnel/server";
-import { CURRICULUM_PERMISSIONS } from "@/features/curriculum/server";
-import { DOCUMENT_PERMISSIONS } from "@/features/document/server";
-import { FACILITY_PERMISSIONS } from "@/features/facility/server";
+import { SAMPLE_PERMISSIONS } from "@/features/sample/permissions";
+import { NEWS_PERMISSIONS } from "@/features/news/permissions";
+import { PERSONNEL_PERMISSIONS } from "@/features/personnel/permissions";
+import { CURRICULUM_PERMISSIONS } from "@/features/curriculum/permissions";
+import { DOCUMENT_PERMISSIONS } from "@/features/document/permissions";
+import { FACILITY_PERMISSIONS } from "@/features/facility/permissions";
 
 /** สิทธิ์ทั้งระบบ — feature ใหม่เพิ่มบรรทัดที่นี่ · seed เขียนลง permissions ทุกครั้ง */
 export const ALL_PERMISSIONS: readonly PermissionDef[] = [

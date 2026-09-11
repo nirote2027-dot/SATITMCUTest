@@ -2,6 +2,8 @@ import Link from "next/link";
 import { auth } from "@/features/identity/server";
 import { prisma } from "@/shared/lib/infra/prisma";
 import { PublicNavbar } from "@/components/layout/public-navbar";
+import { PublicFooter } from "@/components/layout/public-footer";
+import { Hero3DCoinScene } from "@/components/home/hero-3d-coin-scene";
 import {
   GraduationCap,
   Newspaper,
@@ -14,19 +16,26 @@ import {
   BookOpen,
   Car,
   Sparkles,
+  CheckCircle2,
   Layers,
   LogIn,
 } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const session = await auth().catch(() => null);
 
   // Fetch real data from DB if available
-  const [articles, employees, curricula, facilities] = await Promise.all([
+  const [articles, employees, curricula, facilities, tenant] = await Promise.all([
     prisma.article.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
-    prisma.employee.findMany({ take: 8, include: { department: true }, orderBy: { createdAt: "desc" } }).catch(() => []),
+    prisma.employee.findMany({ take: 8, orderBy: { createdAt: "desc" } }).catch(() => []),
     prisma.curriculum.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
     prisma.facility.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
+    (session?.tenantId
+      ? prisma.tenant.findUnique({ where: { id: session.tenantId } })
+      : prisma.tenant.findFirst({ where: { isActive: true }, orderBy: { updatedAt: "desc" } })
+    ).catch(() => null),
   ]);
 
   // Default fallback data if DB is empty
@@ -87,49 +96,40 @@ export default async function HomePage() {
     },
   ];
 
-  const displayEmployees = employees.length > 0
-    ? employees.map((e) => ({
-        id: e.id,
-        firstName: e.firstName,
-        lastName: e.lastName,
-        position: e.position,
-        imageUrl: e.imageUrl,
-        departmentName: e.department?.name || "สำนักงานคณะ",
-      }))
-    : [
-        {
-          id: "1",
-          firstName: "ศ.ดร.สมชาย",
-          lastName: "ปัญญาวงศ์",
-          position: "คณบดี / อาจารย์ประจำคณะ",
-          imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
-          departmentName: "สำนักงานคณบดี",
-        },
-        {
-          id: "2",
-          firstName: "รศ.ดร.นภาพร",
-          lastName: "เกียรติสกุล",
-          position: "รองคณบดีฝ่ายวิชาการและวิจัย",
-          imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80",
-          departmentName: "ภาควิชาหลักสูตรและการสอน",
-        },
-        {
-          id: "3",
-          firstName: "ผศ.วิชัย",
-          lastName: "รัตนมงคล",
-          position: "หัวหน้าภาควิชาเทคโนโลยีการศึกษา",
-          imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
-          departmentName: "ภาควิชาเทคโนโลยีการศึกษา",
-        },
-        {
-          id: "4",
-          firstName: "ดร.พิมพ์ใจ",
-          lastName: "สุขเกษม",
-          position: "ผู้ช่วยคณบดีฝ่ายพัฒนานิสิต",
-          imageUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80",
-          departmentName: "กิจการนิสิต",
-        },
-      ];
+  const displayEmployees = employees.length > 0 ? employees : [
+    {
+      id: "1",
+      firstName: "ศ.ดร.สมชาย",
+      lastName: "ปัญญาวงศ์",
+      position: "คณบดี / อาจารย์ประจำคณะ",
+      imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+      department: "สำนักงานคณบดี",
+    },
+    {
+      id: "2",
+      firstName: "รศ.ดร.นภาพร",
+      lastName: "เกียรติสกุล",
+      position: "รองคณบดีฝ่ายวิชาการและวิจัย",
+      imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80",
+      department: "ภาควิชาหลักสูตรและการสอน",
+    },
+    {
+      id: "3",
+      firstName: "ผศ.วิชัย",
+      lastName: "รัตนมงคล",
+      position: "หัวหน้าภาควิชาเทคโนโลยีการศึกษา",
+      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
+      department: "ภาควิชาเทคโนโลยีการศึกษา",
+    },
+    {
+      id: "4",
+      firstName: "ดร.พิมพ์ใจ",
+      lastName: "สุขเกษม",
+      position: "ผู้ช่วยคณบดีฝ่ายพัฒนานิสิต",
+      imageUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80",
+      department: "กิจการนิสิต",
+    },
+  ];
 
   const displayFacilities = facilities.length > 0 ? facilities : [
     {
@@ -169,26 +169,30 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-blue-600 selection:text-white">
       {/* ═══ 1. FLOATING DYNAMIC NAVBAR (NexaCore Style) ═══ */}
-      <PublicNavbar user={session?.user} />
+      <PublicNavbar user={session?.user} logoUrl={tenant?.logoUrl} nameTh={tenant?.nameTh} nameEn={tenant?.nameEn} />
 
-      {/* ═══ 2. CINEMATIC VIDEO HERO SECTION (NexaCore Style) ═══ */}
+
+      {/* ═══ 2. 3D COIN TRACK HERO SECTION (AICM 3D Animation Style) ═══ */}
       <section
         id="home"
-        className="relative min-h-[92vh] lg:min-h-screen flex items-center justify-center px-4 pt-28 pb-20 overflow-hidden bg-slate-950 text-white"
+        className="relative min-h-[95vh] lg:min-h-screen flex items-center justify-center px-4 pt-28 pb-20 overflow-hidden bg-slate-950 text-white"
       >
-        {/* Background Looping Video */}
+        {/* Background Looping Video (Atmospheric Depth) */}
         <video
           autoPlay
           muted
           loop
           playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-35 scale-105 filter blur-[0.5px]"
+          className="absolute inset-0 w-full h-full object-cover opacity-15 scale-105 filter blur-[1px] pointer-events-none"
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_115655_b4d9cd77-feed-43cd-a198-af78ebdf1f7a.mp4"
         />
 
+        {/* 3D Spline Track & School Logo Coins (AICM 3D Animation) */}
+        <Hero3DCoinScene logoUrl={tenant?.logoUrl} />
+
         {/* Ambient Dark Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/65 to-slate-950 z-0 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.15),transparent_70%)] z-0 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/40 to-slate-950 z-0 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.12),transparent_70%)] z-0 pointer-events-none" />
 
         {/* Bottom Fade to Content Section */}
         <div className="absolute bottom-0 left-0 right-0 h-40 z-10 pointer-events-none bg-gradient-to-b from-transparent via-slate-950/70 to-slate-50" />
@@ -423,7 +427,7 @@ export default async function HomePage() {
                 {emp.firstName} {emp.lastName}
               </h3>
               <p className="text-xs text-blue-700 font-semibold mb-1">{emp.position || "อาจารย์ประจำคณะ"}</p>
-              <p className="text-xs text-slate-500">{emp.departmentName || "สำนักงานคณะ"}</p>
+              <p className="text-xs text-slate-500">{(emp as any).department?.name || (emp as any).department || "สำนักงานคณะ"}</p>
             </div>
           ))}
         </div>
@@ -514,52 +518,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ═══ 7. FOOTER ═══ */}
-      <footer className="bg-slate-950 text-slate-400 py-12 border-t border-slate-800 text-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-2 text-white font-bold text-lg mb-3">
-              <GraduationCap className="w-6 h-6 text-blue-500" /> SATIT MCU — Faculty Platform
-            </div>
-            <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-md">
-              ระบบเว็บไซต์และบริการข้อมูลสารสนเทศ คณะพุทธศาสตร์และสังคมศาสตร์ มหาวิทยาลัยมหาจุฬาลงกรณราชวิทยาลัย (SATIT MCU System)
-            </p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">ระบบงานหลัก</h4>
-            <ul className="space-y-2 text-xs">
-              <li><Link href="#news" className="hover:text-white transition-colors">ข่าวสารประชาสัมพันธ์</Link></li>
-              <li><Link href="#curriculum" className="hover:text-white transition-colors">หลักสูตรการศึกษา</Link></li>
-              <li><Link href="#personnel" className="hover:text-white transition-colors">ทำเนียบคณาจารย์</Link></li>
-              <li><Link href="#document" className="hover:text-white transition-colors">ยื่นคำร้องเอกสาร</Link></li>
-              <li><Link href="#facility" className="hover:text-white transition-colors">จองห้องและยานพาหนะ</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">สำหรับเจ้าหน้าที่</h4>
-            <ul className="space-y-2 text-xs">
-              {session?.user ? (
-                <li>
-                  <Link href="/dashboard" className="text-blue-400 hover:underline flex items-center gap-1">
-                    <Layers className="w-3.5 h-3.5" /> เข้าสู่ระบบหลังบ้าน (Admin)
-                  </Link>
-                </li>
-              ) : (
-                <li>
-                  <Link href="/login" className="text-blue-400 hover:underline flex items-center gap-1">
-                    <LogIn className="w-3.5 h-3.5" /> เข้าสู่ระบบผู้ดูแล (Admin Login)
-                  </Link>
-                </li>
-              )}
-              <li className="text-slate-500">ติดต่อผู้ดูแลระบบ: admin@app.local</li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
-          <div>© 2026 SATIT MCU System. All rights reserved.</div>
-          <div className="mt-2 sm:mt-0">Design Inspired by NexaCore • Built with Next.js 16 & Prisma</div>
-        </div>
-      </footer>
+      {/* ═══ 7. MODERN THEMED FOOTER ═══ */}
+      <PublicFooter logoUrl={tenant?.logoUrl} nameTh={tenant?.nameTh} nameEn={tenant?.nameEn} user={session?.user} />
     </div>
   );
 }
+

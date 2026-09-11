@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Edit2, Trash2, Layers, AlertCircle, Building2, Car } from "lucide-react";
+import { Plus, Edit2, Trash2, Layers, AlertCircle, Building2, Car, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useT, useLocale } from "@/shared/lib/i18n/client";
+import { formatDate } from "@/shared/lib/format";
 import {
   LiyonCard,
   DataTable,
@@ -30,6 +32,8 @@ interface Props {
 }
 
 export function FacilityClient({ initialItems, canManage }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const [items, setItems] = useState<FacilityDto[]>(initialItems);
   const [isPending, startTransition] = useTransition();
 
@@ -182,7 +186,7 @@ export function FacilityClient({ initialItems, canManage }: Props) {
       header: "สถานะ",
       className: "nowrap",
       render: (row) => (
-        <StatusPill tone={row.status === "AVAILABLE" ? "ok" : "off"}>
+        <StatusPill tone={row.status === "AVAILABLE" ? ("positive" as any) : "neutral"}>
           {row.status === "AVAILABLE" ? "พร้อมใช้งาน" : "ปิดปรับปรุง"}
         </StatusPill>
       ),

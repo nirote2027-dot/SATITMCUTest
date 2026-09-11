@@ -6,7 +6,7 @@ export const MESSAGES = {
   "news.article.delete": { th: "ลบข่าว", en: "Delete News" },
   "news.article.status.draft": { th: "ร่าง", en: "Draft" },
   "news.article.status.published": { th: "เผยแพร่", en: "Published" },
-  "roles.module.news": { th: "ระบบข่าวสารประชาสัมพันธ์", en: "News & PR Module" },
-  "perm.news:read": { th: "ดูข่าวสาร", en: "View News" },
-  "perm.news:manage": { th: "จัดการข่าวสาร", en: "Manage News" },
+  "roles.module.news": { th: "ข่าวสารและประชาสัมพันธ์", en: "News & PR" },
+  "perm.news:read": { th: "ดูข่าวสาร", en: "View news" },
+  "perm.news:manage": { th: "จัดการข่าวสาร", en: "Manage news" },
 } as const;

@@ -135,7 +135,7 @@ export function SampleClient({ initialItems, canManage }: Props) {
       key: "status",
       header: t("sample.statusField"),
       render: (row) => (
-        <StatusPill tone={row.status === "ACTIVE" ? "ok" : "off"}>
+        <StatusPill tone={row.status === "ACTIVE" ? "success" : "neutral" as any}>
           {row.status === "ACTIVE" ? t("status.active") : t("status.inactive")}
         </StatusPill>
       ),

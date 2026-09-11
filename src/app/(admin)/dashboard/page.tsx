@@ -38,8 +38,8 @@ export default async function DashboardPage() {
           ].map((f) => (
             <Link key={f.href} href={f.href} style={{ textDecoration: "none", color: "inherit" }}>
               <LiyonCard className="p-5 h-full cursor-pointer transition-all hover:shadow-md">
-                <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem" }}>{f.title}</h3>
-                <p style={{ fontSize: "0.875rem", color: "var(--muted, #666)", margin: 0 }}>{f.desc}</p>
+                <h3 className="text-base font-semibold mb-2">{f.title}</h3>
+                <p className="text-sm text-slate-500 m-0">{f.desc}</p>
               </LiyonCard>
             </Link>
           ))}

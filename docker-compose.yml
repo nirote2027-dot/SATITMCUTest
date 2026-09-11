@@ -1,0 +1,75 @@
+services:
+  # SATIT MCU Web Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: satit-mcu-app:latest
+    container_name: satit_mcu_app
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+      - AUTH_TRUST_HOST=true
+      - RUN_MIGRATIONS=false
+    volumes:
+      # Data Persistence for uploaded files (logos, documents, photos)
+      - uploads_data:/app/public/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - satit_network
+
+  # Production PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: satit_mcu_db
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SatitMcuProd2026SecureDb}
+      POSTGRES_DB: ums_prod
+    ports:
+      # Expose on 5433 to avoid conflict with existing host PostgreSQL on 5432
+      - "5433:5432"
+    volumes:
+      # Data Persistence for database data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ums_prod"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - satit_network
+
+  # Cloudflare Quick Tunnel
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: satit_mcu_tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://app:3000
+    depends_on:
+      - app
+    networks:
+      - satit_network
+
+volumes:
+  postgres_data:
+    name: satit_mcu_postgres_data
+    driver: local
+  uploads_data:
+    name: satit_mcu_uploads_data
+    driver: local
+
+networks:
+  satit_network:
+    name: satit_mcu_network
+    driver: bridge

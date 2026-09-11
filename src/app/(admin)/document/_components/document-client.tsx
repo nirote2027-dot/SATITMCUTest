@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Edit2, Trash2, Layers, AlertCircle, FileText, Download } from "lucide-react";
+import { Plus, Edit2, Trash2, Layers, AlertCircle, FileText, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { useLocale } from "@/shared/lib/i18n/client";
+import { useT, useLocale } from "@/shared/lib/i18n/client";
 import { formatDate } from "@/shared/lib/format";
 import {
   LiyonCard,
@@ -32,6 +32,7 @@ interface Props {
 }
 
 export function DocumentClient({ initialItems, canManage }: Props) {
+  const t = useT();
   const locale = useLocale();
   const [items, setItems] = useState<DocumentDto[]>(initialItems);
   const [isPending, startTransition] = useTransition();
@@ -63,7 +64,7 @@ export function DocumentClient({ initialItems, canManage }: Props) {
     setFormTitle(item.title);
     setFormDocType(item.docType);
     setFormFileUrl(item.fileUrl ?? "");
-    setFormStatus(item.status as "DRAFT" | "PENDING" | "APPROVED" | "REJECTED");
+    setFormStatus(item.status as any);
     setModalOpen(true);
   };
 
@@ -297,7 +298,7 @@ export function DocumentClient({ initialItems, canManage }: Props) {
               <label className="text-xs font-semibold text-slate-700 block mb-1.5">สถานะการอนุมัติ</label>
               <select
                 value={formStatus}
-                onChange={(e) => setFormStatus(e.target.value as "DRAFT" | "PENDING" | "APPROVED" | "REJECTED")}
+                onChange={(e) => setFormStatus(e.target.value as any)}
                 className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
               >
                 <option value="DRAFT">แบบร่าง (Draft)</option>

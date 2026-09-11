@@ -16,7 +16,7 @@ export const MESSAGES = {
   "personnel.createSuccess": { th: "เพิ่มพนักงานสำเร็จ", en: "Employee added successfully" },
   "personnel.updateSuccess": { th: "แก้ไขพนักงานสำเร็จ", en: "Employee updated successfully" },
   "personnel.deleteSuccess": { th: "ลบพนักงานสำเร็จ", en: "Employee deleted successfully" },
-  "roles.module.personnel": { th: "ระบบจัดการบุคลากร", en: "Personnel Management Module" },
-  "perm.personnel:read": { th: "ดูข้อมูลบุคลากร", en: "View Personnel" },
-  "perm.personnel:manage": { th: "จัดการข้อมูลบุคลากร", en: "Manage Personnel" },
+  "roles.module.personnel": { th: "บุคลากร", en: "Personnel" },
+  "perm.personnel.read": { th: "ดูข้อมูลบุคลากร", en: "View personnel" },
+  "perm.personnel.manage": { th: "จัดการบุคลากร", en: "Manage personnel" },
 } as const;

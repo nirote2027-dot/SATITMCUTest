@@ -1,5 +1,6 @@
 import { requirePermission, hasPermission } from "@/features/identity/server";
-import { PERSONNEL_P, listEmployees } from "@/features/personnel/server";
+import { PERSONNEL_P } from "@/features/personnel/permissions";
+import { listEmployees } from "@/features/personnel/server";
 import { PersonnelClient } from "./_components/personnel-client";
 
 export default async function PersonnelPage() {

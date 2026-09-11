@@ -1,5 +1,4 @@
 import { prisma } from "@/shared/lib/infra/prisma";
-import type { Prisma } from "@/generated/prisma";
 import type { CreateEmployeeInput, UpdateEmployeeInput } from "./validations";
 
 export interface EmployeeDto {
@@ -12,7 +11,7 @@ export interface EmployeeDto {
   lastName: string;
   position: string | null;
   imageUrl: string | null;
-  contactInfo: Prisma.JsonValue;
+  contactInfo: any | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -57,7 +56,7 @@ export async function createEmployee(tenantId: string, input: CreateEmployeeInpu
       imageUrl: input.imageUrl ?? null,
       departmentId: input.departmentId,
       userId: input.userId,
-      contactInfo: (input.contactInfo as Prisma.InputJsonValue) ?? undefined,
+      contactInfo: input.contactInfo ?? undefined,
       isActive: input.isActive,
     },
     include: { department: true },
@@ -80,20 +79,6 @@ export async function createEmployee(tenantId: string, input: CreateEmployeeInpu
   };
 }
 
-export async function getEmployee(id: string, tenantId: string): Promise<EmployeeDto | null> {
-  const item = await prisma.employee.findUnique({
-    where: { id, tenantId },
-    include: { department: true },
-  });
-  if (!item) return null;
-  return {
-    ...item,
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
-    department: item.department ? { id: item.department.id, name: item.department.name } : null,
-  };
-}
-
 export async function updateEmployee(tenantId: string, input: UpdateEmployeeInput): Promise<EmployeeDto> {
   const updated = await prisma.employee.update({
     where: { id: input.id, tenantId },
@@ -105,7 +90,7 @@ export async function updateEmployee(tenantId: string, input: UpdateEmployeeInpu
       imageUrl: input.imageUrl !== undefined ? input.imageUrl : undefined,
       departmentId: input.departmentId,
       userId: input.userId,
-      contactInfo: (input.contactInfo as Prisma.InputJsonValue) ?? undefined,
+      contactInfo: input.contactInfo ?? undefined,
       isActive: input.isActive,
     },
     include: { department: true },

@@ -1,35 +1,102 @@
 import { cache } from "react";
 import { prisma, type Db } from "@/shared/lib/infra/prisma";
+import type { Prisma } from "@/generated/prisma";
 import { DEFAULT_PALETTE, isPalette, type PaletteId } from "@/shared/lib/palette";
 import { errors } from "@/shared/lib/errors";
 import { writeAudit } from "../audit";
 import type { UpdateSettingsInput } from "../validations/settings";
 
-export interface TenantSettings { code: string; nameTh: string; nameEn: string; logoUrl: string | null; palette: PaletteId }
+export interface SmtpConfig {
+  [key: string]: unknown;
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  from: string;
+  secure: boolean;
+}
+
+
+export interface TenantSettings {
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  logoUrl: string | null;
+  palette: PaletteId;
+  smtp?: SmtpConfig;
+}
 
 async function readTenantSettings(tenantId: string, db: Db): Promise<TenantSettings> {
   const t = await db.tenant.findUnique({ where: { id: tenantId } });
   if (!t) throw errors.not_found();
-  const p = (t.settings as { palette?: unknown }).palette;
-  return { code: t.code, nameTh: t.nameTh, nameEn: t.nameEn, logoUrl: t.logoUrl, palette: isPalette(p) ? p : DEFAULT_PALETTE };
+  const settings = (t.settings as { palette?: unknown; smtp?: Partial<SmtpConfig> }) || {};
+  const p = settings.palette;
+  const smtpRaw = settings.smtp;
+  const smtp: SmtpConfig | undefined = smtpRaw && (smtpRaw.host || smtpRaw.user) ? {
+    host: smtpRaw.host || "",
+    port: Number(smtpRaw.port) || 465,
+    user: smtpRaw.user || "",
+    pass: smtpRaw.pass || "",
+    from: smtpRaw.from || "",
+    secure: smtpRaw.secure ?? true,
+  } : undefined;
+
+  return { code: t.code, nameTh: t.nameTh, nameEn: t.nameEn, logoUrl: t.logoUrl, palette: isPalette(p) ? p : DEFAULT_PALETTE, smtp };
 }
 
 export async function getTenantSettings(tenantId: string): Promise<TenantSettings> {
   return readTenantSettings(tenantId, prisma);
 }
 
-/** เก็บคีย์อื่น ๆ ใน settings JSON ไว้ทั้งหมด — merge เฉพาะ palette ที่เปลี่ยน ไม่ทับทั้งก้อน */
+/** เก็บคีย์อื่น ๆ ใน settings JSON ไว้ทั้งหมด — merge palette และ smtp ที่เปลี่ยน ไม่ทับทั้งก้อน */
 export async function updateTenantSettings(input: { tenantId: string; actorId: string } & UpdateSettingsInput): Promise<void> {
   await prisma.$transaction(async (tx) => {
     // อ่านผ่าน tx เดียวกัน ไม่ใช่ client กลาง — ไม่งั้นทรานแซกชันนี้กินคอนเนกชันจากพูลเพิ่มอีกเส้นเพื่ออ่าน
     // ค่าเดิม และค่าที่อ่านได้ก็อยู่นอกสแนปช็อตของทรานแซกชัน (ค่า before ของ audit อาจไม่ตรงกับที่กำลังจะทับ)
     const before = await readTenantSettings(input.tenantId, tx);
     const t = await tx.tenant.findUniqueOrThrow({ where: { id: input.tenantId }, select: { settings: true } });
+    const currentSettings = (t.settings as { palette?: unknown; smtp?: Partial<SmtpConfig> }) || {};
+
+    let smtp: SmtpConfig | undefined = undefined;
+    if (input.smtpHost || input.smtpUser) {
+      // หากไม่ได้กรอกรหัสผ่านใหม่ ให้ใช้รหัสผ่านเดิมถ้ามี
+      const pass = input.smtpPass ? input.smtpPass : (currentSettings.smtp?.pass || "");
+      smtp = {
+        host: input.smtpHost,
+        port: input.smtpPort,
+        user: input.smtpUser,
+        pass,
+        from: input.smtpFrom || input.smtpUser,
+        secure: input.smtpSecure,
+      };
+    }
+
+    const nextSettings = {
+      ...currentSettings,
+      palette: input.palette,
+      smtp,
+    };
+
     await tx.tenant.update({
       where: { id: input.tenantId },
-      data: { nameTh: input.nameTh, nameEn: input.nameEn, logoUrl: input.logoUrl || null, settings: { ...(t.settings as object), palette: input.palette } },
+      data: {
+        nameTh: input.nameTh,
+        nameEn: input.nameEn,
+        logoUrl: input.logoUrl || null,
+        settings: nextSettings as Prisma.InputJsonValue,
+      },
     });
-    await writeAudit({ tenantId: input.tenantId, actorId: input.actorId, action: "tenant.settings_update", entity: "tenant", entityId: input.tenantId, before, after: input }, tx);
+
+    const sanitizedBefore = {
+      ...before,
+      smtp: before.smtp ? { ...before.smtp, pass: before.smtp.pass ? "********" : "" } : undefined,
+    };
+    const sanitizedAfter = {
+      ...input,
+      smtpPass: input.smtpPass ? "********" : (currentSettings.smtp?.pass ? "********" : ""),
+    };
+
+    await writeAudit({ tenantId: input.tenantId, actorId: input.actorId, action: "tenant.settings_update", entity: "tenant", entityId: input.tenantId, before: sanitizedBefore, after: sanitizedAfter }, tx);
   });
 }
 
