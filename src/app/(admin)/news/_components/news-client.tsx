@@ -18,6 +18,7 @@ import {
 } from "@/shared/components/liyon";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { TinyEditor } from "@/components/ui/tiny-editor";
 import type { ArticleDto } from "@/features/news/server";
 import {
   createArticleAction,
@@ -200,7 +201,11 @@ export function NewsClient({ initialItems, canManage }: Props) {
               <span className="italic">{row.titleEn}</span>
             </div>
           )}
-          {row.content && <div className="text-xs text-slate-500 line-clamp-1">{row.content}</div>}
+          {row.content && (
+            <div className="text-xs text-slate-500 line-clamp-1">
+              {row.content.replace(/<[^>]*>/g, "").trim()}
+            </div>
+          )}
         </div>
       ),
     },
@@ -230,7 +235,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
             <Newspaper className="w-6 h-6 text-blue-600" /> ระบบจัดการข่าวสารประชาสัมพันธ์
           </h1>
           <p className="text-sm text-muted-foreground">
-            เพิ่ม แก้ไข ลบ และแปลข่าวสาร 2 ภาษา (ไทย - อังกฤษ) พร้อมระบบ AI อัจฉริยะ
+            เพิ่ม แก้ไข ลบ และแปลข่าวสาร 2 ภาษา (ไทย - อังกฤษ) พร้อมระบบ AI อัจฉริยะ และเครื่องมือจัดรูปแบบข้อความ Tiny Editor
           </p>
         </div>
         {canManage && (
@@ -275,10 +280,10 @@ export function NewsClient({ initialItems, canManage }: Props) {
       </LiyonCard>
 
       {/* Add / Edit Dialog */}
-      <LiyonDialog open={modalOpen} onOpenChange={setModalOpen}>
+      <LiyonDialog open={modalOpen} onOpenChange={setModalOpen} wide>
         <LiyonDialogHeader
           title={editingItem ? "แก้ไขข่าวประชาสัมพันธ์ (2 ภาษา)" : "เพิ่มข่าวประชาสัมพันธ์ใหม่ (2 ภาษา)"}
-          description="กรอกข้อมูลภาษาไทย แล้วกดปุ่มแปลภาษาด้วย Google Gemini AI สู่ภาษาอังกฤษโดยอัตโนมัติ"
+          description="กรอกข้อมูลและจัดรูปแบบด้วย Tiny Editor แล้วกดปุ่มแปลภาษาด้วย Google Gemini AI สู่ภาษาอังกฤษโดยอัตโนมัติ"
         />
         <LiyonDialogBody>
           <div className="space-y-4 py-2">
@@ -293,7 +298,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
                     ผู้ช่วยแปลภาษา AI (Google Gemini)
                   </div>
                   <div className="text-[11px] text-slate-600">
-                    แปลหัวข้อและเนื้อหาจากภาษาไทยเป็นภาษาอังกฤษสละสลวยอัตโนมัติ
+                    แปลหัวข้อและเนื้อหาจากภาษาไทยเป็นภาษาอังกฤษสละสลวยอัตโนมัติ พร้อมคงรูปแบบข้อความ
                   </div>
                 </div>
               </div>
@@ -364,15 +369,15 @@ export function NewsClient({ initialItems, canManage }: Props) {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-                    เนื้อหาข่าวสารภาษาไทย
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5 flex items-center justify-between">
+                    <span>เนื้อหาข่าวสารภาษาไทย (Tiny Editor) <span className="text-red-500">*</span></span>
+                    <span className="text-[11px] text-blue-600 font-normal">จัดรูปแบบตัวอักษร, หัวข้อ, ตาราง, ลิงก์</span>
                   </label>
-                  <textarea
+                  <TinyEditor
                     value={formContent}
-                    onChange={(e) => setFormContent(e.target.value)}
-                    placeholder="เขียนรายละเอียดเนื้อหาข่าวภาษาไทย..."
-                    rows={4}
-                    className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    onChange={setFormContent}
+                    placeholder="พิมพ์หรือจัดรูปแบบเนื้อหาข่าวภาษาไทยที่นี่..."
+                    height={280}
                   />
                 </div>
               </div>
@@ -396,15 +401,14 @@ export function NewsClient({ initialItems, canManage }: Props) {
 
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1.5 flex items-center justify-between">
-                    <span>News Content & Body (English)</span>
-                    <span className="text-[11px] text-slate-400 font-normal">Translated or custom</span>
+                    <span>News Content & Body (English - Tiny Editor)</span>
+                    <span className="text-[11px] text-indigo-600 font-normal">Translated or custom rich text</span>
                   </label>
-                  <textarea
+                  <TinyEditor
                     value={formContentEn}
-                    onChange={(e) => setFormContentEn(e.target.value)}
-                    placeholder="Enter English news body or generate using Gemini..."
-                    rows={4}
-                    className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                    onChange={setFormContentEn}
+                    placeholder="Enter or format English news content here..."
+                    height={280}
                   />
                 </div>
               </div>

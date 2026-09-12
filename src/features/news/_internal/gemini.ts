@@ -12,7 +12,7 @@ export async function translateNewsWithGemini(params: {
 
   const prompt = `You are a professional bilingual translator and content editor for an academic institution / school news portal.
 Translate and polish the following Thai news headline and content into natural, professional English.
-Preserve the tone, formatting, and key facts.
+Preserve the tone, key facts, and any HTML formatting tags (such as <p>, <strong>, <em>, <u>, <ul>, <ol>, <li>, <table>, <h3>, <h4>, <a>, etc.) if present in the content.
 
 Thai Title:
 ${titleTh}
@@ -23,7 +23,7 @@ ${contentTh || "(ไม่มีเนื้อหาข่าว)"}
 Respond ONLY with a valid JSON object in this exact schema:
 {
   "titleEn": "English translated title",
-  "contentEn": "English translated content"
+  "contentEn": "English translated content (preserve HTML tags if present)"
 }
 Do not include any extra text outside the JSON object.`;
 
