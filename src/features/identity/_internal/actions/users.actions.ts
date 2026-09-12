@@ -6,7 +6,7 @@ import { env } from "@/shared/lib/infra/env";
 import { prisma } from "@/shared/lib/infra/prisma";
 import { P } from "../../permissions";
 import { requirePermission } from "../rbac";
-import { listUsersQuerySchema, createUserSchema, updateUserSchema, setUserActiveSchema, issuePasswordLinkSchema, requestEmailChangeSchema } from "../validations/users";
+import { listUsersQuerySchema, createUserSchema, updateUserSchema, setUserActiveSchema, issuePasswordLinkSchema, requestEmailChangeSchema, importUsersSchema } from "../validations/users";
 import * as svc from "../services/user.service";
 
 const em = async () => ({ error: zodErrorMap(await getLocale()) });
@@ -71,4 +71,19 @@ export async function requestEmailChangeAction(input: unknown): Promise<ActionRe
 
 export async function confirmEmailChangeAction(token: string): Promise<ActionResult<boolean>> {
   return runAction(() => svc.confirmEmailChange(token));
+}
+
+export async function exportUsersAction(): Promise<ActionResult<any[]>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(P.usersRead);
+    return svc.exportAllUsers(ctx.tenantId);
+  });
+}
+
+export async function importUsersAction(input: unknown): Promise<ActionResult<{ total: number; successCount: number; failureCount: number; results: any[] }>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(P.usersManage);
+    const data = importUsersSchema.parse(input, await em());
+    return svc.importUsers({ ...actorOf(ctx), ...data });
+  });
 }

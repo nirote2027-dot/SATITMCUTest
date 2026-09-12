@@ -50,6 +50,8 @@ export const MESSAGES: Dictionary = {
   "users.title": { th: "ผู้ใช้งาน", en: "Users" },
   "users.listTitle": { th: "รายชื่อผู้ใช้", en: "User list" },
   "users.addBtn": { th: "เพิ่มผู้ใช้", en: "Add user" },
+  "users.importBtn": { th: "นำเข้า CSV", en: "Import CSV" },
+  "users.exportBtn": { th: "ส่งออก CSV", en: "Export CSV" },
   "users.searchPh": { th: "ค้นหาชื่อหรืออีเมล...", en: "Search name or email..." },
   "users.total": { th: "ทั้งหมด {n} คน", en: "{n} total" },
   "users.empty": { th: "ยังไม่มีผู้ใช้", en: "No users yet" },

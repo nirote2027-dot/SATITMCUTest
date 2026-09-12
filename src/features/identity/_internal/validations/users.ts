@@ -43,7 +43,20 @@ export const setUserActiveSchema = z.object({ userId: z.string().uuid(), isActiv
 export const issuePasswordLinkSchema = z.object({ userId: z.string().uuid() });
 export const requestEmailChangeSchema = z.object({ userId: z.string().uuid(), newEmail: emailSchema });
 
+export const importUserItemSchema = z.object({
+  name: z.string().trim().min(1, "name_required").max(255),
+  email: emailSchema,
+  roleCode: z.string().trim().min(1, "role_required"),
+  password: z.string().min(8, "password_min_8").max(128).optional().nullable(),
+});
+
+export const importUsersSchema = z.object({
+  users: z.array(importUserItemSchema).min(1, "at_least_one_user"),
+});
+
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
 export type RoleAssignment = z.infer<typeof roleAssignmentSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type ImportUserItem = z.infer<typeof importUserItemSchema>;
+export type ImportUsersInput = z.infer<typeof importUsersSchema>;

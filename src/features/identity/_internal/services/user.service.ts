@@ -8,7 +8,8 @@ import { SUPER_ADMIN_CODE } from "../../permissions";
 import { issueToken, consumeToken, TOKEN_TTL } from "../tokens";
 import { writeAudit } from "../audit";
 import { passwordSetupEmail, emailChangeEmail } from "../email-templates";
-import type { ListUsersQuery, RoleAssignment } from "../validations/users";
+import { hashPassword } from "@/shared/lib/security/password";
+import type { ListUsersQuery, RoleAssignment, ImportUsersInput } from "../validations/users";
 import type { ScopeType } from "../grants";
 
 export interface UserListItem {
@@ -197,4 +198,127 @@ export async function confirmEmailChange(raw: string): Promise<boolean> {
     }
   });
   return true;
+}
+
+export async function exportAllUsers(tenantId: string) {
+  const rows = await prisma.userTenant.findMany({
+    where: { tenantId },
+    orderBy: { user: { name: "asc" } },
+    include: {
+      user: true,
+      userRoles: { select: roleSelect },
+    },
+  });
+
+  return rows.map((r) => ({
+    id: r.user.id,
+    name: r.user.name,
+    email: r.user.email,
+    isActive: r.isActive && r.user.isActive,
+    roles: r.userRoles.map((ur) => ur.role.code).join(", "),
+    rolesDetail: r.userRoles.map((ur) => ur.role.nameTh || ur.role.nameEn || ur.role.code).join(", "),
+    lastLoginAt: r.user.lastLoginAt ? r.user.lastLoginAt.toISOString() : null,
+    createdAt: r.user.createdAt.toISOString(),
+  }));
+}
+
+export async function importUsers(input: Actor & ImportUsersInput) {
+  // ดึง roles ทั้งหมดใน tenant
+  const tenantRoles = await prisma.role.findMany({
+    where: { tenantId: input.tenantId },
+    select: { id: true, code: true, rolePermissions: { select: { permission: { select: { code: true } } } } },
+  });
+  const roleMap = new Map(tenantRoles.map((r) => [r.code.toUpperCase(), r]));
+
+  // ตรวจสอบสิทธิ์ผู้กระทำ: ถ้าไม่ใช่ Super Admin ห้ามมอบ SUPER_ADMIN หรือสิทธิ์ที่ตัวเองไม่มี
+  const isSuperAdmin = input.isSuperAdmin;
+  const heldPermissions = new Set(input.permissions);
+
+  const results: { email: string; name: string; success: boolean; error?: string }[] = [];
+
+  for (const item of input.users) {
+    const email = item.email.toLowerCase();
+    const roleCode = item.roleCode.toUpperCase();
+    const targetRole = roleMap.get(roleCode);
+
+    if (!targetRole) {
+      results.push({ email, name: item.name, success: false, error: `ไม่พบบทบาท ${item.roleCode} ในระบบ` });
+      continue;
+    }
+
+    if (!isSuperAdmin) {
+      if (targetRole.code === SUPER_ADMIN_CODE) {
+        results.push({ email, name: item.name, success: false, error: "ไม่มีสิทธิ์กำหนดบทบาท SUPER_ADMIN" });
+        continue;
+      }
+      const unheld = targetRole.rolePermissions.some((rp) => !heldPermissions.has(rp.permission.code));
+      if (unheld) {
+        results.push({ email, name: item.name, success: false, error: `ไม่มีสิทธิ์มอบบทบาท ${roleCode} ที่มีสิทธิ์เกินตัว` });
+        continue;
+      }
+    }
+
+    // ตรวจสอบว่ามีอีเมลนี้อยู่แล้วหรือไม่
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      results.push({ email, name: item.name, success: false, error: "อีเมลนี้มีอยู่ในระบบแล้ว" });
+      continue;
+    }
+
+    try {
+      const passwordHash = item.password ? await hashPassword(item.password) : null;
+      await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email,
+            name: item.name,
+            passwordHash,
+            mustChangePassword: !item.password,
+          },
+        });
+        const ut = await tx.userTenant.create({
+          data: {
+            userId: user.id,
+            tenantId: input.tenantId,
+          },
+        });
+        await tx.userRole.create({
+          data: {
+            userTenantId: ut.id,
+            roleId: targetRole.id,
+            scopeType: "ALL",
+            scopeId: null,
+          },
+        });
+        if (!passwordHash) {
+          await issueToken({ userId: user.id, purpose: "PASSWORD_RESET", ttlMs: TOKEN_TTL.PASSWORD_SETUP }, tx);
+        }
+        await writeAudit(
+          {
+            tenantId: input.tenantId,
+            actorId: input.actorId,
+            action: "user.import",
+            entity: "user",
+            entityId: user.id,
+            after: { email, name: item.name, role: roleCode },
+          },
+          tx
+        );
+      });
+      results.push({ email, name: item.name, success: true });
+    } catch (err: any) {
+      logger.error("import user failed", { email, err: err?.message });
+      results.push({ email, name: item.name, success: false, error: err?.message || "บันทึกข้อมูลไม่สำเร็จ" });
+    }
+  }
+
+  const successCount = results.filter((r) => r.success).length;
+  const failureCount = results.length - successCount;
+
+  return {
+    total: results.length,
+    successCount,
+    failureCount,
+    results,
+  };
 }
