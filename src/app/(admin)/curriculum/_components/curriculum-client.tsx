@@ -19,6 +19,9 @@ import {
   Briefcase,
   CheckCircle2,
   HelpCircle,
+  Download,
+  Upload,
+  FileCode,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -137,6 +140,90 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
   const [formIsActive, setFormIsActive] = useState<string>("true");
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportJson = () => {
+    const curriculumData = {
+      code: formCode,
+      name: formName,
+      nameEn: formNameEn,
+      degreeLevel: formDegreeLevel,
+      degreeNameTh: formDegreeNameTh,
+      degreeNameEn: formDegreeNameEn,
+      curriculumYear: formCurriculumYear,
+      departmentId: formDepartmentId || null,
+      durationYears: Number(formDurationYears) || 4,
+      totalCredits: Number(formTotalCredits) || 0,
+      geCredits: formGeCredits !== "" ? Number(formGeCredits) : null,
+      majorCredits: formMajorCredits !== "" ? Number(formMajorCredits) : null,
+      electiveCredits: formElectiveCredits !== "" ? Number(formElectiveCredits) : null,
+      philosophy: formPhilosophy,
+      objectives: formObjectives,
+      careerProspects: formCareerProspects,
+      description: formDescription,
+      imageUrl: formImageUrl,
+      pdfUrl: formPdfUrl,
+      isActive: formIsActive === "true",
+      exportedAt: new Date().toISOString(),
+    };
+
+    const jsonString = JSON.stringify(curriculumData, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const safeCode = (formCode || "curriculum").replace(/[^a-zA-Z0-9_-]/g, "_");
+    link.href = url;
+    link.setAttribute("download", `curriculum_${safeCode}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("ส่งออกข้อมูลหลักสูตรเป็น JSON เรียบร้อยแล้ว");
+  };
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const data = JSON.parse(text);
+
+        if (typeof data !== "object" || data === null) {
+          throw new Error("รูปแบบไฟล์ JSON ไม่ถูกต้อง");
+        }
+
+        if (data.code !== undefined) setFormCode(String(data.code));
+        if (data.name !== undefined) setFormName(String(data.name));
+        if (data.nameEn !== undefined) setFormNameEn(String(data.nameEn ?? ""));
+        if (data.degreeLevel !== undefined) setFormDegreeLevel(String(data.degreeLevel));
+        if (data.degreeNameTh !== undefined) setFormDegreeNameTh(String(data.degreeNameTh ?? ""));
+        if (data.degreeNameEn !== undefined) setFormDegreeNameEn(String(data.degreeNameEn ?? ""));
+        if (data.curriculumYear !== undefined) setFormCurriculumYear(String(data.curriculumYear ?? ""));
+        if (data.departmentId !== undefined) setFormDepartmentId(String(data.departmentId ?? ""));
+        if (data.durationYears !== undefined) setFormDurationYears(data.durationYears ?? 4);
+        if (data.totalCredits !== undefined) setFormTotalCredits(data.totalCredits ?? 0);
+        if (data.geCredits !== undefined) setFormGeCredits(data.geCredits ?? "");
+        if (data.majorCredits !== undefined) setFormMajorCredits(data.majorCredits ?? "");
+        if (data.electiveCredits !== undefined) setFormElectiveCredits(data.electiveCredits ?? "");
+        if (data.philosophy !== undefined) setFormPhilosophy(String(data.philosophy ?? ""));
+        if (data.objectives !== undefined) setFormObjectives(String(data.objectives ?? ""));
+        if (data.careerProspects !== undefined) setFormCareerProspects(String(data.careerProspects ?? ""));
+        if (data.description !== undefined) setFormDescription(String(data.description ?? ""));
+        if (data.imageUrl !== undefined) setFormImageUrl(String(data.imageUrl ?? ""));
+        if (data.pdfUrl !== undefined) setFormPdfUrl(String(data.pdfUrl ?? ""));
+        if (data.isActive !== undefined) setFormIsActive(data.isActive ? "true" : "false");
+
+        toast.success("นำเข้าข้อมูลหลักสูตรจาก JSON เรียบร้อยแล้ว");
+      } catch (err: any) {
+        toast.error("ไม่สามารถอ่านไฟล์ JSON ได้: " + (err?.message || "รูปแบบไม่ถูกต้อง"));
+      } finally {
+        if (jsonInputRef.current) jsonInputRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const openCreateDialog = () => {
     setEditingItem(null);
@@ -552,56 +639,91 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
         />
         <LiyonDialogBody>
           <div className="space-y-4 py-1">
-            {/* Tab Navigation */}
-            <div className="flex border-b border-border/60 gap-2 overflow-x-auto text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setActiveTab("general")}
-                className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === "general"
-                    ? "border-primary text-primary font-bold"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                1. ข้อมูลทั่วไป
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("credits")}
-                className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === "credits"
-                    ? "border-primary text-primary font-bold"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Award className="w-3.5 h-3.5" />
-                2. หน่วยกิตและระยะเวลา
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("highlights")}
-                className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === "highlights"
-                    ? "border-primary text-primary font-bold"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Briefcase className="w-3.5 h-3.5" />
-                3. ปรัชญาและอาชีพ
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("media")}
-                className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === "media"
-                    ? "border-primary text-primary font-bold"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                4. เอกสาร มคอ. 2 และสถานะ
-              </button>
+            {/* Tab Navigation and JSON Import/Export */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border/60 pb-1 gap-2">
+              <div className="flex gap-2 overflow-x-auto text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("general")}
+                  className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    activeTab === "general"
+                      ? "border-primary text-primary font-bold"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  1. ข้อมูลทั่วไป
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("credits")}
+                  className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    activeTab === "credits"
+                      ? "border-primary text-primary font-bold"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5" />
+                  2. หน่วยกิตและระยะเวลา
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("highlights")}
+                  className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    activeTab === "highlights"
+                      ? "border-primary text-primary font-bold"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
+                  3. ปรัชญาและอาชีพ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("media")}
+                  className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    activeTab === "media"
+                      ? "border-primary text-primary font-bold"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  4. เอกสารและสื่อ
+                </button>
+              </div>
+
+              {/* JSON Import/Export Actions */}
+              <div className="flex items-center gap-1.5 self-end sm:self-auto mb-1">
+                <input
+                  ref={jsonInputRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleImportJson}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => jsonInputRef.current?.click()}
+                  className="h-7 text-[11px] px-2 gap-1"
+                  title="นำเข้าข้อมูลจากไฟล์ JSON มากรอกลงในฟอร์มนี้"
+                >
+                  <Upload className="w-3 h-3 text-primary" />
+                  <span>Import JSON</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportJson}
+                  className="h-7 text-[11px] px-2 gap-1"
+                  title="ดาวน์โหลดข้อมูลหลักสูตรนี้ออกไปเป็นไฟล์ JSON"
+                >
+                  <Download className="w-3 h-3 text-primary" />
+                  <span>Export JSON</span>
+                </Button>
+              </div>
             </div>
 
             {/* TAB 1: General Info */}

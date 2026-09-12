@@ -15,7 +15,7 @@ async function main() {
 
   // Step 2: Git Add
   console.log("\n📁 สเต็ปที่ 2: เตรียมไฟล์สำหรับ Git Commit...");
-  execSync("git add prisma/database_backup.sql package.json scripts/", { stdio: "inherit" });
+  execSync("git add -A", { stdio: "inherit" });
 
   // Check if any changes to commit
   const statusOutput = execSync("git status --porcelain", { encoding: "utf-8" }).trim();
