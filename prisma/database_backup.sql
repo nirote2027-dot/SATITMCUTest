@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict NCX3549oLHsatXmkQmT4V2lVfTeekd23Adc4Cv2ogBCzLmlrRYS7OnfLjAxHENf
+\restrict t1VjGl69UIL7xo4fknDcwI89gSpFRqj7QQ6RCuscAUrP2gX31BQoG4Lh7uui2Ps
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -676,6 +676,11 @@ eb5425f2-f80a-452d-b907-bf101403a0fe	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca
 6fa2c261-09c8-440f-bdf7-5fb2fa6532cf	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca42-7399-4354-bb6b-f9b75deb9829	tenant.settings_update	tenant	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	{"code": "DEMO", "nameEn": "Sample Organization", "nameTh": "องค์กรตัวอย่าง", "logoUrl": "/uploads/cfd0ca66-3918-4fd8-aeaf-73bc0a81479a.jpg", "palette": "blue"}	{"nameEn": "Sample Organization", "nameTh": "องค์กรตัวอย่าง", "actorId": "e665ca42-7399-4354-bb6b-f9b75deb9829", "logoUrl": "/uploads/d4f85d59-3252-4527-abe9-66982ada3054.jpg", "palette": "blue", "tenantId": "f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d"}	\N	2026-09-11 03:21:22.517+07
 f75b233c-dd2d-4eef-bede-628dcfc66489	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca42-7399-4354-bb6b-f9b75deb9829	tenant.settings_update	tenant	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	{"code": "DEMO", "smtp": {"from": "นิโรจน์ วงศ์เมืองแก่น <hero2027@gmail.com>", "host": "smtp.gmail.com", "pass": "********", "port": 465, "user": "hero2027@gmail.com", "secure": true}, "nameEn": "Sample Organization", "nameTh": "องค์กรตัวอย่าง", "logoUrl": "/uploads/d4f85d59-3252-4527-abe9-66982ada3054.jpg", "palette": "blue"}	{"nameEn": "Sample Organization", "nameTh": "องค์กรตัวอย่าง", "actorId": "e665ca42-7399-4354-bb6b-f9b75deb9829", "logoUrl": "/uploads/d4f85d59-3252-4527-abe9-66982ada3054.jpg", "palette": "blue", "smtpFrom": "นิโรจน์ วงศ์เมืองแก่น <hero2027@gmail.com>", "smtpHost": "smtp.gmail.com", "smtpPass": "********", "smtpPort": 465, "smtpUser": "hero2027@gmail.com", "tenantId": "f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d", "smtpSecure": true}	\N	2026-09-11 09:40:35.85+07
 b2688458-7bd1-4815-83ec-3737b553e181	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca42-7399-4354-bb6b-f9b75deb9829	tenant.settings_update	tenant	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	{"code": "DEMO", "smtp": {"from": "นิโรจน์ วงศ์เมืองแก่น <hero2027@gmail.com>", "host": "smtp.gmail.com", "pass": "********", "port": 465, "user": "hero2027@gmail.com", "secure": true}, "nameEn": "Sample Organization", "nameTh": "องค์กรตัวอย่าง", "logoUrl": "/uploads/d4f85d59-3252-4527-abe9-66982ada3054.jpg", "palette": "blue"}	{"nameEn": "SATIT MCU", "nameTh": "โรงเรียนสาธิตมหาวิทยาลัยมหาจุฬาลงกรณราชวิทยาลัย", "actorId": "e665ca42-7399-4354-bb6b-f9b75deb9829", "logoUrl": "/uploads/d4f85d59-3252-4527-abe9-66982ada3054.jpg", "palette": "blue", "smtpFrom": "นิโรจน์ วงศ์เมืองแก่น <hero2027@gmail.com>", "smtpHost": "smtp.gmail.com", "smtpPass": "********", "smtpPort": 465, "smtpUser": "hero2027@gmail.com", "tenantId": "f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d", "smtpSecure": true}	\N	2026-09-11 09:52:39.656+07
+b36f6538-5c02-4d5e-a22a-72cddcabd974	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca42-7399-4354-bb6b-f9b75deb9829	user.import	user	e56ff9bd-eee2-46f7-9969-b822fe0cbe7a	\N	{"name": "สมชาย ใจดี", "role": "STAFF", "email": "somchai@satit.mcu.ac.th"}	\N	2026-09-12 07:21:20.405+07
+ee352926-07bf-4dc4-a282-496c5f3edeef	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca42-7399-4354-bb6b-f9b75deb9829	user.import	user	f83eae06-3b6c-47a4-ad26-4a6350d2f22a	\N	{"name": "สมศรี รักเรียน", "role": "VIEWER", "email": "somsri@satit.mcu.ac.th"}	\N	2026-09-12 07:21:20.854+07
+5d13befc-a6d1-4ba9-82f4-00a43cd4ce53	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca42-7399-4354-bb6b-f9b75deb9829	user.import	user	b9b589e5-8938-478b-a419-9e32a492b658	\N	{"name": "อาจารย์อรรถพล จอมมงคล", "role": "SUPER_ADMIN", "email": "raysfksjfk@gmail.com"}	\N	2026-09-12 07:21:21.338+07
+40cac429-a79b-4853-80a9-f288f8498aa1	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca42-7399-4354-bb6b-f9b75deb9829	user.import	user	19ff7a93-fc4c-4265-8ecb-e75d0e9b1a6f	\N	{"name": "อาจารย์นิโรจน์ วงศ์เมืองแก่น", "role": "SUPER_ADMIN", "email": "raysf5jfk@gmail.com"}	\N	2026-09-12 07:21:21.825+07
+820a6ba6-70b5-42ff-aa74-cc058e1e2efa	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	e665ca42-7399-4354-bb6b-f9b75deb9829	user.import	user	e6631061-fa77-4f80-ba43-e35cf6e918e7	\N	{"name": "พระมหาศุภชัย สุญาโณ", "role": "STAFF", "email": "raysf5t53tksjfk@gmail.com"}	\N	2026-09-12 07:21:22.318+07
 \.
 
 
@@ -852,6 +857,11 @@ a4779226-6759-47f6-83e6-515d466b4c9c	93fd897b-6104-4d1d-8517-0d1483bb6012	ebd754
 2aa17365-c816-4308-99f9-81fc01ae2f35	7e89299c-ba7c-42a3-b6e2-1d723159b863	f38b3726-0965-45a9-be72-ad64d45f3d84	ALL	\N	2026-09-12 06:29:05.944+07
 b1667a14-440c-4140-bbca-40da32cb26b6	a40a8c4a-0d66-40aa-8b9d-cd4b6c418b95	f38b3726-0965-45a9-be72-ad64d45f3d84	ALL	\N	2026-09-12 06:29:05.953+07
 5d828793-a865-42bd-ad08-25c2eb01eafe	1dcbaee2-a971-45a6-a0bc-c03f21b479dd	f38b3726-0965-45a9-be72-ad64d45f3d84	ALL	\N	2026-09-12 06:29:05.962+07
+c5ea32fc-b1f6-4b0b-8ef1-7bdea2130491	dd9f83fa-edd7-4c27-ae81-8dfe9effaf7f	ebd7540d-85a6-4c76-8669-70548b089a9a	ALL	\N	2026-09-12 07:21:20.4+07
+5815501b-a50d-4a4f-abb5-3fa2ac673d4c	867e50af-caa0-43c2-8ee8-95987afb5ed0	f38b3726-0965-45a9-be72-ad64d45f3d84	ALL	\N	2026-09-12 07:21:20.85+07
+841f49a5-092f-4c5a-9a0f-66fcb529155c	46959b0e-b7df-4aeb-afae-eb1a235a0b87	1239ae04-41ee-458e-a62c-c9f58d054471	ALL	\N	2026-09-12 07:21:21.336+07
+ca6590e5-e55b-4e64-8ff2-7716a21f8a1d	b711b76b-0228-4bf8-99f9-c501dd927c79	1239ae04-41ee-458e-a62c-c9f58d054471	ALL	\N	2026-09-12 07:21:21.821+07
+fec5018f-765f-423e-9db8-3d5d77e8d89f	b95caba8-8260-40e4-8b01-91cbf26e84b4	ebd7540d-85a6-4c76-8669-70548b089a9a	ALL	\N	2026-09-12 07:21:22.316+07
 \.
 
 
@@ -865,6 +875,11 @@ COPY public.user_tenants (id, user_id, tenant_id, is_active, joined_at) FROM std
 7e89299c-ba7c-42a3-b6e2-1d723159b863	12c57d95-e477-4b06-8bea-4ded5ff977b8	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	t	2026-09-11 03:08:15.43+07
 a40a8c4a-0d66-40aa-8b9d-cd4b6c418b95	b01e1fd7-3453-4258-b69e-df3ae3dfd969	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	t	2026-09-11 03:08:15.44+07
 1dcbaee2-a971-45a6-a0bc-c03f21b479dd	e6e81291-4275-423e-9825-ef10dd12949e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	t	2026-09-11 03:08:15.45+07
+dd9f83fa-edd7-4c27-ae81-8dfe9effaf7f	e56ff9bd-eee2-46f7-9969-b822fe0cbe7a	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	t	2026-09-12 07:21:20.391+07
+867e50af-caa0-43c2-8ee8-95987afb5ed0	f83eae06-3b6c-47a4-ad26-4a6350d2f22a	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	t	2026-09-12 07:21:20.846+07
+46959b0e-b7df-4aeb-afae-eb1a235a0b87	b9b589e5-8938-478b-a419-9e32a492b658	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	t	2026-09-12 07:21:21.334+07
+b711b76b-0228-4bf8-99f9-c501dd927c79	19ff7a93-fc4c-4265-8ecb-e75d0e9b1a6f	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	t	2026-09-12 07:21:21.819+07
+b95caba8-8260-40e4-8b01-91cbf26e84b4	e6631061-fa77-4f80-ba43-e35cf6e918e7	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	t	2026-09-12 07:21:22.312+07
 \.
 
 
@@ -873,11 +888,16 @@ a40a8c4a-0d66-40aa-8b9d-cd4b6c418b95	b01e1fd7-3453-4258-b69e-df3ae3dfd969	f6a68b
 --
 
 COPY public.users (id, email, password_hash, name, image_url, provider, provider_id, email_verified, is_active, must_change_password, locale, last_login_at, created_at, updated_at) FROM stdin;
-e665ca42-7399-4354-bb6b-f9b75deb9829	admin@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	ผู้ดูแลสูงสุด (Admin)	\N	credentials	\N	t	t	f	th	2026-09-12 04:21:16.465+07	2026-09-11 03:08:15.394+07	2026-09-12 06:29:05.878+07
 d4af3c39-9cd8-4db8-9eae-81896f979d24	staff@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	เจ้าหน้าที่ฝ่ายวิชาการ	\N	credentials	\N	t	t	f	\N	\N	2026-09-11 03:08:15.417+07	2026-09-12 06:29:05.927+07
 12c57d95-e477-4b06-8bea-4ded5ff977b8	viewer@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	อาจารย์ผู้สอน	\N	credentials	\N	t	t	f	\N	\N	2026-09-11 03:08:15.426+07	2026-09-12 06:29:05.937+07
 b01e1fd7-3453-4258-b69e-df3ae3dfd969	lockme@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	บัญชีทดสอบล็อก	\N	credentials	\N	t	t	f	\N	\N	2026-09-11 03:08:15.437+07	2026-09-12 06:29:05.947+07
 e6e81291-4275-423e-9825-ef10dd12949e	forced@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	บัญชีบังคับเปลี่ยนรหัส	\N	credentials	\N	t	t	t	\N	\N	2026-09-11 03:08:15.447+07	2026-09-12 06:29:05.956+07
+e665ca42-7399-4354-bb6b-f9b75deb9829	admin@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	ผู้ดูแลสูงสุด (Admin)	\N	credentials	\N	t	t	f	th	2026-09-12 06:53:36.517+07	2026-09-11 03:08:15.394+07	2026-09-12 06:53:36.519+07
+e56ff9bd-eee2-46f7-9969-b822fe0cbe7a	somchai@satit.mcu.ac.th	$2b$12$JPQ8.OAKPF34IkMV9Q/LpuAlppqcqX60R2f97UKi8Y3ugoeCjbPKq	สมชาย ใจดี	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:20.387+07	2026-09-12 07:21:20.387+07
+f83eae06-3b6c-47a4-ad26-4a6350d2f22a	somsri@satit.mcu.ac.th	$2b$12$X35EajqrkzP3JXa4RaHs3utWumtuKvY0W849ygghmOtjCNp/Nkwpi	สมศรี รักเรียน	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:20.843+07	2026-09-12 07:21:20.843+07
+b9b589e5-8938-478b-a419-9e32a492b658	raysfksjfk@gmail.com	$2b$12$6wHlI2qmvY0OR081EY.Lq.Hc.vLY.ye3K5lnDKnpJPBWltDCx5DU2	อาจารย์อรรถพล จอมมงคล	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:21.329+07	2026-09-12 07:21:21.329+07
+19ff7a93-fc4c-4265-8ecb-e75d0e9b1a6f	raysf5jfk@gmail.com	$2b$12$xDmcOQ5PLlnBFXeKtYt.Be9E/4KGW0rPun7vca3Z.NBHqJzUxD9D.	อาจารย์นิโรจน์ วงศ์เมืองแก่น	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:21.817+07	2026-09-12 07:21:21.817+07
+e6631061-fa77-4f80-ba43-e35cf6e918e7	raysf5t53tksjfk@gmail.com	$2b$12$JOMeTa8prxKL3K4uzucsbeg6g4gX9QvXhIF1Wn.keu7j1bHXNOeo.	พระมหาศุภชัย สุญาโณ	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:22.308+07	2026-09-12 07:21:22.308+07
 \.
 
 
@@ -1511,5 +1531,5 @@ ALTER TABLE ONLY public.user_tenants
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NCX3549oLHsatXmkQmT4V2lVfTeekd23Adc4Cv2ogBCzLmlrRYS7OnfLjAxHENf
+\unrestrict t1VjGl69UIL7xo4fknDcwI89gSpFRqj7QQ6RCuscAUrP2gX31BQoG4Lh7uui2Ps
 
