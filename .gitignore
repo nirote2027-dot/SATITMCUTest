@@ -14,3 +14,6 @@ playwright-report/
 e2e/.auth/
 .DS_Store
 .superpowers/
+dist-installer/
+dist-electron/
+dist/

@@ -1,0 +1,46 @@
+appId: com.satitmcu.system
+productName: "Satit MCU System"
+copyright: "Copyright © 2026 Satit MCU Demonstration School"
+
+directories:
+  output: dist-installer
+  buildResources: electron/assets
+
+files:
+  - "dist-electron/**/*"
+  - "package.json"
+  - "public/**/*"
+  - "!src"
+  - "!tests"
+  - "!e2e"
+  - "!scratch"
+
+extraResources:
+  - from: ".next/standalone"
+    to: "standalone"
+    filter:
+      - "**/*"
+  - from: ".next/static"
+    to: "standalone/.next/static"
+  - from: "public"
+    to: "standalone/public"
+  - from: "prisma"
+    to: "standalone/prisma"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: electron/assets/icon.png
+  artifactName: "Satit-MCU-System-Setup-${version}.${ext}"
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "Satit MCU System"
+  uninstallDisplayName: "ถอนการติดตั้ง โรงเรียนสาธิต มจร (Satit MCU System)"
+  runAfterFinish: true
