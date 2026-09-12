@@ -1,12 +1,29 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { Plus, Edit2, Trash2, Layers, AlertCircle, BookOpen, Network, Filter } from "lucide-react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Layers,
+  AlertCircle,
+  BookOpen,
+  Network,
+  Filter,
+  FileText,
+  UploadCloud,
+  ExternalLink,
+  Eye,
+  Award,
+  GraduationCap,
+  Briefcase,
+  CheckCircle2,
+  HelpCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { useT, useLocale } from "@/shared/lib/i18n/client";
-import { formatDate } from "@/shared/lib/format";
+import { useT } from "@/shared/lib/i18n/client";
 import {
   LiyonCard,
   DataTable,
@@ -31,12 +48,24 @@ type CurriculumDto = {
   id: string;
   code: string;
   name: string;
+  nameEn?: string | null;
   degreeLevel: string;
+  degreeNameTh?: string | null;
+  degreeNameEn?: string | null;
+  curriculumYear?: string | null;
+  durationYears?: number | null;
   departmentId?: string | null;
   department?: { id: string; name: string; code?: string | null } | null;
   totalCredits: number;
+  geCredits?: number | null;
+  majorCredits?: number | null;
+  electiveCredits?: number | null;
   description: string | null;
+  philosophy?: string | null;
+  objectives?: string | null;
+  careerProspects?: string | null;
   imageUrl?: string | null;
+  pdfUrl?: string | null;
   isActive: boolean;
   createdAt: Date | string;
 };
@@ -53,9 +82,10 @@ interface Props {
   canManage: boolean;
 }
 
+type ModalTab = "general" | "credits" | "highlights" | "media";
+
 export function CurriculumClient({ initialItems, departments, canManage }: Props) {
   const t = useT();
-  const locale = useLocale();
   const searchParams = useSearchParams();
   const [items, setItems] = useState<CurriculumDto[]>(initialItems);
   const [isPending, startTransition] = useTransition();
@@ -73,40 +103,89 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
 
   // Dialog states
   const [modalOpen, setModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ModalTab>("general");
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<CurriculumDto | null>(null);
   const [editingItem, setEditingItem] = useState<CurriculumDto | null>(null);
+  const [viewingItem, setViewingItem] = useState<CurriculumDto | null>(null);
 
+  // Form states - Tab 1: ข้อมูลทั่วไป
   const [formCode, setFormCode] = useState("");
   const [formName, setFormName] = useState("");
+  const [formNameEn, setFormNameEn] = useState("");
   const [formDegreeLevel, setFormDegreeLevel] = useState("ปริญญาตรี (4 ปี)");
+  const [formDegreeNameTh, setFormDegreeNameTh] = useState("");
+  const [formDegreeNameEn, setFormDegreeNameEn] = useState("");
+  const [formCurriculumYear, setFormCurriculumYear] = useState("2567");
   const [formDepartmentId, setFormDepartmentId] = useState<string>("");
-  const [formTotalCredits, setFormTotalCredits] = useState<string | number>("130");
+
+  // Form states - Tab 2: หน่วยกิตและระยะเวลา
+  const [formDurationYears, setFormDurationYears] = useState<string | number>("4");
+  const [formTotalCredits, setFormTotalCredits] = useState<string | number>("132");
+  const [formGeCredits, setFormGeCredits] = useState<string | number>("30");
+  const [formMajorCredits, setFormMajorCredits] = useState<string | number>("96");
+  const [formElectiveCredits, setFormElectiveCredits] = useState<string | number>("6");
+
+  // Form states - Tab 3: จุดเด่นและอาชีพ
+  const [formPhilosophy, setFormPhilosophy] = useState("");
+  const [formObjectives, setFormObjectives] = useState("");
+  const [formCareerProspects, setFormCareerProspects] = useState("");
   const [formDescription, setFormDescription] = useState("");
+
+  // Form states - Tab 4: สื่อและเอกสาร มคอ. 2
   const [formImageUrl, setFormImageUrl] = useState("");
+  const [formPdfUrl, setFormPdfUrl] = useState("");
   const [formIsActive, setFormIsActive] = useState<string>("true");
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const openCreateDialog = () => {
     setEditingItem(null);
+    setActiveTab("general");
     setFormCode("");
     setFormName("");
+    setFormNameEn("");
     setFormDegreeLevel("ปริญญาตรี (4 ปี)");
+    setFormDegreeNameTh("");
+    setFormDegreeNameEn("");
+    setFormCurriculumYear("2567");
     setFormDepartmentId(selectedDeptFilter !== "ALL" && selectedDeptFilter !== "NONE" ? selectedDeptFilter : "");
-    setFormTotalCredits("130");
+    setFormDurationYears("4");
+    setFormTotalCredits("132");
+    setFormGeCredits("30");
+    setFormMajorCredits("96");
+    setFormElectiveCredits("6");
+    setFormPhilosophy("");
+    setFormObjectives("");
+    setFormCareerProspects("");
     setFormDescription("");
     setFormImageUrl("");
+    setFormPdfUrl("");
     setFormIsActive("true");
     setModalOpen(true);
   };
 
   const openEditDialog = (item: CurriculumDto) => {
     setEditingItem(item);
+    setActiveTab("general");
     setFormCode(item.code);
     setFormName(item.name);
+    setFormNameEn(item.nameEn ?? "");
     setFormDegreeLevel(item.degreeLevel);
+    setFormDegreeNameTh(item.degreeNameTh ?? "");
+    setFormDegreeNameEn(item.degreeNameEn ?? "");
+    setFormCurriculumYear(item.curriculumYear ?? "2567");
     setFormDepartmentId(item.departmentId ?? item.department?.id ?? "");
+    setFormDurationYears(item.durationYears ?? 4);
     setFormTotalCredits(item.totalCredits);
+    setFormGeCredits(item.geCredits ?? "");
+    setFormMajorCredits(item.majorCredits ?? "");
+    setFormElectiveCredits(item.electiveCredits ?? "");
+    setFormPhilosophy(item.philosophy ?? "");
+    setFormObjectives(item.objectives ?? "");
+    setFormCareerProspects(item.careerProspects ?? "");
     setFormDescription(item.description ?? "");
     setFormImageUrl(item.imageUrl ?? "");
+    setFormPdfUrl(item.pdfUrl ?? "");
     setFormIsActive(item.isActive ? "true" : "false");
     setModalOpen(true);
   };
@@ -115,6 +194,45 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
     const res = await getCurriculaAction();
     if (res.ok && res.data) {
       setItems(res.data as any);
+    }
+  };
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast.error("กรุณาเลือกไฟล์เอกสาร PDF เท่านั้น");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("ขนาดไฟล์เกินกำหนด (สูงสุด 10MB)");
+      return;
+    }
+
+    setIsUploadingPdf(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        setFormPdfUrl(json.url);
+        toast.success("อัปโหลดเอกสาร มคอ. 2 สำเร็จ");
+      } else {
+        toast.error(json.error || "ไม่สามารถอัปโหลดไฟล์ได้");
+      }
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการอัปโหลดไฟล์");
+    } finally {
+      setIsUploadingPdf(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
     }
   };
 
@@ -128,11 +246,23 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
       const payload = {
         code: formCode.trim(),
         name: formName.trim(),
+        nameEn: formNameEn.trim() || null,
         degreeLevel: formDegreeLevel.trim(),
+        degreeNameTh: formDegreeNameTh.trim() || null,
+        degreeNameEn: formDegreeNameEn.trim() || null,
+        curriculumYear: formCurriculumYear.trim() || null,
+        durationYears: formDurationYears ? Number(formDurationYears) : 4,
         departmentId: formDepartmentId || null,
         totalCredits: Number(formTotalCredits),
-        description: formDescription.trim() || undefined,
+        geCredits: formGeCredits ? Number(formGeCredits) : null,
+        majorCredits: formMajorCredits ? Number(formMajorCredits) : null,
+        electiveCredits: formElectiveCredits ? Number(formElectiveCredits) : null,
+        description: formDescription.trim() || null,
+        philosophy: formPhilosophy.trim() || null,
+        objectives: formObjectives.trim() || null,
+        careerProspects: formCareerProspects.trim() || null,
         imageUrl: formImageUrl.trim() || null,
+        pdfUrl: formPdfUrl.trim() || null,
         isActive: formIsActive === "true",
       };
 
@@ -178,6 +308,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
   const filteredItems = items.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.nameEn && item.nameEn.toLowerCase().includes(searchQuery.toLowerCase())) ||
       item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.department?.name && item.department.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -186,7 +317,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
         ? true
         : selectedDeptFilter === "NONE"
         ? !item.departmentId && !item.department
-        : (item.departmentId === selectedDeptFilter || item.department?.id === selectedDeptFilter);
+        : item.departmentId === selectedDeptFilter || item.department?.id === selectedDeptFilter;
 
     return matchesSearch && matchesDept;
   });
@@ -194,7 +325,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
   const columns: DataTableColumn<CurriculumDto>[] = [
     {
       key: "imageUrl",
-      header: "ภาพปก/ไอคอน",
+      header: "ภาพปก",
       className: "w-16 text-center",
       render: (row) =>
         row.imageUrl ? (
@@ -205,28 +336,45 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
             className="w-11 h-11 object-cover rounded-xl border border-slate-200 shadow-xs inline-block"
           />
         ) : (
-          <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 inline-block">
+          <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 inline-block">
             <BookOpen className="w-5 h-5" />
           </div>
         ),
     },
     {
       key: "code",
-      header: "รหัส",
+      header: "รหัส/ปี",
       className: "nowrap font-mono text-xs font-semibold text-primary",
       render: (row) => (
-        <span className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
-          {row.code}
-        </span>
+        <div className="space-y-1">
+          <span className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20 block w-fit">
+            {row.code}
+          </span>
+          {row.curriculumYear && (
+            <span className="text-[10px] text-muted-foreground block font-sans">
+              มคอ.2 พ.ศ. {row.curriculumYear}
+            </span>
+          )}
+        </div>
       ),
     },
     {
       key: "name",
-      header: "ชื่อหลักสูตร",
+      header: "ชื่อหลักสูตร / ปริญญา",
       render: (row) => (
-        <div>
-          <div className="font-semibold text-slate-900 dark:text-slate-100">{row.name}</div>
-          {row.description && <div className="text-xs text-slate-500 line-clamp-1 mt-0.5">{row.description}</div>}
+        <div className="max-w-md">
+          <div className="font-semibold text-slate-900 dark:text-slate-100 leading-snug">{row.name}</div>
+          {row.nameEn && (
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium italic mt-0.5">
+              {row.nameEn}
+            </div>
+          )}
+          {row.degreeNameTh && (
+            <div className="text-[11px] text-primary/80 mt-1 flex items-center gap-1 font-sans">
+              <GraduationCap className="w-3 h-3 flex-shrink-0" />
+              <span>{row.degreeNameTh}</span>
+            </div>
+          )}
         </div>
       ),
     },
@@ -244,19 +392,41 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
         ),
     },
     {
-      key: "degreeLevel",
-      header: "ระดับการศึกษา",
+      key: "totalCredits",
+      header: "โครงสร้างหน่วยกิต",
+      className: "nowrap text-center",
       render: (row) => (
-        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900">
-          {row.degreeLevel}
-        </span>
+        <div className="text-center space-y-1">
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+            {row.totalCredits} นก. ({row.durationYears ?? 4} ปี)
+          </span>
+          {(row.geCredits || row.majorCredits || row.electiveCredits) && (
+            <div className="text-[10px] text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded border border-border/40 inline-block font-mono">
+              {row.geCredits ?? 0}/{row.majorCredits ?? 0}/{row.electiveCredits ?? 0}
+            </div>
+          )}
+        </div>
       ),
     },
     {
-      key: "totalCredits",
-      header: "หน่วยกิตรวม",
+      key: "pdfUrl",
+      header: "เอกสาร มคอ. 2",
       className: "nowrap text-center",
-      render: (row) => <span className="text-xs font-medium">{row.totalCredits} นก.</span>,
+      render: (row) =>
+        row.pdfUrl ? (
+          <a
+            href={row.pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900 hover:bg-red-100 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>มคอ. 2</span>
+            <ExternalLink className="w-3 h-3 opacity-60" />
+          </a>
+        ) : (
+          <span className="text-[11px] text-muted-foreground/60 italic">—</span>
+        ),
     },
     {
       key: "isActive",
@@ -280,7 +450,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
             {t("curriculum.title")}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {t("curriculum.subtitle")}
+            บริหารจัดการข้อมูลหลักสูตร โครงสร้างหน่วยกิต และเอกสาร มคอ. 2 เพื่อเผยแพร่สู่สาธารณะ
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -305,7 +475,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
           <div className="flex flex-1 w-full sm:w-auto gap-3 items-center">
             <input
               type="text"
-              placeholder="ค้นหาชื่อ, รหัส หรือภาควิชา..."
+              placeholder="ค้นหาชื่อไทย, English, รหัส หรือภาควิชา..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-full max-w-sm"
@@ -340,25 +510,28 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
         </div>
 
         <DataTable<CurriculumDto>
-          headHeading="รายการหลักสูตร"
+          headHeading="สารบบหลักสูตร (TQF 2 Database)"
           state={filteredItems.length === 0 ? "empty" : "data"}
           rows={filteredItems}
           columns={columns}
           getRowId={(row) => row.id}
-          renderRowMenu={
-            canManage
-              ? (row) => (
-                  <>
-                    <RowMenuItem onSelect={() => openEditDialog(row)} icon={<Edit2 className="h-4 w-4" />}>
-                      แก้ไขข้อมูล
-                    </RowMenuItem>
-                    <RowMenuItem onSelect={() => setDeleteConfirmItem(row)} danger icon={<Trash2 className="h-4 w-4" />}>
-                      ลบหลักสูตร
-                    </RowMenuItem>
-                  </>
-                )
-              : undefined
-          }
+          renderRowMenu={(row) => (
+            <>
+              <RowMenuItem onSelect={() => setViewingItem(row)} icon={<Eye className="h-4 w-4" />}>
+                ดูรายละเอียด มคอ. 2
+              </RowMenuItem>
+              {canManage && (
+                <>
+                  <RowMenuItem onSelect={() => openEditDialog(row)} icon={<Edit2 className="h-4 w-4" />}>
+                    แก้ไขข้อมูล
+                  </RowMenuItem>
+                  <RowMenuItem onSelect={() => setDeleteConfirmItem(row)} danger icon={<Trash2 className="h-4 w-4" />}>
+                    ลบหลักสูตร
+                  </RowMenuItem>
+                </>
+              )}
+            </>
+          )}
           empty={{
             icon: <Layers className="h-10 w-10 text-muted-foreground/50" />,
             title: "ไม่พบข้อมูลหลักสูตรที่ตรงกับเงื่อนไข",
@@ -371,136 +544,624 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
         />
       </LiyonCard>
 
-      {/* Add / Edit Dialog */}
+      {/* Add / Edit Dialog with 4 Tabs */}
       <LiyonDialog open={modalOpen} onOpenChange={setModalOpen}>
         <LiyonDialogHeader
-          title={editingItem ? "แก้ไขหลักสูตร" : "เพิ่มหลักสูตรใหม่"}
-          description="กรอกข้อมูลหลักสูตร สังกัดภาควิชา/ส่วนงาน จำนวนหน่วยกิต และภาพประกอบ"
+          title={editingItem ? "แก้ไขหลักสูตร (มคอ. 2)" : "เพิ่มหลักสูตรใหม่ (มคอ. 2)"}
+          description="กรอกข้อมูลหลักสูตรตามแบบฟอร์ม มคอ. 2 สำหรับบันทึกในฐานข้อมูลและเผยแพร่ผ่าน Portal"
         />
         <LiyonDialogBody>
-          <div className="space-y-4 py-2">
-            <ImageUpload
-              value={formImageUrl}
-              onChange={(url) => setFormImageUrl(url)}
-              label="ภาพประกอบหลักสูตร / โลโก้สาขาวิชา"
-            />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                  รหัสหลักสูตร <span className="text-destructive">*</span>
-                </label>
-                <input
-                  value={formCode}
-                  onChange={(e) => setFormCode(e.target.value)}
-                  placeholder="เช่น B.Ed.01"
-                  className="w-full text-sm px-3.5 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                  ระดับการศึกษา <span className="text-destructive">*</span>
-                </label>
-                <select
-                  value={formDegreeLevel}
-                  onChange={(e) => setFormDegreeLevel(e.target.value)}
-                  className="w-full text-sm px-3.5 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="ปริญญาตรี (4 ปี)">ปริญญาตรี (4 ปี)</option>
-                  <option value="ปริญญาโท (2 ปี)">ปริญญาโท (2 ปี)</option>
-                  <option value="ปริญญาเอก (3 ปี)">ปริญญาเอก (3 ปี)</option>
-                  <option value="ประกาศนียบัตร">ประกาศนียบัตร</option>
-                  <option value="มัธยมศึกษาตอนปลาย">มัธยมศึกษาตอนปลาย</option>
-                  <option value="มัธยมศึกษาตอนต้น">มัธยมศึกษาตอนต้น</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Department Assignment */}
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                ภาควิชา / ส่วนงานที่สังกัด (Department)
-              </label>
-              <select
-                value={formDepartmentId}
-                onChange={(e) => setFormDepartmentId(e.target.value)}
-                className="w-full text-sm px-3.5 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+          <div className="space-y-4 py-1">
+            {/* Tab Navigation */}
+            <div className="flex border-b border-border/60 gap-2 overflow-x-auto text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setActiveTab("general")}
+                className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === "general"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               >
-                <option value="">— ไม่ระบุ / เป็นหลักสูตรกลางของโรงเรียน —</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name} {dept.code ? `(${dept.code})` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                  ชื่อหลักสูตร <span className="text-destructive">*</span>
-                </label>
-                <input
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="เช่น แผนการเรียนวิทยาศาสตร์-คณิตศาสตร์"
-                  className="w-full text-sm px-3.5 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                  หน่วยกิตรวม <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={formTotalCredits}
-                  onChange={(e) => setFormTotalCredits(e.target.value)}
-                  placeholder="เช่น 132"
-                  className="w-full text-sm px-3.5 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                คำอธิบายหลักสูตร / วัตถุประสงค์
-              </label>
-              <textarea
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder="ระบุจุดเด่นหรือวัตถุประสงค์ของหลักสูตร..."
-                rows={3}
-                className="w-full text-sm px-3.5 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                สถานะหลักสูตร
-              </label>
-              <select
-                value={formIsActive}
-                onChange={(e) => setFormIsActive(e.target.value)}
-                className="w-full text-sm px-3.5 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <BookOpen className="w-3.5 h-3.5" />
+                1. ข้อมูลทั่วไป
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("credits")}
+                className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === "credits"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               >
-                <option value="true">เปิดรับสมัคร / กำลังเปิดสอน (Active)</option>
-                <option value="false">ปิดรับสมัครชั่วคราว (Inactive)</option>
-              </select>
+                <Award className="w-3.5 h-3.5" />
+                2. หน่วยกิตและระยะเวลา
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("highlights")}
+                className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === "highlights"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Briefcase className="w-3.5 h-3.5" />
+                3. ปรัชญาและอาชีพ
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("media")}
+                className={`pb-2 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === "media"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                4. เอกสาร มคอ. 2 และสถานะ
+              </button>
             </div>
+
+            {/* TAB 1: General Info */}
+            {activeTab === "general" && (
+              <div className="space-y-4 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      รหัสหลักสูตร <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      value={formCode}
+                      onChange={(e) => setFormCode(e.target.value)}
+                      placeholder="เช่น 01001 หรือ B.Ed.01"
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      ระดับการศึกษา <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      value={formDegreeLevel}
+                      onChange={(e) => setFormDegreeLevel(e.target.value)}
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="ปริญญาตรี (4 ปี)">ปริญญาตรี (4 ปี)</option>
+                      <option value="ปริญญาตรี (5 ปี)">ปริญญาตรี (5 ปี)</option>
+                      <option value="ปริญญาโท (2 ปี)">ปริญญาโท (2 ปี)</option>
+                      <option value="ปริญญาเอก (3 ปี)">ปริญญาเอก (3 ปี)</option>
+                      <option value="ประกาศนียบัตรบัณฑิต">ประกาศนียบัตรบัณฑิต</option>
+                      <option value="มัธยมศึกษาตอนปลาย">มัธยมศึกษาตอนปลาย</option>
+                      <option value="มัธยมศึกษาตอนต้น">มัธยมศึกษาตอนต้น</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      ปีหลักสูตร (พ.ศ.)
+                    </label>
+                    <input
+                      value={formCurriculumYear}
+                      onChange={(e) => setFormCurriculumYear(e.target.value)}
+                      placeholder="เช่น 2567"
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    ภาควิชา / ส่วนงานที่สังกัด (Department)
+                  </label>
+                  <select
+                    value={formDepartmentId}
+                    onChange={(e) => setFormDepartmentId(e.target.value)}
+                    className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="">— ไม่ระบุ / เป็นหลักสูตรกลางของสถาบัน —</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name} {dept.code ? `(${dept.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      ชื่อหลักสูตร (ภาษาไทย) <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="เช่น หลักสูตรพุทธศาสตรบัณฑิต สาขาวิชาพระพุทธศาสนา"
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      ชื่อหลักสูตร (English)
+                    </label>
+                    <input
+                      value={formNameEn}
+                      onChange={(e) => setFormNameEn(e.target.value)}
+                      placeholder="e.g. Bachelor of Arts Program in Buddhism"
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      ชื่อปริญญา (ภาษาไทย)
+                    </label>
+                    <input
+                      value={formDegreeNameTh}
+                      onChange={(e) => setFormDegreeNameTh(e.target.value)}
+                      placeholder="เช่น พุทธศาสตรบัณฑิต (พระพุทธศาสนา)"
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      ชื่อปริญญา (English)
+                    </label>
+                    <input
+                      value={formDegreeNameEn}
+                      onChange={(e) => setFormDegreeNameEn(e.target.value)}
+                      placeholder="e.g. Bachelor of Arts (Buddhism)"
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: Credits & Structure */}
+            {activeTab === "credits" && (
+              <div className="space-y-4 pt-1">
+                <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 text-xs text-blue-800 dark:text-blue-300">
+                  <span className="font-semibold">หมวดที่ 3 ตามเกณฑ์มาตรฐาน มคอ. 2:</span>{" "}
+                  กำหนดโครงสร้างจำนวนหน่วยกิตตลอดหลักสูตร และจำแนกตามกลุ่มวิชา
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      ระยะเวลาศึกษาตามแผน (ปี)
+                    </label>
+                    <input
+                      type="number"
+                      value={formDurationYears}
+                      onChange={(e) => setFormDurationYears(e.target.value)}
+                      placeholder="เช่น 4"
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      จำนวนหน่วยกิตรวมตลอดหลักสูตร <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={formTotalCredits}
+                      onChange={(e) => setFormTotalCredits(e.target.value)}
+                      placeholder="เช่น 132"
+                      className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-bold text-primary"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="border border-border/70 rounded-xl p-3.5 bg-muted/10 space-y-3">
+                  <div className="text-xs font-bold text-foreground">โครงสร้างหมวดวิชา (Credit Breakdown)</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">
+                        1. หมวดวิชาศึกษาทั่วไป (GE)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formGeCredits}
+                          onChange={(e) => setFormGeCredits(e.target.value)}
+                          placeholder="เช่น 30"
+                          className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 pr-10"
+                        />
+                        <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">นก.</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">
+                        2. หมวดวิชาเฉพาะ / วิชาเอก
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formMajorCredits}
+                          onChange={(e) => setFormMajorCredits(e.target.value)}
+                          placeholder="เช่น 96"
+                          className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 pr-10"
+                        />
+                        <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">นก.</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">
+                        3. หมวดวิชาเลือกเสรี
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formElectiveCredits}
+                          onChange={(e) => setFormElectiveCredits(e.target.value)}
+                          placeholder="เช่น 6"
+                          className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 pr-10"
+                        />
+                        <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">นก.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Calculated sum indicator */}
+                  {(() => {
+                    const ge = Number(formGeCredits) || 0;
+                    const major = Number(formMajorCredits) || 0;
+                    const elective = Number(formElectiveCredits) || 0;
+                    const total = Number(formTotalCredits) || 0;
+                    const sum = ge + major + elective;
+                    const isMatched = sum === total && total > 0;
+
+                    return (
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40">
+                        <span className="text-muted-foreground">
+                          ผลรวมหน่วยกิตหมวดวิชา: <strong className="text-foreground">{sum}</strong> นก.
+                        </span>
+                        {isMatched ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> ตรงกับหน่วยกิตรวม
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 dark:text-amber-400">
+                            (รวมย่อย {sum} นก. / หน่วยกิตรวมระบุไว้ {total} นก.)
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: Philosophy, Objectives & Careers */}
+            {activeTab === "highlights" && (
+              <div className="space-y-3.5 pt-1">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    ปรัชญาและความสำคัญของหลักสูตร (หมวดที่ 2)
+                  </label>
+                  <textarea
+                    value={formPhilosophy}
+                    onChange={(e) => setFormPhilosophy(e.target.value)}
+                    placeholder="ระบุปรัชญา วิสัยทัศน์ หรือความสำคัญในการผลิตบัณฑิต..."
+                    rows={2}
+                    className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    วัตถุประสงค์ของหลักสูตร
+                  </label>
+                  <textarea
+                    value={formObjectives}
+                    onChange={(e) => setFormObjectives(e.target.value)}
+                    placeholder="เช่น 1. เพื่อผลิตบัณฑิตที่มีคุณธรรม จริยธรรม 2. มีความรู้เชี่ยวชาญในวิชาชีพ..."
+                    rows={2}
+                    className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    อาชีพที่สามารถประกอบได้หลังสำเร็จการศึกษา (Career Prospects)
+                  </label>
+                  <textarea
+                    value={formCareerProspects}
+                    onChange={(e) => setFormCareerProspects(e.target.value)}
+                    placeholder="เช่น ครู/อาจารย์สอนวิชาพระพุทธศาสนา, นักวิชาการศาสนา, เจ้าหน้าที่องค์กรการกุศล หรือธุรกิจส่วนตัว..."
+                    rows={2}
+                    className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    คำอธิบายย่อ (สำหรับแสดงหน้า Portal)
+                  </label>
+                  <textarea
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="สรุปจุดเด่นหรือเนื้อหาสำคัญสั้นๆ..."
+                    rows={2}
+                    className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: Media, PDF & Status */}
+            {activeTab === "media" && (
+              <div className="space-y-4 pt-1">
+                <ImageUpload
+                  value={formImageUrl}
+                  onChange={(url) => setFormImageUrl(url)}
+                  label="ภาพประกอบหลักสูตร / โลโก้สาขาวิชา"
+                />
+
+                {/* PDF Upload */}
+                <div className="border border-border/70 rounded-xl p-4 bg-muted/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-bold text-foreground block">
+                        ไฟล์เล่มหลักสูตร มคอ. 2 (PDF)
+                      </label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        แนบไฟล์ PDF เพื่อให้นักศึกษา บุคลากร และประชาชนสามารถดาวน์โหลดอ่านได้
+                      </p>
+                    </div>
+                    {formPdfUrl && (
+                      <a
+                        href={formPdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        เปิดดูไฟล์ปัจจุบัน
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <input
+                      ref={pdfInputRef}
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handlePdfUpload}
+                      className="hidden"
+                      id="pdf-upload-input"
+                    />
+                    <label htmlFor="pdf-upload-input" className="w-full sm:w-auto">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isUploadingPdf}
+                        className="w-full sm:w-auto gap-2 cursor-pointer"
+                        asChild
+                      >
+                        <span>
+                          <UploadCloud className="w-4 h-4 text-primary" />
+                          {isUploadingPdf ? "กำลังอัปโหลด..." : "เลือกไฟล์ PDF เพื่ออัปโหลด"}
+                        </span>
+                      </Button>
+                    </label>
+
+                    <div className="flex-1 w-full">
+                      <input
+                        value={formPdfUrl}
+                        onChange={(e) => setFormPdfUrl(e.target.value)}
+                        placeholder="หรือระบุ URL ไฟล์ PDF เช่น /uploads/tqf2.pdf"
+                        className="w-full text-xs px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    สถานะการเปิดรับสมัคร / เปิดสอน
+                  </label>
+                  <select
+                    value={formIsActive}
+                    onChange={(e) => setFormIsActive(e.target.value)}
+                    className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="true">เปิดรับสมัคร / กำลังเปิดสอน (Active)</option>
+                    <option value="false">ปิดรับสมัครชั่วคราว (Inactive)</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </LiyonDialogBody>
         <LiyonDialogFooter>
-          <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isPending}>
-            ยกเลิก
+          <div className="flex items-center justify-between w-full">
+            <div className="text-xs text-muted-foreground">
+              {activeTab === "general" && "ขั้นตอน 1/4: ข้อมูลพื้นฐาน"}
+              {activeTab === "credits" && "ขั้นตอน 2/4: โครงสร้างหลักสูตร"}
+              {activeTab === "highlights" && "ขั้นตอน 3/4: จุดเด่นและอาชีพ"}
+              {activeTab === "media" && "ขั้นตอน 4/4: เอกสารและสื่อ"}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isPending}>
+                ยกเลิก
+              </Button>
+              <Button onClick={handleSave} disabled={isPending}>
+                {isPending ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+              </Button>
+            </div>
+          </div>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+      {/* TQF 2 Quick View Dossier Dialog */}
+      <LiyonDialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
+        <LiyonDialogHeader
+          title="รายละเอียดเอกสารหลักสูตร (มคอ. 2)"
+          description={`รหัส ${viewingItem?.code} • ${viewingItem?.degreeLevel} • มคอ. 2 พ.ศ. ${viewingItem?.curriculumYear || "2567"}`}
+        />
+        <LiyonDialogBody>
+          {viewingItem && (
+            <div className="space-y-4 py-2">
+              {/* Header card with Cover and Title */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-muted/20 border border-border/60">
+                {viewingItem.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={viewingItem.imageUrl}
+                    alt={viewingItem.name}
+                    className="w-16 h-16 object-cover rounded-xl border border-border shadow-xs flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                    <BookOpen className="w-8 h-8" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                      {viewingItem.code}
+                    </span>
+                    {viewingItem.department && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        {viewingItem.department.name}
+                      </span>
+                    )}
+                    <StatusPill tone={viewingItem.isActive ? ("positive" as any) : "neutral"}>
+                      {viewingItem.isActive ? "เปิดสอน" : "ปิดรับสมัคร"}
+                    </StatusPill>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mt-1">{viewingItem.name}</h3>
+                  {viewingItem.nameEn && (
+                    <p className="text-xs text-muted-foreground italic font-medium">{viewingItem.nameEn}</p>
+                  )}
+                  {viewingItem.degreeNameTh && (
+                    <p className="text-xs text-primary font-medium mt-1">
+                      ปริญญา: {viewingItem.degreeNameTh} {viewingItem.degreeNameEn ? `(${viewingItem.degreeNameEn})` : ""}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Credit Breakdown Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="p-3 rounded-xl bg-background border border-border text-center">
+                  <span className="text-[11px] text-muted-foreground block">หน่วยกิตรวม</span>
+                  <span className="text-lg font-bold text-primary">{viewingItem.totalCredits} นก.</span>
+                  <span className="text-[10px] text-muted-foreground block">{viewingItem.durationYears ?? 4} ปี</span>
+                </div>
+                <div className="p-3 rounded-xl bg-background border border-border text-center">
+                  <span className="text-[11px] text-muted-foreground block">ศึกษาทั่วไป (GE)</span>
+                  <span className="text-lg font-bold text-foreground">{viewingItem.geCredits ?? "—"}</span>
+                  <span className="text-[10px] text-muted-foreground block">หน่วยกิต</span>
+                </div>
+                <div className="p-3 rounded-xl bg-background border border-border text-center">
+                  <span className="text-[11px] text-muted-foreground block">วิชาเฉพาะ/เอก</span>
+                  <span className="text-lg font-bold text-foreground">{viewingItem.majorCredits ?? "—"}</span>
+                  <span className="text-[10px] text-muted-foreground block">หน่วยกิต</span>
+                </div>
+                <div className="p-3 rounded-xl bg-background border border-border text-center">
+                  <span className="text-[11px] text-muted-foreground block">วิชาเลือกเสรี</span>
+                  <span className="text-lg font-bold text-foreground">{viewingItem.electiveCredits ?? "—"}</span>
+                  <span className="text-[10px] text-muted-foreground block">หน่วยกิต</span>
+                </div>
+              </div>
+
+              {/* Philosophy & Objectives */}
+              {viewingItem.philosophy && (
+                <div className="p-3.5 rounded-xl border border-border/70 bg-muted/10 space-y-1">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <HelpCircle className="w-3.5 h-3.5 text-primary" />
+                    ปรัชญาและความสำคัญของหลักสูตร
+                  </span>
+                  <p className="text-xs text-muted-foreground leading-relaxed pl-5">
+                    {viewingItem.philosophy}
+                  </p>
+                </div>
+              )}
+
+              {viewingItem.objectives && (
+                <div className="p-3.5 rounded-xl border border-border/70 bg-muted/10 space-y-1">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5 text-primary" />
+                    วัตถุประสงค์ของหลักสูตร
+                  </span>
+                  <p className="text-xs text-muted-foreground leading-relaxed pl-5 whitespace-pre-line">
+                    {viewingItem.objectives}
+                  </p>
+                </div>
+              )}
+
+              {viewingItem.careerProspects && (
+                <div className="p-3.5 rounded-xl border border-border/70 bg-muted/10 space-y-1">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-primary" />
+                    อาชีพที่สามารถประกอบได้หลังสำเร็จการศึกษา
+                  </span>
+                  <p className="text-xs text-muted-foreground leading-relaxed pl-5">
+                    {viewingItem.careerProspects}
+                  </p>
+                </div>
+              )}
+
+              {/* PDF Banner */}
+              {viewingItem.pdfUrl ? (
+                <div className="p-4 rounded-xl bg-red-50/70 dark:bg-red-950/20 border border-red-200 dark:border-red-900 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-red-950 dark:text-red-200">
+                        เอกสารหลักสูตรฉบับสมบูรณ์ (มคอ. 2)
+                      </div>
+                      <div className="text-[11px] text-red-700 dark:text-red-400">
+                        พร้อมให้เปิดอ่านหรือดาวน์โหลดในรูปแบบ PDF
+                      </div>
+                    </div>
+                  </div>
+                  <a
+                    href={viewingItem.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors"
+                  >
+                    <span>ดาวน์โหลด PDF</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              ) : (
+                <div className="text-center py-2 text-xs text-muted-foreground italic">
+                  ยังไม่ได้แนบไฟล์เอกสาร มคอ. 2 (PDF)
+                </div>
+              )}
+            </div>
+          )}
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setViewingItem(null)}>
+            ปิด
           </Button>
-          <Button onClick={handleSave} disabled={isPending}>
-            {isPending ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-          </Button>
+          {canManage && viewingItem && (
+            <Button
+              onClick={() => {
+                const item = viewingItem;
+                setViewingItem(null);
+                openEditDialog(item);
+              }}
+              className="gap-1.5"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              แก้ไขข้อมูล
+            </Button>
+          )}
         </LiyonDialogFooter>
       </LiyonDialog>
 

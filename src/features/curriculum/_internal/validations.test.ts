@@ -32,4 +32,31 @@ describe("curriculum validations", () => {
     });
     expect(res.success).toBe(true);
   });
+
+  it("validates with complete TQF 2 fields", () => {
+    const res = CreateCurriculumSchema.safeParse({
+      code: "01001",
+      name: "หลักสูตรพุทธศาสตรบัณฑิต สาขาวิชาพระพุทธศาสนา",
+      nameEn: "Bachelor of Arts Program in Buddhism",
+      degreeLevel: "ปริญญาตรี",
+      degreeNameTh: "พุทธศาสตรบัณฑิต (พระพุทธศาสนา)",
+      degreeNameEn: "Bachelor of Arts (Buddhism)",
+      curriculumYear: "2567",
+      durationYears: 4,
+      totalCredits: 132,
+      geCredits: 30,
+      majorCredits: 96,
+      electiveCredits: 6,
+      philosophy: "มุ่งผลิตบัณฑิตให้มีความรู้ ความเข้าใจในหลักพุทธธรรม",
+      objectives: "เพื่อผลิตบัณฑิตที่มีคุณธรรม จริยธรรม",
+      careerProspects: "อาจารย์สอนพระพุทธศาสนา นักวิชาการศาสนา",
+      pdfUrl: "/uploads/tqf2-buddhism.pdf",
+    });
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.nameEn).toBe("Bachelor of Arts Program in Buddhism");
+      expect(res.data.geCredits).toBe(30);
+      expect(res.data.pdfUrl).toBe("/uploads/tqf2-buddhism.pdf");
+    }
+  });
 });

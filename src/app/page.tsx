@@ -362,39 +362,97 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {displayCurricula.map((curr) => (
+            {displayCurricula.map((curr: any) => (
               <div
                 key={curr.id}
                 className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition-all flex flex-col justify-between"
               >
                 {curr.imageUrl && (
-                  <div className="h-40 bg-slate-100 overflow-hidden relative">
+                  <div className="h-44 bg-slate-100 overflow-hidden relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={curr.imageUrl} alt={curr.name} className="w-full h-full object-cover" />
+                    {curr.curriculumYear && (
+                      <span className="absolute top-3 right-3 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-900/80 text-white backdrop-blur-md shadow-xs">
+                        มคอ. 2 พ.ศ. {curr.curriculumYear}
+                      </span>
+                    )}
                   </div>
                 )}
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="p-6 flex-1 flex flex-col">
+                  <div className="flex items-center justify-between gap-2 mb-3">
                     <span className="text-xs font-bold text-blue-700 px-3 py-1 rounded-full bg-blue-50 border border-blue-200">
                       {curr.degreeLevel}
                     </span>
                     <span className="text-xs text-slate-500 font-mono font-medium">รหัส: {curr.code}</span>
                   </div>
-                  {(curr as any).department && (
-                    <div className="mb-3">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+
+                  {curr.department && (
+                    <div className="mb-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
                         <Network className="w-3 h-3 text-blue-600" />
-                        {(curr as any).department.name}
+                        {curr.department.name}
                       </span>
                     </div>
                   )}
-                  <h3 className="font-bold text-lg text-slate-900 mb-2">{curr.name}</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed mb-6">{curr.description}</p>
+
+                  <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-snug mb-1">{curr.name}</h3>
+                  {curr.nameEn && (
+                    <p className="text-xs text-slate-500 italic font-medium mb-2">{curr.nameEn}</p>
+                  )}
+
+                  {curr.degreeNameTh && (
+                    <div className="text-xs text-blue-800 bg-blue-50/50 p-2 rounded-lg border border-blue-100 mb-3 flex items-center gap-1.5 font-medium">
+                      <GraduationCap className="w-3.5 h-3.5 flex-shrink-0 text-blue-600" />
+                      <span className="line-clamp-1">{curr.degreeNameTh}</span>
+                    </div>
+                  )}
+
+                  {curr.description && (
+                    <p className="text-slate-600 text-xs leading-relaxed mb-4 line-clamp-2">{curr.description}</p>
+                  )}
+
+                  {/* Credit distribution pill */}
+                  <div className="mt-auto pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs text-slate-600 mb-1.5">
+                      <span className="font-semibold text-slate-900">โครงสร้างหน่วยกิต:</span>
+                      <span className="font-bold text-blue-700">{curr.totalCredits} นก.</span>
+                    </div>
+                    {(curr.geCredits || curr.majorCredits || curr.electiveCredits) && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono">
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200" title="ศึกษาทั่วไป">
+                          GE: {curr.geCredits ?? 0}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200" title="วิชาเฉพาะ/เอก">
+                          เอก: {curr.majorCredits ?? 0}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200" title="เลือกเสรี">
+                          เลือก: {curr.electiveCredits ?? 0}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="px-6 pb-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs text-slate-500 font-medium">รวม <strong>{curr.totalCredits}</strong> หน่วยกิต</span>
-                  <Link href="/curriculum" className="text-xs font-bold text-blue-700 hover:text-blue-800 flex items-center gap-1">
-                    ดูโครงสร้างวิชา <ChevronRight className="w-3.5 h-3.5" />
+
+                {/* Card Action Footer */}
+                <div className="px-6 pb-5 pt-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-2">
+                  {curr.pdfUrl ? (
+                    <a
+                      href={curr.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-200 transition-colors"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>ดาวน์โหลด มคอ. 2 (PDF)</span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">พร้อมเปิดรับสมัคร</span>
+                  )}
+                  <Link
+                    href="/curriculum"
+                    className="text-xs font-bold text-blue-700 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    สารบบ <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>

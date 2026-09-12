@@ -355,14 +355,26 @@ model Curriculum {
   tenantId     String      @map("tenant_id") @db.Uuid
   departmentId String?     @map("department_id") @db.Uuid
   code         String      @db.VarChar(100)
-  name         String      @db.VarChar(255)
-  degreeLevel  String      @map("degree_level") @db.VarChar(100)
-  totalCredits Int         @map("total_credits")
-  description  String?     @db.Text
-  imageUrl     String?     @map("image_url") @db.VarChar(500)
-  isActive     Boolean     @default(true) @map("is_active")
-  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
+  name            String      @db.VarChar(255)
+  nameEn          String?     @map("name_en") @db.VarChar(255)
+  degreeLevel     String      @map("degree_level") @db.VarChar(100)
+  degreeNameTh    String?     @map("degree_name_th") @db.VarChar(255)
+  degreeNameEn    String?     @map("degree_name_en") @db.VarChar(255)
+  curriculumYear  String?     @map("curriculum_year") @db.VarChar(20)
+  durationYears   Int?        @default(4) @map("duration_years")
+  totalCredits    Int         @map("total_credits")
+  geCredits       Int?        @map("ge_credits")
+  majorCredits    Int?        @map("major_credits")
+  electiveCredits Int?        @map("elective_credits")
+  description     String?     @db.Text
+  philosophy      String?     @db.Text
+  objectives      String?     @db.Text
+  careerProspects String?     @map("career_prospects") @db.Text
+  imageUrl        String?     @map("image_url") @db.VarChar(500)
+  pdfUrl          String?     @map("pdf_url") @db.VarChar(500)
+  isActive        Boolean     @default(true) @map("is_active")
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
 
   tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
