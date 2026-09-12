@@ -35,10 +35,8 @@ export function AdminSidebarNav() {
   const { roles, permissions, isSuperAdmin } = useAppSession();
   const groups = visibleGroups({ roles, permissions, isSuperAdmin });
 
-  // Auto-open the group containing the active route — only if no group is
-  // currently open (มาจาก sidebar.tsx เดิมทุกตัวอักษร)
+  // Auto-open the group containing the active route on navigation
   useEffect(() => {
-    if (openGroup) return;
     for (const group of groups) {
       for (const item of group.items) {
         if (
@@ -51,14 +49,12 @@ export function AdminSidebarNav() {
         }
       }
     }
+    if (openGroup) return;
     // หน้าปัจจุบันไม่ตรงกับกลุ่มไหนเลย (เช่นเพิ่ง login มาที่ /dashboard) — เปิดกลุ่มแรกที่มีลูกไว้ก่อน
-    // ผู้ใช้ที่เพิ่งเข้าระบบต้องเห็นเมนูย่อยที่ตนมีสิทธิ์ทันที ไม่ต้องกดขยายเอง (สำคัญกับผู้ใช้สิทธิ์น้อยที่กลุ่มมีลูกแค่รายการเดียว)
     for (const group of groups) {
       const withChildren = group.items.find((item) => item.children);
       if (withChildren) { setOpenGroup(withChildren.href); return; }
     }
-    // ตั้งใจให้ deps มีแค่ pathname: เอฟเฟกต์นี้ต้องทำงานเมื่อ "ย้ายหน้า" เท่านั้น การใส่ groups/openGroup
-    // (ซึ่งคำนวณใหม่ทุก render) จะทำให้มันรันซ้ำแล้วเปิดกลุ่มที่ผู้ใช้เพิ่งกดปิดกลับมาเองทันที
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 

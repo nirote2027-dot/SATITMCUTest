@@ -36,7 +36,7 @@ async function runSimulation() {
     // 1. PUBLIC PORTAL TESTING
     // ════════════════════════════════════════════════════════════
     console.log("\n🌐 --- [ชุดที่ 1] ทดสอบหน้าหลักสาธารณะ (Public Portal & 3D Hero) ---");
-    await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForTimeout(2000); // allow 3D canvas and animations to initialize
 
     const title = await page.title();
@@ -112,7 +112,7 @@ async function runSimulation() {
     // 2. AUTHENTICATION (LOGIN)
     // ════════════════════════════════════════════════════════════
     console.log("\n🔐 --- [ชุดที่ 6] ทดสอบการเข้าสู่ระบบ (Authentication) ---");
-    await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.screenshot({ path: `${SCREENSHOT_DIR}/04_login_page.png` });
     record(13, "เปิดหน้าเข้าสู่ระบบ (/login)", "PASS", "หน้าฟอร์มแสดงผลถูกต้อง");
 
@@ -134,14 +134,15 @@ async function runSimulation() {
       { no: 16, name: "ระบบข่าวสารประชาสัมพันธ์ (News & PR)", path: "/news", selector: "table, .card, main" },
       { no: 17, name: "ระบบจัดการบุคลากร (Personnel)", path: "/personnel", selector: "table, .card, main" },
       { no: 18, name: "ระบบจัดการหลักสูตร (Curriculum)", path: "/curriculum", selector: "table, .card, main" },
-      { no: 19, name: "ระบบเอกสารและคำร้อง (Document)", path: "/document", selector: "table, .card, main" },
-      { no: 20, name: "ระบบจองห้องและยานพาหนะ (Facility)", path: "/facility", selector: "table, .card, main" },
-      { no: 21, name: "ระบบตั้งค่าและโลโก้ (Settings)", path: "/settings", selector: "form, main" },
-      { no: 22, name: "ข้อมูลส่วนตัว (Profile Me)", path: "/me", selector: "main" },
+      { no: 19, name: "ระบบจัดการภาควิชา/ส่วนงาน (Department)", path: "/department", selector: "table, .card, main" },
+      { no: 20, name: "ระบบเอกสารและคำร้อง (Document)", path: "/document", selector: "table, .card, main" },
+      { no: 21, name: "ระบบจองห้องและยานพาหนะ (Facility)", path: "/facility", selector: "table, .card, main" },
+      { no: 22, name: "ระบบตั้งค่าและโลโก้ (Settings)", path: "/settings", selector: "form, main" },
+      { no: 23, name: "ข้อมูลส่วนตัว (Profile Me)", path: "/me", selector: "main" },
     ];
 
     for (const feat of adminFeatures) {
-      await page.goto(`${BASE_URL}${feat.path}`, { waitUntil: "networkidle" });
+      await page.goto(`${BASE_URL}${feat.path}`, { waitUntil: "domcontentloaded", timeout: 30000 });
       await page.waitForTimeout(1000);
 
       const hasContent = await page.$(feat.selector);
@@ -165,13 +166,13 @@ async function runSimulation() {
     // 4. PORTAL STATE WHEN LOGGED IN (AVATAR MENU TEST)
     // ════════════════════════════════════════════════════════════
     console.log("\n👤 --- [ชุดที่ 8] ตรวจสอบสถานะล็อกอินบน Portal (Staff Avatar Menu) ---");
-    await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForTimeout(1500);
 
     // Check for Avatar trigger button
     const avatarBtn = await page.$('header button:has(.rounded-full)');
     if (avatarBtn) {
-      record(23, "ปุ่ม Avatar ของเจ้าหน้าที่บน Navbar", "PASS", "พบปุ่ม Avatar และชื่อผู้ใช้งาน");
+      record(24, "ปุ่ม Avatar ของเจ้าหน้าที่บน Navbar", "PASS", "พบปุ่ม Avatar และชื่อผู้ใช้งาน");
       await avatarBtn.click();
       await page.waitForTimeout(500);
       await page.screenshot({ path: `${SCREENSHOT_DIR}/07_portal_avatar_dropdown.png` });
@@ -182,9 +183,9 @@ async function runSimulation() {
       const hasProfileLink = dropdownText.includes("ข้อมูลส่วนตัว");
       const hasLogoutLink = dropdownText.includes("ออกจากระบบ");
 
-      record(24, "เมนูดรอปดาวน์ Avatar เจ้าหน้าที่", (hasDashboardLink && hasLogoutLink) ? "PASS" : "WARN", "แสดงครบทั้งแผงควบคุม, ข้อมูลส่วนตัว, และออกจากระบบ");
+      record(25, "เมนูดรอปดาวน์ Avatar เจ้าหน้าที่", (hasDashboardLink && hasLogoutLink) ? "PASS" : "WARN", "แสดงครบทั้งแผงควบคุม, ข้อมูลส่วนตัว, และออกจากระบบ");
     } else {
-      record(23, "ปุ่ม Avatar ของเจ้าหน้าที่บน Navbar", "FAIL", "ไม่พบปุ่ม Avatar");
+      record(24, "ปุ่ม Avatar ของเจ้าหน้าที่บน Navbar", "FAIL", "ไม่พบปุ่ม Avatar");
     }
 
     if (isHeaded) {

@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Layers,
   LogIn,
+  Network,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,13 @@ export default async function HomePage() {
   const [articles, employees, curricula, facilities, tenant] = await Promise.all([
     prisma.article.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
     prisma.employee.findMany({ take: 8, orderBy: { createdAt: "desc" } }).catch(() => []),
-    prisma.curriculum.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
+    prisma.curriculum
+      .findMany({
+        take: 6,
+        include: { department: { select: { id: true, name: true, code: true } } },
+        orderBy: { createdAt: "desc" },
+      })
+      .catch(() => []),
     prisma.facility.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
     (session?.tenantId
       ? prisma.tenant.findUnique({ where: { id: session.tenantId } })
@@ -367,12 +374,20 @@ export default async function HomePage() {
                   </div>
                 )}
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-bold text-blue-700 px-3 py-1 rounded-full bg-blue-50 border border-blue-200">
                       {curr.degreeLevel}
                     </span>
                     <span className="text-xs text-slate-500 font-mono font-medium">รหัส: {curr.code}</span>
                   </div>
+                  {(curr as any).department && (
+                    <div className="mb-3">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                        <Network className="w-3 h-3 text-blue-600" />
+                        {(curr as any).department.name}
+                      </span>
+                    </div>
+                  )}
                   <h3 className="font-bold text-lg text-slate-900 mb-2">{curr.name}</h3>
                   <p className="text-slate-600 text-sm leading-relaxed mb-6">{curr.description}</p>
                 </div>

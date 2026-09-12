@@ -43,6 +43,8 @@ export const MESSAGES: Dictionary = {
   "nav.group.faculty": { th: "ระบบงานคณะ", en: "Faculty Systems" },
   "nav.group.settings": { th: "ตั้งค่า", en: "Settings" },
   "nav.dashboard": { th: "แดชบอร์ด", en: "Dashboard" },
+  "nav.academic": { th: "วิชาการและหลักสูตร", en: "Academics & Curricula" },
+  "nav.services": { th: "บริการและคำร้อง", en: "Services & Requests" },
   "nav.users": { th: "ผู้ใช้", en: "Users" },
   "nav.roles": { th: "บทบาท", en: "Roles" },
   "nav.settings": { th: "ตั้งค่าองค์กร", en: "Organization" },

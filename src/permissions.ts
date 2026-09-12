@@ -4,6 +4,7 @@ import { SAMPLE_PERMISSIONS } from "@/features/sample/permissions";
 import { NEWS_PERMISSIONS } from "@/features/news/permissions";
 import { PERSONNEL_PERMISSIONS } from "@/features/personnel/permissions";
 import { CURRICULUM_PERMISSIONS } from "@/features/curriculum/permissions";
+import { DEPARTMENT_PERMISSIONS } from "@/features/department/permissions";
 import { DOCUMENT_PERMISSIONS } from "@/features/document/permissions";
 import { FACILITY_PERMISSIONS } from "@/features/facility/permissions";
 
@@ -14,11 +15,10 @@ export const ALL_PERMISSIONS: readonly PermissionDef[] = [
   ...NEWS_PERMISSIONS,
   ...PERSONNEL_PERMISSIONS,
   ...CURRICULUM_PERMISSIONS,
+  ...DEPARTMENT_PERMISSIONS,
   ...DOCUMENT_PERMISSIONS,
   ...FACILITY_PERMISSIONS,
 ];
 
 const codes = ALL_PERMISSIONS.map((p) => p.code);
 if (new Set(codes).size !== codes.length) throw new Error("permission code ซ้ำใน ALL_PERMISSIONS");
-
-

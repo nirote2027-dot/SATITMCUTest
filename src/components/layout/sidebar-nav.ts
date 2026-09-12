@@ -6,6 +6,7 @@ import {
   Newspaper,
   UserCheck,
   GraduationCap,
+  Network,
   FileText,
   Building2,
   type LucideIcon,
@@ -15,6 +16,7 @@ import { SAMPLE_P } from "@/features/sample";
 import { NEWS_P } from "@/features/news";
 import { PERSONNEL_P } from "@/features/personnel";
 import { CURRICULUM_P } from "@/features/curriculum";
+import { DEPARTMENT_P } from "@/features/department";
 import { DOCUMENT_P } from "@/features/document";
 import { FACILITY_P } from "@/features/facility";
 
@@ -37,26 +39,42 @@ export const sidebarGroups: NavGroup[] = [
     items: [
       { title: "news.title", href: "/news", icon: Newspaper, permission: NEWS_P.read },
       { title: "personnel.title", href: "/personnel", icon: UserCheck, permission: PERSONNEL_P.read },
-      { title: "curriculum.title", href: "/curriculum", icon: GraduationCap, permission: CURRICULUM_P.read },
-      { title: "document.title", href: "/document", icon: FileText, permission: DOCUMENT_P.read },
-      { title: "facility.title", href: "/facility", icon: Building2, permission: FACILITY_P.read },
+      {
+        title: "nav.academic",
+        href: "/curriculum",
+        icon: GraduationCap,
+        children: [
+          { title: "curriculum.title", href: "/curriculum", permission: CURRICULUM_P.read },
+          { title: "department.title", href: "/department", permission: DEPARTMENT_P.read },
+        ],
+      },
+      {
+        title: "nav.services",
+        href: "/document",
+        icon: FileText,
+        children: [
+          { title: "document.title", href: "/document", permission: DOCUMENT_P.read },
+          { title: "facility.title", href: "/facility", permission: FACILITY_P.read },
+        ],
+      },
     ],
   },
   {
-    label: "nav.group.sample",
-    items: [{ title: "sample.nav", href: "/sample", icon: Layers, permission: SAMPLE_P.sampleRead }],
+    label: "nav.group.settings",
+    items: [
+      {
+        title: "nav.settings",
+        href: "/settings",
+        icon: Settings,
+        children: [
+          { title: "nav.settings", href: "/settings", permission: P.settingsManage },
+          { title: "nav.users", href: "/users", permission: P.usersRead },
+          { title: "nav.roles", href: "/users/roles", permission: P.rolesManage },
+          { title: "sample.nav", href: "/sample", permission: SAMPLE_P.sampleRead },
+        ],
+      },
+    ],
   },
-  {
-    label: "nav.group.users",
-    items: [{
-      title: "nav.users", href: "/users", icon: Users, permission: P.usersRead,
-      children: [
-        { title: "nav.users", href: "/users", permission: P.usersRead },
-        { title: "nav.roles", href: "/users/roles", permission: P.rolesManage },
-      ],
-    }],
-  },
-  { label: "nav.group.settings", items: [{ title: "nav.settings", href: "/settings", icon: Settings, permission: P.settingsManage }] },
 ];
 
 type Ctx = Parameters<typeof hasPermission>[0];
@@ -86,7 +104,7 @@ export function getActiveNavChain(pathname: string): NavCrumb[] {
   if (!best) return [];
   const { parent, item } = best as { parent: NavItem | null; item: NavItem };
   const chain: NavCrumb[] = [];
-  if (parent && parent.href !== item.href) chain.push({ title: parent.title, href: parent.href });
+  if (parent && (parent.href !== item.href || parent.title !== item.title)) chain.push({ title: parent.title, href: parent.href });
   chain.push({ title: item.title, href: item.href });
   return chain;
 }

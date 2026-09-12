@@ -4,6 +4,7 @@ export const CreateCurriculumSchema = z.object({
   code: z.string().min(1, "Code is required").max(100),
   name: z.string().min(1, "Name is required").max(255),
   degreeLevel: z.string().min(1, "Degree level is required").max(100),
+  departmentId: z.string().uuid().optional().nullable(),
   totalCredits: z.coerce.number().min(0, "Total credits must be a positive number"),
   description: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),

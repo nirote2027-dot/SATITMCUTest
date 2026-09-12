@@ -21,4 +21,15 @@ describe("curriculum validations", () => {
     });
     expect(res.success).toBe(false);
   });
+
+  it("validates with optional departmentId", () => {
+    const res = CreateCurriculumSchema.safeParse({
+      code: "CS102",
+      name: "Software Engineering",
+      degreeLevel: "Bachelor",
+      totalCredits: 130,
+      departmentId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    });
+    expect(res.success).toBe(true);
+  });
 });
