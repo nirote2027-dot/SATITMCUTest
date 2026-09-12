@@ -5,7 +5,9 @@ export interface ArticleDto {
   id: string;
   tenantId: string;
   title: string;
+  titleEn?: string | null;
   content: string | null;
+  contentEn?: string | null;
   coverImage: string | null;
   status: string;
   publishedAt: string | null;
@@ -22,7 +24,9 @@ export async function listArticles(tenantId: string): Promise<ArticleDto[]> {
     id: item.id,
     tenantId: item.tenantId,
     title: item.title,
+    titleEn: item.titleEn,
     content: item.content,
+    contentEn: item.contentEn,
     coverImage: item.coverImage,
     status: item.status,
     publishedAt: item.publishedAt ? item.publishedAt.toISOString() : null,
@@ -37,7 +41,9 @@ export async function createArticle(tenantId: string, authorId: string, input: C
       tenantId,
       authorId,
       title: input.title,
+      titleEn: input.titleEn ?? null,
       content: input.content ?? null,
+      contentEn: input.contentEn ?? null,
       coverImage: input.coverImage ?? null,
       categoryId: input.categoryId ?? null,
       status: input.status,
@@ -48,7 +54,9 @@ export async function createArticle(tenantId: string, authorId: string, input: C
     id: created.id,
     tenantId: created.tenantId,
     title: created.title,
+    titleEn: created.titleEn,
     content: created.content,
+    contentEn: created.contentEn,
     coverImage: created.coverImage,
     status: created.status,
     publishedAt: created.publishedAt ? created.publishedAt.toISOString() : null,
@@ -66,7 +74,9 @@ export async function updateArticle(tenantId: string, input: UpdateArticleInput)
     where: { id: input.id, tenantId },
     data: {
       ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.titleEn !== undefined ? { titleEn: input.titleEn ?? null } : {}),
       ...(input.content !== undefined ? { content: input.content ?? null } : {}),
+      ...(input.contentEn !== undefined ? { contentEn: input.contentEn ?? null } : {}),
       ...(input.coverImage !== undefined ? { coverImage: input.coverImage ?? null } : {}),
       ...(input.categoryId !== undefined ? { categoryId: input.categoryId ?? null } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
@@ -77,7 +87,9 @@ export async function updateArticle(tenantId: string, input: UpdateArticleInput)
     id: updated.id,
     tenantId: updated.tenantId,
     title: updated.title,
+    titleEn: updated.titleEn,
     content: updated.content,
+    contentEn: updated.contentEn,
     coverImage: updated.coverImage,
     status: updated.status,
     publishedAt: updated.publishedAt ? updated.publishedAt.toISOString() : null,

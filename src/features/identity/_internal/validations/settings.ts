@@ -26,6 +26,11 @@ export const updateSettingsSchema = z.object({
   smtpPass: z.string().default(""),
   smtpFrom: z.string().trim().max(255).default(""),
   smtpSecure: z.boolean().default(true),
+  geminiApiKey: z.string().trim().max(255).default(""),
+});
+
+export const testGeminiSchema = z.object({
+  apiKey: z.string().trim().min(1, "กรุณาระบุ Gemini API Key ที่ต้องการทดสอบ"),
 });
 
 export const testSmtpSchema = z.object({

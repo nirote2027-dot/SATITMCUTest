@@ -61,3 +61,43 @@ export async function testSmtpAction(input: unknown): Promise<ActionResult<{ suc
   });
 }
 
+export async function testGeminiAction(apiKeyInput?: string): Promise<ActionResult<{ success: boolean; message: string; model: string }>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(P.settingsManage);
+    const apiKey = (apiKeyInput && apiKeyInput.trim()) || (await getTenantSettings(ctx.tenantId)).geminiApiKey || process.env.GEMINI_API_KEY || "";
+    if (!apiKey) {
+      throw errors.validation("กรุณาระบุ Gemini API Key ก่อนทำการทดสอบ");
+    }
+
+    const model = "gemini-1.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: "Ping test: Reply with 'OK' and nothing else." }] }],
+          generationConfig: { maxOutputTokens: 10 },
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMsg = data?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw errors.validation(`เชื่อมต่อ Gemini ไม่สำเร็จ: ${errorMsg}`);
+      }
+
+      return {
+        success: true,
+        message: "เชื่อมต่อกับ Google Gemini API สำเร็จเรียบร้อยแล้ว! AI พร้อมให้บริการ",
+        model,
+      };
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "code" in err) throw err;
+      throw errors.validation(`ไม่สามารถเชื่อมต่อ Gemini API ได้: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  });
+}
+
+

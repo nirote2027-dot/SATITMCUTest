@@ -1,1 +1,8 @@
-export { getArticlesAction, createArticleAction, updateArticleAction, deleteArticleAction } from "./_internal/actions";
+export {
+  getArticlesAction,
+  createArticleAction,
+  updateArticleAction,
+  deleteArticleAction,
+  generateEnglishNewsAction,
+} from "./_internal/actions";
+

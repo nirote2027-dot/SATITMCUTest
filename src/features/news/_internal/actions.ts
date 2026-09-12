@@ -46,3 +46,25 @@ export async function updateArticleAction(input: unknown): Promise<ActionResult<
   });
 }
 
+export async function generateEnglishNewsAction(input: unknown): Promise<ActionResult<{ titleEn: string; contentEn: string }>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(NEWS_P.manage);
+    const { generateEnglishNewsSchema } = await import("./validations");
+    const parsed = generateEnglishNewsSchema.parse(input, { error: zodErrorMap(await getLocale()) });
+
+    const { getTenantGeminiApiKey } = await import("@/features/identity/server");
+    const apiKey = await getTenantGeminiApiKey(ctx.tenantId);
+    if (!apiKey) {
+      throw new Error("ยังไม่ได้กำหนด Google Gemini API Key กรุณาไปที่เมนู 'การตั้งค่าระบบ' เพื่อระบุ API Key ก่อนใช้งาน");
+    }
+
+    const { translateNewsWithGemini } = await import("./gemini");
+    return translateNewsWithGemini({
+      titleTh: parsed.titleTh,
+      contentTh: parsed.contentTh,
+      apiKey,
+    });
+  });
+}
+
+

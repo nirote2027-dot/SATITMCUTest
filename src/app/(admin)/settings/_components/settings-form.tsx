@@ -7,9 +7,9 @@ import { LiyonCard, LiyonField, LiyonSwitchRow, PalettePicker } from "@/shared/c
 import { useT } from "@/shared/lib/i18n/client";
 import type { PaletteId } from "@/shared/lib/palette";
 import type { TenantSettings } from "@/features/identity";
-import { updateSettingsAction, testSmtpAction } from "@/features/identity/actions";
+import { updateSettingsAction, testSmtpAction, testGeminiAction } from "@/features/identity/actions";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Zap, Eye, EyeOff, Info, Send, Loader2 } from "lucide-react";
+import { Zap, Eye, EyeOff, Info, Send, Loader2, Sparkles, ExternalLink, CheckCircle2 } from "lucide-react";
 
 export function SettingsForm({ initial }: { initial: TenantSettings }) {
   const t = useT();
@@ -25,12 +25,16 @@ export function SettingsForm({ initial }: { initial: TenantSettings }) {
     smtpPass: initial.smtp?.pass ?? "",
     smtpFrom: initial.smtp?.from ?? "",
     smtpSecure: initial.smtp?.secure ?? true,
+    geminiApiKey: initial.geminiApiKey ?? "",
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [pending, start] = useTransition();
   const [showPass, setShowPass] = useState(false);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [testEmail, setTestEmail] = useState(initial.smtp?.user ?? "");
   const [testingSmtp, setTestingSmtp] = useState(false);
+  const [testingGemini, setTestingGemini] = useState(false);
+  const [geminiSuccessMsg, setGeminiSuccessMsg] = useState("");
 
   function applyGmailPreset() {
     setForm((prev) => {
@@ -86,6 +90,28 @@ export function SettingsForm({ initial }: { initial: TenantSettings }) {
       toast.error(`เกิดข้อผิดพลาด: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setTestingSmtp(false);
+    }
+  }
+
+  async function testGemini() {
+    if (!form.geminiApiKey.trim()) {
+      toast.error("กรุณาระบุ Gemini API Key ก่อนทดสอบ");
+      return;
+    }
+    setTestingGemini(true);
+    setGeminiSuccessMsg("");
+    try {
+      const res = await testGeminiAction(form.geminiApiKey.trim());
+      if (res.ok) {
+        setGeminiSuccessMsg(res.data.message);
+        toast.success(res.data.message);
+      } else {
+        toast.error(`ทดสอบไม่สำเร็จ: ${res.error.message || res.error.code}`);
+      }
+    } catch (err: unknown) {
+      toast.error(`เกิดข้อผิดพลาด: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setTestingGemini(false);
     }
   }
 
@@ -279,6 +305,99 @@ export function SettingsForm({ initial }: { initial: TenantSettings }) {
                   <>
                     <Send className="w-4 h-4 mr-1.5" />
                     {t("settings.smtpTestButton")}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </LiyonCard>
+
+        {/* Google Gemini AI Configuration Card */}
+        <LiyonCard>
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-sky-400 flex items-center justify-center text-white shadow-xs">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  การเชื่อมต่อ AI (Google Gemini API)
+                </h2>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  เชื่อมต่อ Gemini API เพื่อใช้แปลข่าวสารภาษาอังกฤษอัตโนมัติ และฟังก์ชันปัญญาประดิษฐ์อื่นๆ ในระบบ
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://aistudio.google.com/app/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 hover:text-sky-700 bg-sky-50 dark:bg-sky-950/40 px-2.5 py-1.5 rounded-lg border border-sky-200 dark:border-sky-800 transition-colors"
+            >
+              <span>ขอรับ API Key ฟรี (Google AI Studio)</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3.5 mb-4 text-xs text-slate-600 dark:text-slate-400">
+            ระบบใช้โมเดล <strong>Gemini 1.5 Flash</strong> ที่มีความเร็วสูงและแม่นยำในการแปลภาษาไทยเป็นภาษาอังกฤษ สามารถใช้งานฟรีได้สูงสุด 15 คำขอต่อนาที
+          </div>
+
+          <div className="fields">
+            <LiyonField
+              label="Google Gemini API Key"
+              htmlFor="s-gemini-key"
+              error={errors.geminiApiKey?.[0]}
+              hint="คีย์จะขึ้นต้นด้วย AIzaSy... เก็บรักษาในฐานข้อมูลอย่างปลอดภัย"
+            >
+              <div className="relative flex items-center">
+                <input
+                  id="s-gemini-key"
+                  type={showGeminiKey ? "text" : "password"}
+                  placeholder="AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  value={form.geminiApiKey}
+                  onChange={(e) => {
+                    setForm({ ...form, geminiApiKey: e.target.value });
+                    setGeminiSuccessMsg("");
+                  }}
+                  className="pr-10 w-full font-mono text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowGeminiKey(!showGeminiKey)}
+                  className="absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  title={showGeminiKey ? "ซ่อนคีย์" : "แสดงคีย์"}
+                >
+                  {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </LiyonField>
+
+            {geminiSuccessMsg && (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900 text-xs font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{geminiSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={testGemini}
+                disabled={testingGemini || !form.geminiApiKey.trim()}
+                className="gap-2 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+              >
+                {testingGemini ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    กำลังทดสอบการเชื่อมต่อ Gemini AI...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                    ทดสอบการเชื่อมต่อ Gemini AI
                   </>
                 )}
               </Button>

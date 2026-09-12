@@ -24,12 +24,13 @@ export interface TenantSettings {
   logoUrl: string | null;
   palette: PaletteId;
   smtp?: SmtpConfig;
+  geminiApiKey?: string;
 }
 
 async function readTenantSettings(tenantId: string, db: Db): Promise<TenantSettings> {
   const t = await db.tenant.findUnique({ where: { id: tenantId } });
   if (!t) throw errors.not_found();
-  const settings = (t.settings as { palette?: unknown; smtp?: Partial<SmtpConfig> }) || {};
+  const settings = (t.settings as { palette?: unknown; smtp?: Partial<SmtpConfig>; geminiApiKey?: string }) || {};
   const p = settings.palette;
   const smtpRaw = settings.smtp;
   const smtp: SmtpConfig | undefined = smtpRaw && (smtpRaw.host || smtpRaw.user) ? {
@@ -41,21 +42,29 @@ async function readTenantSettings(tenantId: string, db: Db): Promise<TenantSetti
     secure: smtpRaw.secure ?? true,
   } : undefined;
 
-  return { code: t.code, nameTh: t.nameTh, nameEn: t.nameEn, logoUrl: t.logoUrl, palette: isPalette(p) ? p : DEFAULT_PALETTE, smtp };
+  const geminiApiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY || "";
+
+  return { code: t.code, nameTh: t.nameTh, nameEn: t.nameEn, logoUrl: t.logoUrl, palette: isPalette(p) ? p : DEFAULT_PALETTE, smtp, geminiApiKey };
 }
 
 export async function getTenantSettings(tenantId: string): Promise<TenantSettings> {
   return readTenantSettings(tenantId, prisma);
 }
 
-/** เก็บคีย์อื่น ๆ ใน settings JSON ไว้ทั้งหมด — merge palette และ smtp ที่เปลี่ยน ไม่ทับทั้งก้อน */
+export async function getTenantGeminiApiKey(tenantId: string): Promise<string> {
+  const t = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { settings: true } });
+  const settings = (t?.settings as { geminiApiKey?: string } | null) || {};
+  return settings.geminiApiKey || process.env.GEMINI_API_KEY || "";
+}
+
+/** เก็บคีย์อื่น ๆ ใน settings JSON ไว้ทั้งหมด — merge palette, smtp และ geminiApiKey ที่เปลี่ยน ไม่ทับทั้งก้อน */
 export async function updateTenantSettings(input: { tenantId: string; actorId: string } & UpdateSettingsInput): Promise<void> {
   await prisma.$transaction(async (tx) => {
     // อ่านผ่าน tx เดียวกัน ไม่ใช่ client กลาง — ไม่งั้นทรานแซกชันนี้กินคอนเนกชันจากพูลเพิ่มอีกเส้นเพื่ออ่าน
     // ค่าเดิม และค่าที่อ่านได้ก็อยู่นอกสแนปช็อตของทรานแซกชัน (ค่า before ของ audit อาจไม่ตรงกับที่กำลังจะทับ)
     const before = await readTenantSettings(input.tenantId, tx);
     const t = await tx.tenant.findUniqueOrThrow({ where: { id: input.tenantId }, select: { settings: true } });
-    const currentSettings = (t.settings as { palette?: unknown; smtp?: Partial<SmtpConfig> }) || {};
+    const currentSettings = (t.settings as { palette?: unknown; smtp?: Partial<SmtpConfig>; geminiApiKey?: string }) || {};
 
     let smtp: SmtpConfig | undefined = undefined;
     if (input.smtpHost || input.smtpUser) {
@@ -75,6 +84,7 @@ export async function updateTenantSettings(input: { tenantId: string; actorId: s
       ...currentSettings,
       palette: input.palette,
       smtp,
+      geminiApiKey: input.geminiApiKey !== undefined ? input.geminiApiKey.trim() : (currentSettings.geminiApiKey || ""),
     };
 
     await tx.tenant.update({
