@@ -1,6 +1,13 @@
 import { prisma } from "@/shared/lib/infra/prisma";
 import type { CreateEmployeeInput, UpdateEmployeeInput } from "./validations";
 
+export interface ContactInfo {
+  phone?: string | null;
+  email?: string | null;
+  lineId?: string | null;
+  address?: string | null;
+}
+
 export interface EmployeeDto {
   id: string;
   tenantId: string;
@@ -11,7 +18,7 @@ export interface EmployeeDto {
   lastName: string;
   position: string | null;
   imageUrl: string | null;
-  contactInfo: any | null;
+  contactInfo: ContactInfo | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -19,6 +26,17 @@ export interface EmployeeDto {
     id: string;
     name: string;
   } | null;
+}
+
+function parseContactInfo(raw: unknown): ContactInfo | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  return {
+    phone: typeof obj.phone === "string" ? obj.phone : null,
+    email: typeof obj.email === "string" ? obj.email : null,
+    lineId: typeof obj.lineId === "string" ? obj.lineId : null,
+    address: typeof obj.address === "string" ? obj.address : null,
+  };
 }
 
 export async function listEmployees(tenantId: string): Promise<EmployeeDto[]> {
@@ -37,7 +55,7 @@ export async function listEmployees(tenantId: string): Promise<EmployeeDto[]> {
     lastName: item.lastName,
     position: item.position,
     imageUrl: item.imageUrl,
-    contactInfo: item.contactInfo,
+    contactInfo: parseContactInfo(item.contactInfo),
     isActive: item.isActive,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
@@ -71,7 +89,7 @@ export async function createEmployee(tenantId: string, input: CreateEmployeeInpu
     lastName: created.lastName,
     position: created.position,
     imageUrl: created.imageUrl,
-    contactInfo: created.contactInfo,
+    contactInfo: parseContactInfo(created.contactInfo),
     isActive: created.isActive,
     createdAt: created.createdAt.toISOString(),
     updatedAt: created.updatedAt.toISOString(),
@@ -105,7 +123,7 @@ export async function updateEmployee(tenantId: string, input: UpdateEmployeeInpu
     lastName: updated.lastName,
     position: updated.position,
     imageUrl: updated.imageUrl,
-    contactInfo: updated.contactInfo,
+    contactInfo: parseContactInfo(updated.contactInfo),
     isActive: updated.isActive,
     createdAt: updated.createdAt.toISOString(),
     updatedAt: updated.updatedAt.toISOString(),

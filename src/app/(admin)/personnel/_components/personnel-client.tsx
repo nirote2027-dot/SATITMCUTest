@@ -47,6 +47,10 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
   const [formPosition, setFormPosition] = useState("");
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formIsActive, setFormIsActive] = useState<"TRUE" | "FALSE">("TRUE");
+  const [formPhone, setFormPhone] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formLineId, setFormLineId] = useState("");
+  const [formAddress, setFormAddress] = useState("");
 
   const openCreateDialog = () => {
     setEditingItem(null);
@@ -56,6 +60,10 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
     setFormPosition("");
     setFormImageUrl("");
     setFormIsActive("TRUE");
+    setFormPhone("");
+    setFormEmail("");
+    setFormLineId("");
+    setFormAddress("");
     setModalOpen(true);
   };
 
@@ -67,6 +75,10 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
     setFormPosition(item.position ?? "");
     setFormImageUrl(item.imageUrl ?? "");
     setFormIsActive(item.isActive ? "TRUE" : "FALSE");
+    setFormPhone(item.contactInfo?.phone ?? "");
+    setFormEmail(item.contactInfo?.email ?? "");
+    setFormLineId(item.contactInfo?.lineId ?? "");
+    setFormAddress(item.contactInfo?.address ?? "");
     setModalOpen(true);
   };
 
@@ -91,6 +103,12 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
         position: formPosition.trim() || undefined,
         imageUrl: formImageUrl.trim() || null,
         isActive: formIsActive === "TRUE",
+        contactInfo: {
+          phone: formPhone.trim() || null,
+          email: formEmail.trim() || null,
+          lineId: formLineId.trim() || null,
+          address: formAddress.trim() || null,
+        },
       };
 
       if (editingItem) {
@@ -166,6 +184,23 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
       key: "position",
       header: "ตำแหน่ง",
       render: (row) => <span>{row.position ?? "-"}</span>,
+    },
+    {
+      key: "contact",
+      header: "ข้อมูลติดต่อ",
+      render: (row) => {
+        const info = row.contactInfo;
+        if (!info || (!info.phone && !info.email && !info.lineId && !info.address)) {
+          return <span className="text-slate-400 text-xs">-</span>;
+        }
+        return (
+          <div className="text-xs space-y-0.5 text-slate-600">
+            {info.phone && <div>📞 {info.phone}</div>}
+            {info.email && <div>✉️ {info.email}</div>}
+            {info.lineId && <div>💬 LINE: {info.lineId}</div>}
+          </div>
+        );
+      },
     },
     {
       key: "isActive",
@@ -286,6 +321,51 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
                   placeholder="นามสกุล"
                   className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   required
+                />
+              </div>
+            </div>
+
+            {/* Contact Info Section */}
+            <div className="pt-2 border-t border-slate-100">
+              <span className="text-xs font-bold text-slate-900 block mb-2.5">ข้อมูลการติดต่อและที่อยู่ (Contact Information)</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">เบอร์โทรศัพท์</label>
+                  <input
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    placeholder="เช่น 081-234-5678"
+                    className="w-full text-sm px-3 py-1.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">อีเมล</label>
+                  <input
+                    type="email"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full text-sm px-3 py-1.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">LINE ID</label>
+                  <input
+                    value={formLineId}
+                    onChange={(e) => setFormLineId(e.target.value)}
+                    placeholder="เช่น @lineid หรือ user123"
+                    className="w-full text-sm px-3 py-1.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="mt-3">
+                <label className="text-xs font-medium text-slate-600 block mb-1">ที่อยู่ (Address)</label>
+                <textarea
+                  rows={2}
+                  value={formAddress}
+                  onChange={(e) => setFormAddress(e.target.value)}
+                  placeholder="ที่อยู่สำหรับติดต่อ / ที่อยู่ตามทะเบียนบ้าน"
+                  className="w-full text-sm px-3 py-1.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>

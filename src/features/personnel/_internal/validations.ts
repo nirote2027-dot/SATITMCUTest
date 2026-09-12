@@ -8,7 +8,15 @@ export const createEmployeeSchema = z.object({
   imageUrl: z.string().optional().nullable(),
   departmentId: z.string().uuid().optional().nullable(),
   userId: z.string().uuid().optional().nullable(),
-  contactInfo: z.any().optional(), // Or a more specific object schema
+  contactInfo: z
+    .object({
+      phone: z.string().optional().nullable(),
+      email: z.string().email("invalid_email").optional().nullable().or(z.literal("")),
+      lineId: z.string().optional().nullable(),
+      address: z.string().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
   isActive: z.boolean().default(true),
 });
 
