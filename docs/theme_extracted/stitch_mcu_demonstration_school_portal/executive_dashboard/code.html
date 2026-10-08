@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+
+<html lang="th"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Sarabun:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;font-family:'Sarabun','Plus Jakarta Sans',sans-serif;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"primary-fixed-dim":"#ffb1c2","status-info":"#0284C7","slate-800":"#1E293B","on-primary-container":"#ffd9df","gold-hover":"#D4AF37","on-tertiary-container":"#d8e3fb","status-success-bg":"#ECFDF5","slate-900":"#0F172A","error-container":"#ffdad6","surface-container-low":"#eff4ff","secondary-fixed-dim":"#eec14b","on-tertiary-fixed-variant":"#3c475a","status-danger":"#EF4444","status-success":"#10B981","on-primary-fixed-variant":"#8f003f","border-subtle":"#E2E8F0","on-error":"#ffffff","on-tertiary":"#ffffff","outline-variant":"#e1bec4","on-secondary-fixed":"#251a00","surface-container-lowest":"#ffffff","on-surface":"#0b1c30","lotus-vibrant":"#D81B60","gold-regal":"#C59B27","on-primary":"#ffffff","on-tertiary-fixed":"#111c2d","primary-fixed":"#ffd9df","lotus-deep":"#880E4F","lotus-primary":"#C2185B","inverse-primary":"#ffb1c2","primary-container":"#c2185b","surface-variant":"#d3e4fe","status-warning-bg":"#FFFBEB","tertiary-fixed-dim":"#bcc7de","slate-400":"#94A3B8","surface-bg":"#F8FAFC","tertiary-fixed":"#d8e3fb","surface-card":"#FFFFFF","on-secondary-fixed-variant":"#5a4300","on-surface-variant":"#594045","status-info-bg":"#F0F9FF","status-warning":"#F59E0B","inverse-on-surface":"#eaf1ff","on-secondary":"#ffffff","lotus-subtle":"#FCE4EC","outline":"#8d6f75","secondary-fixed":"#ffdf98","surface":"#f8f9ff","surface-bright":"#f8f9ff","surface-dim":"#cbdbf5","on-primary-fixed":"#3f0018","on-background":"#0b1c30","secondary":"#775a00","on-error-container":"#93000a","status-danger-bg":"#FEF2F2","surface-container-highest":"#d3e4fe","on-secondary-container":"#735700","tertiary":"#424d61","surface-container":"#e5eeff","tertiary-container":"#5a657a","gold-light":"#FFFBEB","slate-600":"#475569","surface-tint":"#b90c55","secondary-container":"#fece57","surface-container-high":"#dce9ff","primary":"#9b0044","background":"#f8f9ff","inverse-surface":"#213145","error":"#ba1a1a"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"container-max":"88rem","space-2xl":"3rem","gutter-desktop":"1.5rem","sidebar-expanded":"16.5rem","sidebar-collapsed":"4.5rem","space-md":"1rem","space-xs":"0.5rem","space-2xs":"0.25rem","space-xl":"2rem","space-lg":"1.5rem","space-sm":"0.75rem","gutter-mobile":"1rem"},"fontFamily":{"label-sm":["Plus Jakarta Sans"],"headline-2xl":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"headline-2xl-mobile":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"label-lg":["Plus Jakarta Sans"],"code-table":["Plus Jakarta Sans"]},"fontSize":{"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"600"}],"headline-2xl":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-lg":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"26px","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"headline-2xl-mobile":["26px",{"lineHeight":"34px","letterSpacing":"-0.01em","fontWeight":"700"}],"headline-xl":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"700"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"20px","fontWeight":"600"}],"code-table":["13px",{"lineHeight":"18px","fontWeight":"500"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface min-h-screen"><aside class="fixed left-0 top-0 h-full w-sidebar-expanded bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between"><div class="flex flex-col"><div class="h-16 px-space-md flex items-center gap-space-xs bg-surface-container-low/40"><img alt="logo มจร1.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VrR2FrmOPlxZ6M_e1Pr_pGdV8wWVXMSoUK0aVCMlenJSiQ80AoM9zxsFU0igQgtmeIURnkwXhFaMlMoqjH25lwe3hhQRgDTaY0choGyk100Gfwi3TAuGRaPnEuq0YO9LquQlA6J7VUFs1GcEPdpG5glt3-9IprF3lR2UZN8D6O7Nu3IcEcxXaFYbWKo88B6foKDNmk61AgTeipbyEVSgprQB_ar4_GpeH2Th00wG3am-eB2tldy_I1R5W-ex1d5y7NWfNJaIsb"/><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-lotus-primary truncate leading-tight">สาธิต มจร</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">Satit MCU Portal</span></div></div><div class="px-space-md py-space-sm"><div class="flex items-center gap-space-xs bg-gold-light text-secondary rounded-lg px-space-xs py-1 shadow-sm"><span class="material-symbols-outlined text-gold-regal text-[16px]">school</span><span class="font-label-sm text-label-sm font-semibold truncate">ปีการศึกษา 2567 เทอม 2</span></div></div><div class="px-space-md mt-space-xs"><span class="font-label-sm text-label-sm uppercase tracking-wider text-slate-400 px-space-xs">โมดูลหลัก (Core Modules)</span></div><nav class="flex flex-col gap-1 px-space-xs mt-space-xs" data-active-classes="bg-primary-container text-on-primary font-semibold shadow-sm"><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg transition-all bg-primary-container text-on-primary font-semibold shadow-sm" data-path="executive-dashboard" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="font-body-md text-body-md truncate">ภาพรวมผู้บริหาร</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="teacher-grade-attendance" href="#"><span class="material-symbols-outlined text-[20px]">fact_check</span><span class="font-body-md text-body-md truncate">บันทึกเกรด &amp; เช็คชื่อ</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="student-portal-evaluation" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="font-body-md text-body-md truncate">พอร์ทัลนักเรียน &amp; ผลการเรียน</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="registrar-transcript" href="#"><span class="material-symbols-outlined text-[20px]">assignment_turned_in</span><span class="font-body-md text-body-md truncate">ทะเบียน &amp; พิมพ์ ปพ.1</span></a></nav></div><div class="p-space-md bg-surface-container-low/30 m-space-xs rounded-xl flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-lotus-subtle flex items-center justify-center text-lotus-deep font-bold text-[13px]">ม.1-6</div><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-slate-800 font-semibold truncate">ระบบวัดและประเมินผล</span><span class="font-body-sm text-body-sm text-slate-600 truncate">ระดับมัธยมศึกษา</span></div></div></aside><div class="pl-sidebar-expanded"><header class="fixed top-0 left-sidebar-expanded right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter-desktop flex items-center justify-between"><div class="flex items-center gap-space-md"><img alt="logo มจร1.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VrR2FrmOPlxZ6M_e1Pr_pGdV8wWVXMSoUK0aVCMlenJSiQ80AoM9zxsFU0igQgtmeIURnkwXhFaMlMoqjH25lwe3hhQRgDTaY0choGyk100Gfwi3TAuGRaPnEuq0YO9LquQlA6J7VUFs1GcEPdpG5glt3-9IprF3lR2UZN8D6O7Nu3IcEcxXaFYbWKo88B6foKDNmk61AgTeipbyEVSgprQB_ar4_GpeH2Th00wG3am-eB2tldy_I1R5W-ex1d5y7NWfNJaIsb"/><div class="flex flex-col"><h1 class="font-headline-md text-headline-md text-slate-900 tracking-tight">โรงเรียนสาธิตมหาวิทยาลัยมหาจุฬาลงกรณราชวิทยาลัย</h1><span class="font-body-sm text-body-sm text-slate-600 hidden lg:inline">ระบบบริหารจัดการผลการเรียนและทะเบียนวัดผล (Smart Academic SIS)</span></div></div><div class="flex items-center gap-space-md"><div class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-sm py-1.5 rounded-lg text-tertiary font-body-sm text-body-sm"><span class="material-symbols-outlined text-[18px] text-lotus-primary">calendar_today</span><span>วันพุธที่ 27 พฤศจิกายน 2567 (ภาคเรียนที่ 2)</span></div><div class="relative flex items-center"><button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full transition-all relative" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-status-danger rounded-full ring-2 ring-surface-card"></span></button></div><div class="relative flex items-center gap-space-sm pl-space-xs border-l border-border-subtle"><div class="flex flex-col items-end min-w-0"><div class="flex items-center gap-space-xs"><span class="font-label-md text-label-md text-slate-900">อาจารย์พิมลพร สุวรรณรัตน์</span><span class="material-symbols-outlined text-[16px] text-slate-400">expand_more</span></div><span class="font-body-sm text-body-sm text-gold-regal font-medium">นายทะเบียน / Admin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 px-gutter-desktop pb-space-2xl bg-surface-bg min-h-screen"><div class="flex flex-col w-full gap-space-lg">
+<!-- Executive Control & Breadcrumb Header Bar -->
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-space-sm bg-surface-container-lowest p-space-md rounded-xl shadow-sm">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-sm text-label-sm mb-1">
+<span class="text-lotus-primary font-semibold">แดชบอร์ดฝ่ายบริหาร</span>
+<span>/</span>
+<span>ปีการศึกษา 2567</span>
+<span>/</span>
+<span class="text-secondary font-medium">ภาคเรียนที่ 2 (มัธยมศึกษา 1-6)</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[26px] text-lotus-primary">monitoring</span>
+<h2 class="font-headline-xl text-headline-xl text-slate-900 tracking-tight">รายงานภาพรวมสถิติทางวิชาการและระบบเฝ้าระวัง (US-04)</h2>
+</div>
+</div>
+<!-- Quick Action Filter Bar & Export Actions -->
+<div class="flex flex-wrap items-center gap-space-xs">
+<div class="relative">
+<select class="bg-surface-container-low text-on-surface font-label-md text-label-md px-3 py-2 rounded-lg cursor-pointer transition-colors focus:ring-2 focus:ring-lotus-primary focus:outline-none pr-8 appearance-none" id="gradeFilter">
+<option value="all">ระดับชั้น: ทุกระดับชั้น (ม.1 - ม.6)</option>
+<option value="m1">มัธยมศึกษาปีที่ 1 (210 คน)</option>
+<option value="m2">มัธยมศึกษาปีที่ 2 (206 คน)</option>
+<option value="m3">มัธยมศึกษาปีที่ 3 (204 คน)</option>
+<option value="m4">มัธยมศึกษาปีที่ 4 (212 คน)</option>
+<option value="m5">มัธยมศึกษาปีที่ 5 (208 คน)</option>
+<option value="m6">มัธยมศึกษาปีที่ 6 (208 คน)</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2.5 text-[18px] text-slate-400 pointer-events-none">arrow_drop_down</span>
+</div>
+<div class="relative">
+<select class="bg-surface-container-low text-on-surface font-label-md text-label-md px-3 py-2 rounded-lg cursor-pointer transition-colors focus:ring-2 focus:ring-lotus-primary focus:outline-none pr-8 appearance-none">
+<option>ภาคเรียน: 2/2567 (ปัจจุบัน)</option>
+<option>ภาคเรียน: 1/2567</option>
+<option>ภาคเรียน: 2/2566</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2.5 text-[18px] text-slate-400 pointer-events-none">arrow_drop_down</span>
+</div>
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gold-regal text-on-primary font-label-md text-label-md shadow-sm hover:bg-gold-hover transition-all active:scale-95" id="exportPdfBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+<span>ส่งออก ปพ. สรุปบริหาร (PDF)</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container text-tertiary font-label-md text-label-md hover:bg-surface-container-high transition-all active:scale-95" id="exportExcelBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">table_view</span>
+<span>Excel ข้อมูลดิบ</span>
+</button>
+</div>
+</div>
+<!-- Top Stat Cards (4 Cards Grid) -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-md">
+<!-- Card 1: Total Students -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute right-0 top-0 w-24 h-24 bg-lotus-subtle/40 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-slate-400">ประชากรนักเรียนรวม</span>
+<div class="w-8 h-8 rounded-lg bg-lotus-subtle flex items-center justify-center text-lotus-deep">
+<span class="material-symbols-outlined text-[20px]">groups</span>
+</div>
+</div>
+<div class="mt-space-xs flex items-baseline gap-space-xs">
+<span class="font-headline-2xl text-headline-2xl text-slate-900 tracking-tight">1,248</span>
+<span class="font-body-md text-body-md text-slate-600">คน</span>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs bg-surface-container-low/30 rounded-lg p-space-xs flex items-center justify-between text-slate-600 font-label-sm text-label-sm">
+<span class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-status-info"></span>
+          ชาย: <strong class="text-slate-900">612</strong> (49%)
+        </span>
+<span class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-lotus-primary"></span>
+          หญิง: <strong class="text-slate-900">636</strong> (51%)
+        </span>
+</div>
+</div>
+<!-- Card 2: Daily Attendance Rate -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute right-0 top-0 w-24 h-24 bg-status-success-bg/70 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-slate-400">อัตราการมาเรียนวันนี้</span>
+<div class="w-8 h-8 rounded-lg bg-status-success-bg flex items-center justify-center text-status-success">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+</div>
+</div>
+<div class="mt-space-xs flex items-baseline gap-space-xs">
+<span class="font-headline-2xl text-headline-2xl text-slate-900 tracking-tight">98.4%</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-status-success-bg text-status-success font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +0.6%
+          </span>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs bg-surface-container-low/30 rounded-lg p-space-xs flex items-center justify-between text-slate-600 font-label-sm text-label-sm">
+<span class="text-status-success font-medium">มา 1,228</span>
+<span class="text-status-danger font-medium">ขาด 12</span>
+<span class="text-status-warning font-medium">ลา 8</span>
+</div>
+</div>
+<!-- Card 3: School GPAX -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute right-0 top-0 w-24 h-24 bg-gold-light/60 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-slate-400">เกรดเฉลี่ยสะสมโรงเรียน (GPAX)</span>
+<div class="w-8 h-8 rounded-lg bg-gold-light flex items-center justify-center text-gold-regal">
+<span class="material-symbols-outlined text-[20px]">workspace_premium</span>
+</div>
+</div>
+<div class="mt-space-xs flex items-baseline gap-space-xs">
+<span class="font-headline-2xl text-headline-2xl text-slate-900 tracking-tight">3.42</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-gold-light text-secondary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +0.08 จากเทอม 1
+          </span>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs bg-surface-container-low/30 rounded-lg p-space-xs flex items-center justify-between text-slate-600 font-label-sm text-label-sm">
+<span>ม.ต้น: <strong class="text-slate-900">3.48</strong></span>
+<span>ม.ปลาย: <strong class="text-slate-900">3.36</strong></span>
+<span class="text-lotus-primary font-semibold">เป้าหมาย 3.50</span>
+</div>
+</div>
+<!-- Card 4: Urgent Early Warning (At-Risk) -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute right-0 top-0 w-24 h-24 bg-status-danger-bg/80 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-status-danger font-bold">แจ้งเตือนเร่งด่วน (CORE-05)</span>
+<div class="w-8 h-8 rounded-lg bg-status-danger-bg flex items-center justify-center text-status-danger">
+<span class="material-symbols-outlined text-[20px]">crisis_alert</span>
+</div>
+</div>
+<div class="mt-space-xs flex items-baseline gap-space-xs">
+<span class="font-headline-2xl text-headline-2xl text-status-danger tracking-tight">14</span>
+<span class="font-body-md text-body-md text-status-danger font-semibold">คนเสี่ยงวิกฤต</span>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs bg-status-danger-bg/40 rounded-lg p-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="text-status-danger font-semibold">ขาดเกินเกณฑ์: 9 คน</span>
+<span class="text-status-warning font-semibold">เกรด &lt; 1.50: 5 คน</span>
+</div>
+</div>
+</div>
+<!-- Main Grid: Charts and Visual Analytics -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md">
+<!-- Left: 8 Learning Areas Performance by Grade Level (8 cols) -->
+<div class="lg:col-span-8 bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs pb-space-sm">
+<div>
+<h3 class="font-headline-lg text-headline-lg text-slate-900">ผลสัมฤทธิ์เฉลี่ย 8 กลุ่มสาระการเรียนรู้ (แยกตามระดับชั้น ม.1 - ม.6)</h3>
+<p class="font-body-sm text-body-sm text-slate-600">วิเคราะห์คะแนนเฉลี่ยอิงเกณฑ์หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน และวิชาพระพุทธศาสนา</p>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="flex items-center gap-1 font-label-sm text-label-sm text-slate-600">
+<span class="w-3 h-3 rounded-sm bg-lotus-primary"></span> มัธยมศึกษาตอนปลาย
+          </span>
+<span class="flex items-center gap-1 font-label-sm text-label-sm text-slate-600">
+<span class="w-3 h-3 rounded-sm bg-secondary-fixed-dim"></span> มัธยมศึกษาตอนต้น
+          </span>
+</div>
+</div>
+<!-- High-fidelity SVG Grouped Bar Chart -->
+<div class="w-full h-72 flex items-center justify-center py-2">
+<svg class="w-full h-full" preserveaspectratio="xMidYMid meet" viewbox="0 0 740 240">
+<!-- Background Gridlines -->
+<line stroke="#f1f5f9" stroke-width="1" x1="60" x2="720" y1="20" y2="20"></line>
+<line stroke="#f1f5f9" stroke-width="1" x1="60" x2="720" y1="65" y2="65"></line>
+<line stroke="#f1f5f9" stroke-width="1" x1="60" x2="720" y1="110" y2="110"></line>
+<line stroke="#f1f5f9" stroke-width="1" x1="60" x2="720" y1="155" y2="155"></line>
+<line stroke="#cbd5e1" stroke-width="1.5" x1="60" x2="720" y1="200" y2="200"></line>
+<!-- Y-axis scale labels -->
+<text class="fill-slate-400 font-label-sm text-[11px]" text-anchor="end" x="48" y="24">4.00</text>
+<text class="fill-slate-400 font-label-sm text-[11px]" text-anchor="end" x="48" y="69">3.50</text>
+<text class="fill-slate-400 font-label-sm text-[11px]" text-anchor="end" x="48" y="114">3.00</text>
+<text class="fill-slate-400 font-label-sm text-[11px]" text-anchor="end" x="48" y="159">2.50</text>
+<text class="fill-slate-400 font-label-sm text-[11px]" text-anchor="end" x="48" y="204">2.00</text>
+<!-- Group 1: ภาษาไทย -->
+<g transform="translate(85, 0)">
+<rect class="fill-secondary-fixed-dim hover:opacity-85 transition-opacity" height="155" rx="3" width="22" x="0" y="45"><title>ม.ต้น: ภาษาไทย GPA 3.72</title></rect>
+<rect class="fill-lotus-primary hover:opacity-85 transition-opacity" height="142" rx="3" width="22" x="25" y="58"><title>ม.ปลาย: ภาษาไทย GPA 3.58</title></rect>
+<text class="fill-slate-600 font-label-sm text-[11px]" text-anchor="middle" x="23" y="218">ไทย</text>
+</g>
+<!-- Group 2: คณิตศาสตร์ -->
+<g transform="translate(165, 0)">
+<rect class="fill-secondary-fixed-dim hover:opacity-85 transition-opacity" height="110" rx="3" width="22" x="0" y="90"><title>ม.ต้น: คณิต GPA 3.22</title></rect>
+<rect class="fill-lotus-primary hover:opacity-85 transition-opacity" height="95" rx="3" width="22" x="25" y="105"><title>ม.ปลาย: คณิต GPA 3.05</title></rect>
+<text class="fill-slate-600 font-label-sm text-[11px]" text-anchor="middle" x="23" y="218">คณิตฯ</text>
+</g>
+<!-- Group 3: วิทยาศาสตร์ -->
+<g transform="translate(245, 0)">
+<rect class="fill-secondary-fixed-dim hover:opacity-85 transition-opacity" height="125" rx="3" width="22" x="0" y="75"><title>ม.ต้น: วิทย์ GPA 3.39</title></rect>
+<rect class="fill-lotus-primary hover:opacity-85 transition-opacity" height="132" rx="3" width="22" x="25" y="68"><title>ม.ปลาย: วิทย์ GPA 3.47</title></rect>
+<text class="fill-slate-600 font-label-sm text-[11px]" text-anchor="middle" x="23" y="218">วิทย์ฯ</text>
+</g>
+<!-- Group 4: สังคม/พระพุทธศาสนา -->
+<g transform="translate(325, 0)">
+<rect class="fill-secondary-fixed-dim hover:opacity-85 transition-opacity" height="168" rx="3" width="22" x="0" y="32"><title>ม.ต้น: สังคม/พระพุทธฯ GPA 3.86</title></rect>
+<rect class="fill-lotus-primary hover:opacity-85 transition-opacity" height="175" rx="3" width="22" x="25" y="25"><title>ม.ปลาย: สังคม/พระพุทธฯ GPA 3.94</title></rect>
+<text class="fill-lotus-deep font-label-sm text-[11px] font-bold" text-anchor="middle" x="23" y="218">พระพุทธฯ</text>
+</g>
+<!-- Group 5: สุขศึกษา & พละ -->
+<g transform="translate(405, 0)">
+<rect class="fill-secondary-fixed-dim hover:opacity-85 transition-opacity" height="160" rx="3" width="22" x="0" y="40"><title>ม.ต้น: สุขศึกษา GPA 3.78</title></rect>
+<rect class="fill-lotus-primary hover:opacity-85 transition-opacity" height="152" rx="3" width="22" x="25" y="48"><title>ม.ปลาย: สุขศึกษา GPA 3.69</title></rect>
+<text class="fill-slate-600 font-label-sm text-[11px]" text-anchor="middle" x="23" y="218">สุขศึกษา</text>
+</g>
+<!-- Group 6: ศิลปะ & ดนตรี -->
+<g transform="translate(485, 0)">
+<rect class="fill-secondary-fixed-dim hover:opacity-85 transition-opacity" height="148" rx="3" width="22" x="0" y="52"><title>ม.ต้น: ศิลปะ GPA 3.64</title></rect>
+<rect class="fill-lotus-primary hover:opacity-85 transition-opacity" height="144" rx="3" width="22" x="25" y="56"><title>ม.ปลาย: ศิลปะ GPA 3.60</title></rect>
+<text class="fill-slate-600 font-label-sm text-[11px]" text-anchor="middle" x="23" y="218">ศิลปะ</text>
+</g>
+<!-- Group 7: การงานอาชีพ/ICT -->
+<g transform="translate(565, 0)">
+<rect class="fill-secondary-fixed-dim hover:opacity-85 transition-opacity" height="138" rx="3" width="22" x="0" y="62"><title>ม.ต้น: กพอ. GPA 3.53</title></rect>
+<rect class="fill-lotus-primary hover:opacity-85 transition-opacity" height="130" rx="3" width="22" x="25" y="70"><title>ม.ปลาย: กพอ. GPA 3.45</title></rect>
+<text class="fill-slate-600 font-label-sm text-[11px]" text-anchor="middle" x="23" y="218">การงานฯ</text>
+</g>
+<!-- Group 8: ภาษาต่างประเทศ -->
+<g transform="translate(645, 0)">
+<rect class="fill-secondary-fixed-dim hover:opacity-85 transition-opacity" height="120" rx="3" width="22" x="0" y="80"><title>ม.ต้น: ต่างประเทศ GPA 3.33</title></rect>
+<rect class="fill-lotus-primary hover:opacity-85 transition-opacity" height="124" rx="3" width="22" x="25" y="76"><title>ม.ปลาย: ต่างประเทศ GPA 3.38</title></rect>
+<text class="fill-slate-600 font-label-sm text-[11px]" text-anchor="middle" x="23" y="218">ภาษาตปท.</text>
+</g>
+</svg>
+</div>
+<div class="mt-space-xs pt-space-xs bg-surface-container-low/50 rounded-lg p-space-sm flex flex-wrap items-center justify-between gap-space-xs font-label-sm text-label-sm text-slate-600">
+<div class="flex items-center gap-1 text-slate-800">
+<span class="material-symbols-outlined text-gold-regal text-[16px]">info</span>
+<span>กลุ่มสาระพระพุทธศาสนาและภาษาไทย มีค่ามัธยฐานผลสัมฤทธิ์สูงสุดตามเอกลักษณ์ของสถาบัน (3.94 ใน ม.ปลาย)</span>
+</div>
+<span class="text-lotus-primary font-semibold cursor-pointer hover:underline">เจาะลึกตามรายห้องเรียน →</span>
+</div>
+</div>
+<!-- Right: Weekly Attendance Trends & Distribution (4 cols) -->
+<div class="lg:col-span-4 bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-xs">
+<h3 class="font-headline-lg text-headline-lg text-slate-900">แนวโน้มการเข้าเรียน 5 สัปดาห์</h3>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-status-success-bg text-status-success font-semibold">เสถียรภาพสูง</span>
+</div>
+<p class="font-body-sm text-body-sm text-slate-600 mb-space-sm">สถิติสะสมรอบ พ.ย. - ธ.ค. 2567</p>
+<!-- Sparkline/Area SVG Chart -->
+<div class="w-full h-44 py-1">
+<svg class="w-full h-full" viewbox="0 0 320 150">
+<defs>
+<lineargradient id="attendGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#C2185B" stop-opacity="0.28"></stop>
+<stop offset="100%" stop-color="#C2185B" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- Area fill -->
+<polygon fill="url(#attendGrad)" points="20,130 20,40 85,55 155,30 225,38 295,22 295,130"></polygon>
+<!-- Line -->
+<polyline fill="none" points="20,40 85,55 155,30 225,38 295,22" stroke="#C2185B" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></polyline>
+<!-- Dots -->
+<circle class="fill-surface-container-lowest stroke-lotus-primary" cx="20" cy="40" r="4" stroke-width="2"></circle>
+<circle class="fill-surface-container-lowest stroke-lotus-primary" cx="85" cy="55" r="4" stroke-width="2"></circle>
+<circle class="fill-surface-container-lowest stroke-lotus-primary" cx="155" cy="30" r="4" stroke-width="2"></circle>
+<circle class="fill-surface-container-lowest stroke-lotus-primary" cx="225" cy="38" r="4" stroke-width="2"></circle>
+<circle class="fill-lotus-deep stroke-surface-card" cx="295" cy="22" r="5" stroke-width="2"></circle>
+<!-- Labels -->
+<text class="fill-slate-400 font-label-sm text-[10px]" text-anchor="middle" x="20" y="145">สัปดาห์ 1</text>
+<text class="fill-slate-400 font-label-sm text-[10px]" text-anchor="middle" x="85" y="145">สัปดาห์ 2</text>
+<text class="fill-slate-400 font-label-sm text-[10px]" text-anchor="middle" x="155" y="145">สัปดาห์ 3</text>
+<text class="fill-slate-400 font-label-sm text-[10px]" text-anchor="middle" x="225" y="145">สัปดาห์ 4</text>
+<text class="fill-lotus-primary font-label-sm text-[10px] font-bold" text-anchor="middle" x="295" y="145">ปัจจุบัน (98.4%)</text>
+</svg>
+</div>
+</div>
+<div class="space-y-space-xs mt-space-xs">
+<div class="p-space-xs bg-surface-container-low/40 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-status-success"></span>
+<span class="font-body-sm text-body-sm text-slate-800">เข้าแถวเคารพธงชาติ &amp; เจริญภาวนา</span>
+</div>
+<span class="font-label-md text-label-md text-slate-900 font-bold">99.1%</span>
+</div>
+<div class="p-space-xs bg-surface-container-low/40 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-status-info"></span>
+<span class="font-body-sm text-body-sm text-slate-800">เข้าห้องเรียนรายคาบวิชาการ</span>
+</div>
+<span class="font-label-md text-label-md text-slate-900 font-bold">97.8%</span>
+</div>
+<div class="p-space-xs bg-surface-container-low/40 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-status-warning"></span>
+<span class="font-body-sm text-body-sm text-slate-800">กิจกรรมส่งเสริมทักษะ &amp; ชมรม</span>
+</div>
+<span class="font-label-md text-label-md text-slate-900 font-bold">98.3%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Early Warning & Intervention Module (US-04) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<!-- Header of the Table Container -->
+<div class="p-space-md bg-surface-container-low/30 flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-status-danger-bg flex items-center justify-center text-status-danger shadow-sm">
+<span class="material-symbols-outlined text-[24px]">notification_important</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs">
+<h3 class="font-headline-lg text-headline-lg text-slate-900">ระบบติดตามและส่งต่อนักเรียนกลุ่มเสี่ยง (At-Risk Early Warning CORE-05)</h3>
+<span class="px-2 py-0.5 rounded-full bg-status-danger text-on-primary font-label-sm text-label-sm">ต้องดำเนินการ 14 ราย</span>
+</div>
+<p class="font-body-sm text-body-sm text-slate-600">ตรวจจับอัตโนมัติเมื่อนักเรียนขาดเกิน 4 ครั้ง (เสี่ยงหมดสิทธิ์สอบ มส) หรือผลการเรียนเฉลี่ยรายภาคเรียนต่ำกว่า 1.50</p>
+</div>
+</div>
+<!-- Quick Filter Buttons Inside Table -->
+<div class="flex items-center gap-space-xs bg-surface-container p-1 rounded-lg">
+<button class="px-3 py-1 text-label-sm font-label-sm rounded-md bg-surface-container-lowest text-slate-900 shadow-sm" type="button">ทั้งหมด (14)</button>
+<button class="px-3 py-1 text-label-sm font-label-sm rounded-md text-on-surface-variant hover:text-on-surface transition-colors" type="button">เสี่ยง มส (9)</button>
+<button class="px-3 py-1 text-label-sm font-label-sm rounded-md text-on-surface-variant hover:text-on-surface transition-colors" type="button">วิชาการต่ำ (5)</button>
+</div>
+</div>
+<!-- Responsive Table -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left font-body-md text-body-md border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-slate-600 font-label-md text-label-md uppercase tracking-wider">
+<th class="py-3 px-space-md">รหัสนักเรียน &amp; ชื่อ-สกุล</th>
+<th class="py-3 px-space-md">ระดับชั้น / ห้อง</th>
+<th class="py-3 px-space-md">สัญญาณเตือน (Trigger Reason)</th>
+<th class="py-3 px-space-md">สถิติการมาเรียน</th>
+<th class="py-3 px-space-md">GPAX ปัจจุบัน</th>
+<th class="py-3 px-space-md">ครูที่ปรึกษาประจำชั้น</th>
+<th class="py-3 px-space-md">สถานะการดูแล</th>
+<th class="py-3 px-space-md text-right">การจัดการ</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 font-body-md text-body-md">
+<!-- Row 1: นายฐิติพงศ์ วงศ์สวัสดิ์ -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-space-xs">
+<div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-slate-700 text-[13px]">ฐพ</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-slate-900">นายฐิติพงศ์ วงศ์สวัสดิ์</span>
+<span class="font-body-sm text-body-sm text-slate-400">ID: ST-65402</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-label-md text-label-md text-slate-800">มัธยมศึกษาปีที่ 4/2</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-danger-bg text-status-danger font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-status-danger"></span> ขาดเรียน 7 วัน (เสี่ยง มส คาบภาษาอังกฤษ)
+              </span>
+</td>
+<td class="py-3 px-space-md">
+<div class="flex flex-col">
+<span class="font-code-table text-code-table text-status-danger font-bold">78.5% (ขาด 7 / ลา 3)</span>
+<span class="font-body-sm text-body-sm text-slate-400">เกณฑ์ขั้นต่ำ 80.0%</span>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-code-table text-code-table text-slate-800">2.15</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-body-sm text-body-sm text-slate-700">อ.วิชัย เกียรติบูรพา</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-status-warning-bg text-status-warning font-label-sm text-label-sm font-semibold">
+                นัดพบผู้ปกครอง (29 พ.ย.)
+              </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-1.5 text-lotus-primary hover:bg-lotus-subtle rounded-lg transition-colors" title="ส่งการแจ้งเตือนครูที่ปรึกษา" type="button">
+<span class="material-symbols-outlined text-[20px]">contact_phone</span>
+</button>
+<button class="p-1.5 text-secondary hover:bg-gold-light rounded-lg transition-colors" title="บันทึกมาตรการช่วยเหลือ" type="button">
+<span class="material-symbols-outlined text-[20px]">assignment_turned_in</span>
+</button>
+<button class="p-1.5 text-slate-600 hover:bg-surface-container-high rounded-lg transition-colors" title="ดูแฟ้มสะสมผลงาน" type="button">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2: ด.ญ.กัญญาณัฐ ทะเบียน -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-space-xs">
+<div class="w-9 h-9 rounded-full bg-lotus-subtle flex items-center justify-center font-bold text-lotus-deep text-[13px]">กญ</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-slate-900">ด.ญ.กัญญาณัฐ ทะเบียน</span>
+<span class="font-body-sm text-body-sm text-slate-400">ID: ST-66201</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-label-md text-label-md text-slate-800">มัธยมศึกษาปีที่ 2/1</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-danger-bg text-status-danger font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-status-danger"></span> ผลการเรียนวิกฤต (GPAX 1.35)
+              </span>
+</td>
+<td class="py-3 px-space-md">
+<div class="flex flex-col">
+<span class="font-code-table text-code-table text-status-success font-bold">96.0% (ขาด 1 / ลา 1)</span>
+<span class="font-body-sm text-body-sm text-slate-400">เข้าเรียนสม่ำเสมอ</span>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-code-table text-code-table text-status-danger font-bold">1.35</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-body-sm text-body-sm text-slate-700">อ.สมทรง ประคองสุข</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-status-info-bg text-status-info font-label-sm text-label-sm font-semibold">
+                เข้าคลินิกเสริมวิชาการ (คณิต)
+              </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-1.5 text-lotus-primary hover:bg-lotus-subtle rounded-lg transition-colors" title="ส่งการแจ้งเตือนครูที่ปรึกษา" type="button">
+<span class="material-symbols-outlined text-[20px]">contact_phone</span>
+</button>
+<button class="p-1.5 text-secondary hover:bg-gold-light rounded-lg transition-colors" title="บันทึกมาตรการช่วยเหลือ" type="button">
+<span class="material-symbols-outlined text-[20px]">assignment_turned_in</span>
+</button>
+<button class="p-1.5 text-slate-600 hover:bg-surface-container-high rounded-lg transition-colors" title="ดูแฟ้มสะสมผลงาน" type="button">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3: นายอัครเดช รัตนพงศ์ -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-space-xs">
+<div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-slate-700 text-[13px]">อด</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-slate-900">นายอัครเดช รัตนพงศ์</span>
+<span class="font-body-sm text-body-sm text-slate-400">ID: ST-64610</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-label-md text-label-md text-slate-800">มัธยมศึกษาปีที่ 6/3</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-warning-bg text-status-warning font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-status-warning"></span> เสี่ยงไม่จบการศึกษาตามเกณฑ์ (ค้างแก้ มผ)
+              </span>
+</td>
+<td class="py-3 px-space-md">
+<div class="flex flex-col">
+<span class="font-code-table text-code-table text-status-success font-bold">89.2% (ขาด 4 / ลา 2)</span>
+<span class="font-body-sm text-body-sm text-slate-400">ผ่านเกณฑ์เวลา</span>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-code-table text-code-table text-slate-800">2.04</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-body-sm text-body-sm text-slate-700">อ.พิมลพร สุวรรณรัตน์</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-status-danger-bg text-status-danger font-label-sm text-label-sm font-semibold">
+                ยังไม่ยื่นขอสอบแก้ตัว
+              </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-1.5 text-lotus-primary hover:bg-lotus-subtle rounded-lg transition-colors" title="ส่งการแจ้งเตือนครูที่ปรึกษา" type="button">
+<span class="material-symbols-outlined text-[20px]">contact_phone</span>
+</button>
+<button class="p-1.5 text-secondary hover:bg-gold-light rounded-lg transition-colors" title="บันทึกมาตรการช่วยเหลือ" type="button">
+<span class="material-symbols-outlined text-[20px]">assignment_turned_in</span>
+</button>
+<button class="p-1.5 text-slate-600 hover:bg-surface-container-high rounded-lg transition-colors" title="ดูแฟ้มสะสมผลงาน" type="button">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4: ด.ช.พงศธร จิตต์มั่นคง -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-space-xs">
+<div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-slate-700 text-[13px]">พจ</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-slate-900">ด.ช.พงศธร จิตต์มั่นคง</span>
+<span class="font-body-sm text-body-sm text-slate-400">ID: ST-67104</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-label-md text-label-md text-slate-800">มัธยมศึกษาปีที่ 1/4</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-danger-bg text-status-danger font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-status-danger"></span> ขาดเรียนติดต่อกัน 4 วันทำการ
+              </span>
+</td>
+<td class="py-3 px-space-md">
+<div class="flex flex-col">
+<span class="font-code-table text-code-table text-status-danger font-bold">79.0% (ขาด 6 / ลา 0)</span>
+<span class="font-body-sm text-body-sm text-slate-400">เกณฑ์ขั้นต่ำ 80.0%</span>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-code-table text-code-table text-slate-800">1.88</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-body-sm text-body-sm text-slate-700">อ.บุญเลิศ ศรีมงคล</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-status-success-bg text-status-success font-label-sm text-label-sm font-semibold">
+                เยี่ยมบ้านแล้ว (ปัญหาสุขภาพ)
+              </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-1.5 text-lotus-primary hover:bg-lotus-subtle rounded-lg transition-colors" title="ส่งการแจ้งเตือนครูที่ปรึกษา" type="button">
+<span class="material-symbols-outlined text-[20px]">contact_phone</span>
+</button>
+<button class="p-1.5 text-secondary hover:bg-gold-light rounded-lg transition-colors" title="บันทึกมาตรการช่วยเหลือ" type="button">
+<span class="material-symbols-outlined text-[20px]">assignment_turned_in</span>
+</button>
+<button class="p-1.5 text-slate-600 hover:bg-surface-container-high rounded-lg transition-colors" title="ดูแฟ้มสะสมผลงาน" type="button">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer with Pagination & Status Summary -->
+<div class="p-space-sm bg-surface-container-low/20 flex flex-col sm:flex-row items-center justify-between gap-space-xs">
+<span class="font-body-sm text-body-sm text-slate-600">
+        แสดง 4 จากทั้งหมด 14 รายการที่ต้องติดตาม (ส่งต่อไปยังฝ่ายแนะแนวแล้ว 8 รายการ)
+      </span>
+<div class="flex items-center gap-1">
+<button class="px-3 py-1 rounded-md text-slate-400 bg-surface-container-low text-label-sm font-label-sm cursor-not-allowed" type="button">ย้อนกลับ</button>
+<button class="px-3 py-1 rounded-md bg-lotus-primary text-on-primary text-label-sm font-label-sm font-semibold" type="button">1</button>
+<button class="px-3 py-1 rounded-md text-slate-700 bg-surface-container-low hover:bg-surface-container text-label-sm font-label-sm" type="button">2</button>
+<button class="px-3 py-1 rounded-md text-slate-700 bg-surface-container-low hover:bg-surface-container text-label-sm font-label-sm" type="button">3</button>
+<button class="px-3 py-1 rounded-md text-slate-700 bg-surface-container-low hover:bg-surface-container text-label-sm font-label-sm" type="button">ถัดไป</button>
+</div>
+</div>
+</div>
+<!-- Bottom Contextual Intelligence: Institutional Highlights & Campus Quality Metrics -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
+<!-- Buddhist Ethics & Identity Metric -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-start gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-gold-light flex items-center justify-center text-gold-regal">
+<span class="material-symbols-outlined text-[24px]">spa</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md text-slate-900">การประเมินคุณลักษณะอันพึงประสงค์ &amp; วิถีพุทธ</h4>
+<p class="font-body-sm text-body-sm text-slate-600">อัตลักษณ์ "มีวินัย ใฝ่เรียนรู้ เชิดชูพระพุทธศาสนา"</p>
+</div>
+</div>
+<div class="mt-space-md space-y-2">
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-slate-700">ระดับยอดเยี่ยม (เกรด 3)</span>
+<span class="font-bold text-slate-900">88.6% (1,106 คน)</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2">
+<div class="bg-gold-regal h-2 rounded-full" style="width: 88.6%"></div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm pt-1">
+<span class="text-slate-700">ระดับดี (เกรด 2)</span>
+<span class="font-bold text-slate-900">10.4% (130 คน)</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2">
+<div class="bg-lotus-primary h-2 rounded-full" style="width: 10.4%"></div>
+</div>
+</div>
+</div>
+<!-- Competency & Reading-Writing Assessment -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-start gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-status-info-bg flex items-center justify-center text-status-info">
+<span class="material-symbols-outlined text-[24px]">auto_stories</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md text-slate-900">สมรรถนะการอ่าน คิดวิเคราะห์ และเขียน</h4>
+<p class="font-body-sm text-body-sm text-slate-600">เกณฑ์การประเมินตามหลักสูตรแกนกลาง สพฐ.</p>
+</div>
+</div>
+<div class="mt-space-md grid grid-cols-2 gap-space-xs text-center">
+<div class="p-space-xs bg-surface-container-low/50 rounded-lg">
+<span class="font-headline-xl text-headline-xl text-status-info">96.8%</span>
+<p class="font-body-sm text-body-sm text-slate-600">ผ่านเกณฑ์มาตรฐาน</p>
+</div>
+<div class="p-space-xs bg-surface-container-low/50 rounded-lg">
+<span class="font-headline-xl text-headline-xl text-lotus-primary">3.2%</span>
+<p class="font-body-sm text-body-sm text-slate-600">กลุ่มพัฒนาเร่งรัด</p>
+</div>
+</div>
+<p class="font-label-sm text-label-sm text-slate-400 mt-space-xs text-right">อัปเดตผลการประเมินล่าสุด: วันนี้ 08:30 น.</p>
+</div>
+<!-- Executive Quick Dispatch / Hotline -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-start gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-lotus-subtle flex items-center justify-center text-lotus-deep">
+<span class="material-symbols-outlined text-[24px]">campaign</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md text-slate-900">สั่งการด่วนฝ่ายกิจการนักเรียน &amp; ทะเบียน</h4>
+<p class="font-body-sm text-body-sm text-slate-600">ส่งต่อบันทึกข้อความหรือข้อสั่งการไปยังหัวหน้าระดับ</p>
+</div>
+</div>
+<div class="mt-space-sm">
+<textarea class="w-full text-body-sm font-body-sm p-2 rounded-lg bg-surface-container-low text-on-surface focus:ring-2 focus:ring-lotus-primary focus:outline-none resize-none" placeholder="พิมพ์ข้อความสั่งการ หรือนัดประชุมด่วนเรื่อง มส/ผลการเรียน..." rows="2"></textarea>
+</div>
+<div class="mt-space-xs flex justify-end">
+<button class="px-3 py-1.5 rounded-lg bg-lotus-primary text-on-primary font-label-md text-label-md shadow-sm hover:bg-lotus-deep transition-all flex items-center gap-1" type="button">
+<span class="material-symbols-outlined text-[16px]">send</span>
+<span>ส่งข้อสั่งการ</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro-Interactions Script for Interactivity -->
+<script>
+  (function() {
+    const gradeFilter = document.getElementById('gradeFilter');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+
+    if (gradeFilter) {
+      gradeFilter.addEventListener('change', function(e) {
+        const value = e.target.value;
+        // Visual feedback micro-interaction
+        document.querySelectorAll('table tbody tr').forEach((row, index) => {
+          row.style.opacity = '0.4';
+          setTimeout(() => {
+            row.style.opacity = '1';
+          }, 150 + (index * 50));
+        });
+      });
+    }
+
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener('click', function() {
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>กำลังเตรียม ปพ. สรุป...</span>';
+        setTimeout(() => {
+          this.innerHTML = originalText;
+          alert('จัดเตรียมเอกสารสรุปผลการบริหาร ปพ.1/ปพ.5 ประจำภาคเรียนที่ 2 เรียบร้อยแล้ว');
+        }, 1200);
+      });
+    }
+
+    if (exportExcelBtn) {
+      exportExcelBtn.addEventListener('click', function() {
+        alert('กำลังสร้างไฟล์ Excel ข้อมูลดิบรายห้องเรียน (ม.1 - ม.6)...');
+      });
+    }
+  })();
+</script></main></div></body></html>

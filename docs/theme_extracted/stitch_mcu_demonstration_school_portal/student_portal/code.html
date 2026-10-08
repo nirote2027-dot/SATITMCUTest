@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+
+<html lang="th"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Sarabun:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;font-family:'Sarabun','Plus Jakarta Sans',sans-serif;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"primary-fixed-dim":"#ffb1c2","status-info":"#0284C7","slate-800":"#1E293B","on-primary-container":"#ffd9df","gold-hover":"#D4AF37","on-tertiary-container":"#d8e3fb","status-success-bg":"#ECFDF5","slate-900":"#0F172A","error-container":"#ffdad6","surface-container-low":"#eff4ff","secondary-fixed-dim":"#eec14b","on-tertiary-fixed-variant":"#3c475a","status-danger":"#EF4444","status-success":"#10B981","on-primary-fixed-variant":"#8f003f","border-subtle":"#E2E8F0","on-error":"#ffffff","on-tertiary":"#ffffff","outline-variant":"#e1bec4","on-secondary-fixed":"#251a00","surface-container-lowest":"#ffffff","on-surface":"#0b1c30","lotus-vibrant":"#D81B60","gold-regal":"#C59B27","on-primary":"#ffffff","on-tertiary-fixed":"#111c2d","primary-fixed":"#ffd9df","lotus-deep":"#880E4F","lotus-primary":"#C2185B","inverse-primary":"#ffb1c2","primary-container":"#c2185b","surface-variant":"#d3e4fe","status-warning-bg":"#FFFBEB","tertiary-fixed-dim":"#bcc7de","slate-400":"#94A3B8","surface-bg":"#F8FAFC","tertiary-fixed":"#d8e3fb","surface-card":"#FFFFFF","on-secondary-fixed-variant":"#5a4300","on-surface-variant":"#594045","status-info-bg":"#F0F9FF","status-warning":"#F59E0B","inverse-on-surface":"#eaf1ff","on-secondary":"#ffffff","lotus-subtle":"#FCE4EC","outline":"#8d6f75","secondary-fixed":"#ffdf98","surface":"#f8f9ff","surface-bright":"#f8f9ff","surface-dim":"#cbdbf5","on-primary-fixed":"#3f0018","on-background":"#0b1c30","secondary":"#775a00","on-error-container":"#93000a","status-danger-bg":"#FEF2F2","surface-container-highest":"#d3e4fe","on-secondary-container":"#735700","tertiary":"#424d61","surface-container":"#e5eeff","tertiary-container":"#5a657a","gold-light":"#FFFBEB","slate-600":"#475569","surface-tint":"#b90c55","secondary-container":"#fece57","surface-container-high":"#dce9ff","primary":"#9b0044","background":"#f8f9ff","inverse-surface":"#213145","error":"#ba1a1a"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"container-max":"88rem","space-2xl":"3rem","gutter-desktop":"1.5rem","sidebar-expanded":"16.5rem","sidebar-collapsed":"4.5rem","space-md":"1rem","space-xs":"0.5rem","space-2xs":"0.25rem","space-xl":"2rem","space-lg":"1.5rem","space-sm":"0.75rem","gutter-mobile":"1rem"},"fontFamily":{"label-sm":["Plus Jakarta Sans"],"headline-2xl":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"headline-2xl-mobile":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"label-lg":["Plus Jakarta Sans"],"code-table":["Plus Jakarta Sans"]},"fontSize":{"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"600"}],"headline-2xl":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-lg":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"26px","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"headline-2xl-mobile":["26px",{"lineHeight":"34px","letterSpacing":"-0.01em","fontWeight":"700"}],"headline-xl":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"700"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"20px","fontWeight":"600"}],"code-table":["13px",{"lineHeight":"18px","fontWeight":"500"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface min-h-screen"><aside class="fixed left-0 top-0 h-full w-sidebar-expanded bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between"><div class="flex flex-col"><div class="h-16 px-space-md flex items-center gap-space-xs bg-surface-container-low/40"><img alt="logo มจร1.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VrR2FrmOPlxZ6M_e1Pr_pGdV8wWVXMSoUK0aVCMlenJSiQ80AoM9zxsFU0igQgtmeIURnkwXhFaMlMoqjH25lwe3hhQRgDTaY0choGyk100Gfwi3TAuGRaPnEuq0YO9LquQlA6J7VUFs1GcEPdpG5glt3-9IprF3lR2UZN8D6O7Nu3IcEcxXaFYbWKo88B6foKDNmk61AgTeipbyEVSgprQB_ar4_GpeH2Th00wG3am-eB2tldy_I1R5W-ex1d5y7NWfNJaIsb"/><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-lotus-primary truncate leading-tight">สาธิต มจร</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">Satit MCU Portal</span></div></div><div class="px-space-md py-space-sm"><div class="flex items-center gap-space-xs bg-gold-light text-secondary rounded-lg px-space-xs py-1 shadow-sm"><span class="material-symbols-outlined text-gold-regal text-[16px]">school</span><span class="font-label-sm text-label-sm font-semibold truncate">ปีการศึกษา 2567 เทอม 2</span></div></div><div class="px-space-md mt-space-xs"><span class="font-label-sm text-label-sm uppercase tracking-wider text-slate-400 px-space-xs">โมดูลหลัก (Core Modules)</span></div><nav class="flex flex-col gap-1 px-space-xs mt-space-xs" data-active-classes="bg-primary-container text-on-primary font-semibold shadow-sm"><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="executive-dashboard" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="font-body-md text-body-md truncate">ภาพรวมผู้บริหาร</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="teacher-grade-attendance" href="#"><span class="material-symbols-outlined text-[20px]">fact_check</span><span class="font-body-md text-body-md truncate">บันทึกเกรด &amp; เช็คชื่อ</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg transition-all bg-primary-container text-on-primary font-semibold shadow-sm" data-path="student-portal-evaluation" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="font-body-md text-body-md truncate">พอร์ทัลนักเรียน &amp; ผลการเรียน</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="registrar-transcript" href="#"><span class="material-symbols-outlined text-[20px]">assignment_turned_in</span><span class="font-body-md text-body-md truncate">ทะเบียน &amp; พิมพ์ ปพ.1</span></a></nav></div><div class="p-space-md bg-surface-container-low/30 m-space-xs rounded-xl flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-lotus-subtle flex items-center justify-center text-lotus-deep font-bold text-[13px]">ม.1-6</div><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-slate-800 font-semibold truncate">ระบบวัดและประเมินผล</span><span class="font-body-sm text-body-sm text-slate-600 truncate">ระดับมัธยมศึกษา</span></div></div></aside><div class="pl-sidebar-expanded"><header class="fixed top-0 left-sidebar-expanded right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter-desktop flex items-center justify-between"><div class="flex items-center gap-space-md"><img alt="logo มจร1.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VrR2FrmOPlxZ6M_e1Pr_pGdV8wWVXMSoUK0aVCMlenJSiQ80AoM9zxsFU0igQgtmeIURnkwXhFaMlMoqjH25lwe3hhQRgDTaY0choGyk100Gfwi3TAuGRaPnEuq0YO9LquQlA6J7VUFs1GcEPdpG5glt3-9IprF3lR2UZN8D6O7Nu3IcEcxXaFYbWKo88B6foKDNmk61AgTeipbyEVSgprQB_ar4_GpeH2Th00wG3am-eB2tldy_I1R5W-ex1d5y7NWfNJaIsb"/><div class="flex flex-col"><h1 class="font-headline-md text-headline-md text-slate-900 tracking-tight">โรงเรียนสาธิตมหาวิทยาลัยมหาจุฬาลงกรณราชวิทยาลัย</h1><span class="font-body-sm text-body-sm text-slate-600 hidden lg:inline">ระบบบริหารจัดการผลการเรียนและทะเบียนวัดผล (Smart Academic SIS)</span></div></div><div class="flex items-center gap-space-md"><div class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-sm py-1.5 rounded-lg text-tertiary font-body-sm text-body-sm"><span class="material-symbols-outlined text-[18px] text-lotus-primary">calendar_today</span><span>วันพุธที่ 27 พฤศจิกายน 2567 (ภาคเรียนที่ 2)</span></div><div class="relative flex items-center"><button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full transition-all relative" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-status-danger rounded-full ring-2 ring-surface-card"></span></button></div><div class="relative flex items-center gap-space-sm pl-space-xs border-l border-border-subtle"><div class="flex flex-col items-end min-w-0"><div class="flex items-center gap-space-xs"><span class="font-label-md text-label-md text-slate-900">อาจารย์พิมลพร สุวรรณรัตน์</span><span class="material-symbols-outlined text-[16px] text-slate-400">expand_more</span></div><span class="font-body-sm text-body-sm text-gold-regal font-medium">นายทะเบียน / Admin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 px-gutter-desktop pb-space-2xl bg-surface-bg min-h-screen"><div class="flex flex-col w-full">
+<!-- Top Academic Context Banner -->
+<div class="relative overflow-hidden rounded-xl bg-gradient-to-r from-lotus-deep via-primary-container to-lotus-vibrant p-space-lg text-on-primary shadow-md">
+<div class="absolute -right-8 -bottom-10 w-48 h-48 rounded-full bg-gold-regal/15 blur-2xl pointer-events-none"></div>
+<div class="absolute right-20 top-2 opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[120px] text-white">school</span>
+</div>
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="relative">
+<img class="w-20 h-20 rounded-xl object-cover shadow-md ring-2 ring-gold-regal/40" data-alt="A portrait of a disciplined young Thai high school male student wearing an immaculate white school uniform with a neat haircut and kind confident expression inside a prestigious university laboratory background with soft warm institutional lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgt3_RQ87zV92fK_7BiXWcBnLd5p9yIiFFuQTmiwrD7Tc8LRna1q6ZFRoIMXkJHVk7qqdO-4ScRaGTLanmGVDylvP6NsM7jcVcxLnp00VEdAfK8oZJRY3iHd1ci6X6ZxCWVE2J1RedSSMuI51rcvmktkGhGz0YUa7rPX8VNGC-rk0lEwW6Fu6I0A1ggwNrUeC1ay80PILeW_iV1en9JALcW72NiP8lrtnvYx490C8kB-b5nl-va1g2"/>
+<span class="absolute -bottom-1.5 -right-1.5 bg-gold-regal text-on-secondary px-2 py-0.5 rounded-full font-label-sm text-label-sm shadow-sm flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">verified</span> ม.5/1
+          </span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2 flex-wrap">
+<h2 class="font-headline-xl text-headline-xl text-white tracking-tight">นายปวริศ มหาจุฬารัตน์</h2>
+<span class="bg-white/15 backdrop-blur-md px-2.5 py-0.5 rounded-lg text-white font-label-md text-label-md">รหัส 45892</span>
+<span class="bg-gold-regal/25 text-gold-light px-2.5 py-0.5 rounded-lg font-label-sm text-label-sm">วิทย์ - คณิต (ห้องเรียนพิเศษ)</span>
+</div>
+<p class="font-body-md text-body-md text-on-primary-container mt-1 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-gold-regal">badge</span>
+            อาจารย์ที่ปรึกษา: อาจารย์พิมพ์ชนก สุขเกษม • โรงเรียนสาธิต มจร (มัธยมศึกษาตอนปลาย)
+          </p>
+</div>
+</div>
+<!-- Quick Metrics Ribbon -->
+<div class="grid grid-cols-3 gap-2 bg-slate-900/35 backdrop-blur-md p-2.5 rounded-xl self-start lg:self-center min-w-[280px]">
+<div class="flex flex-col px-3 py-1">
+<span class="font-label-sm text-label-sm text-slate-300">GPAX สะสม</span>
+<span class="font-headline-lg text-headline-lg font-bold text-gold-light">3.74</span>
+</div>
+<div class="flex flex-col px-3 py-1 bg-white/5 rounded-lg">
+<span class="font-label-sm text-label-sm text-slate-300">หน่วยกิตสะสม</span>
+<span class="font-headline-lg text-headline-lg font-bold text-white">68.0</span>
+</div>
+<div class="flex flex-col px-3 py-1">
+<span class="font-label-sm text-label-sm text-slate-300">ความประพฤติ</span>
+<span class="font-headline-lg text-headline-lg font-bold text-status-success">100/100</span>
+</div>
+</div>
+</div>
+</div>
+<!-- GATEKEEPER LOCK BANNER & QUICK EVALUATION (CORE-04 & US-03) -->
+<div class="mt-space-lg rounded-xl overflow-hidden shadow-md bg-surface-card transition-all duration-300" id="gatekeeper-container">
+<div class="bg-gradient-to-r from-status-warning/15 via-gold-light to-status-warning-bg p-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-status-warning text-slate-900 flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">lock</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md uppercase tracking-wider text-status-warning font-bold">เงื่อนไขความปลอดภัย &amp; การวัดผล</span>
+<span class="bg-status-danger-bg text-status-danger px-2 py-0.5 rounded text-label-sm font-semibold">คงเหลือ 1 รายวิชา</span>
+</div>
+<p class="font-body-md text-body-md text-slate-800 font-medium mt-0.5">
+            ผลการเรียนภาคเรียนที่ 2/2567 ถูกล็อค — นักเรียนต้องทำแบบประเมินครูผู้สอนให้ครบทุกรายวิชา (คงเหลือ: <span class="text-lotus-primary font-bold">ว32101 ฟิสิกส์เพิ่มเติม 3 โดย อ.ธีรภัทร โสภณ</span>) เพื่อปลดล็อคดูเกรดเทอมปัจจุบัน
+          </p>
+</div>
+</div>
+<button class="self-start md:self-center px-4 py-2 rounded-lg bg-lotus-primary hover:bg-lotus-deep text-on-primary font-label-md text-label-md transition-all shadow-sm flex items-center gap-1.5 shrink-0" id="toggle-eval-btn" onclick="toggleEvalForm()">
+<span class="material-symbols-outlined text-[18px]">rate_review</span>
+<span>ทำแบบประเมินเพื่อปลดล็อค</span>
+<span class="material-symbols-outlined text-[16px]" id="toggle-eval-icon">expand_more</span>
+</button>
+</div>
+<!-- Quick Evaluation Drawer -->
+<div class="p-space-lg bg-surface-card" id="eval-form-drawer">
+<div class="flex items-center justify-between pb-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-lotus-primary"></span>
+<h3 class="font-headline-md text-headline-md text-slate-900">แบบประเมินการจัดการเรียนรู้ รายวิชา ว32101 ฟิสิกส์เพิ่มเติม 3</h3>
+</div>
+<span class="font-body-sm text-body-sm text-slate-400">ระบบประเมินแบบไม่เปิดเผยตัวตน (Anonymous Feedback)</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg mt-space-xs">
+<!-- Criteria 1 -->
+<div class="bg-surface-bg p-space-md rounded-xl flex flex-col justify-between gap-2">
+<div>
+<span class="font-label-sm text-label-sm text-slate-400">หมวดที่ 1</span>
+<p class="font-body-md text-body-md text-slate-800 font-medium">ครูผู้สอนเตรียมการสอน มีเนื้อหาชัดเจน และอธิบายเข้าใจง่าย</p>
+</div>
+<div class="flex items-center gap-1.5 text-gold-regal pt-2" id="star-group-1">
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(1, 1)" type="button"><span class="material-symbols-outlined">star</span></button>
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(1, 2)" type="button"><span class="material-symbols-outlined">star</span></button>
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(1, 3)" type="button"><span class="material-symbols-outlined">star</span></button>
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(1, 4)" type="button"><span class="material-symbols-outlined">star</span></button>
+<button class="star-btn text-[26px] hover:scale-110 transition-transform text-slate-300" onclick="setRating(1, 5)" type="button"><span class="material-symbols-outlined">star</span></button>
+<span class="ml-2 font-label-md text-label-md text-slate-600" id="rating-label-1">4/5 ดีมาก</span>
+</div>
+</div>
+<!-- Criteria 2 -->
+<div class="bg-surface-bg p-space-md rounded-xl flex flex-col justify-between gap-2">
+<div>
+<span class="font-label-sm text-label-sm text-slate-400">หมวดที่ 2</span>
+<p class="font-body-md text-body-md text-slate-800 font-medium">การเปิดโอกาสให้นักเรียนซักถาม ทำการทดลอง และประยุกต์ใช้</p>
+</div>
+<div class="flex items-center gap-1.5 text-gold-regal pt-2" id="star-group-2">
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(2, 1)" type="button"><span class="material-symbols-outlined">star</span></button>
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(2, 2)" type="button"><span class="material-symbols-outlined">star</span></button>
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(2, 3)" type="button"><span class="material-symbols-outlined">star</span></button>
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(2, 4)" type="button"><span class="material-symbols-outlined">star</span></button>
+<button class="star-btn text-[26px] hover:scale-110 transition-transform" onclick="setRating(2, 5)" type="button"><span class="material-symbols-outlined">star</span></button>
+<span class="ml-2 font-label-md text-label-md text-slate-600" id="rating-label-2">5/5 ดีเยี่ยม</span>
+</div>
+</div>
+</div>
+<!-- Feedback Area & Action -->
+<div class="mt-space-md flex flex-col md:flex-row items-end gap-space-md">
+<div class="w-full flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-slate-600">ข้อคิดเห็นและข้อเสนอแนะเชิงสร้างสรรค์ (ความยาวอย่างน้อย 10 ตัวอักษร)</label>
+<input class="w-full bg-surface-bg px-3.5 py-2.5 rounded-lg text-slate-800 font-body-md text-body-md focus:bg-white transition-all outline-none" id="eval-comment" type="text" value="อาจารย์จัดคาบแล็บฟิสิกส์คลื่นได้เห็นภาพชัดเจนมาก อยากให้มีเอกสารสรุปสูตรเพิ่มเติมครับ"/>
+</div>
+<button class="px-6 py-2.5 bg-lotus-primary hover:bg-lotus-deep active:scale-95 text-on-primary font-label-md text-label-md rounded-lg shadow-md transition-all flex items-center gap-2 whitespace-nowrap shrink-0" onclick="unlockGrades()" type="button">
+<span class="material-symbols-outlined text-[18px]">lock_open</span>
+<span>ส่งแบบประเมินและปลดล็อคผลการเรียนทันที</span>
+</button>
+</div>
+</div>
+</div>
+<!-- CURRENT TERM (2/2567) GRADE REVEAL / LOCKED CARDS -->
+<div class="mt-space-xl">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-lotus-primary text-[24px]">grade</span>
+<h3 class="font-headline-lg text-headline-lg text-slate-900">ผลการเรียนประจำภาคเรียนที่ 2/2567 (ปัจจุบัน)</h3>
+</div>
+<div class="bg-status-warning-bg text-status-warning px-3 py-1 rounded-full font-label-sm text-label-sm flex items-center gap-1 font-semibold" id="term-status-badge">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+<span>รอการประเมินเพื่อเปิดเผยผล</span>
+</div>
+</div>
+<!-- The Grade Matrix (Initially in locked blurred mode, unblurred via JS) -->
+<div class="relative rounded-xl overflow-hidden bg-surface-card shadow-sm" id="locked-grade-view">
+<!-- Blur Lock Scrim Overlay -->
+<div class="absolute inset-0 bg-surface-bg/75 backdrop-blur-md z-20 flex flex-col items-center justify-center p-space-lg text-center" id="lock-scrim">
+<div class="w-14 h-14 rounded-2xl bg-lotus-subtle text-lotus-primary flex items-center justify-center mb-space-xs shadow-sm">
+<span class="material-symbols-outlined text-[32px]">shield_lock</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-slate-900">ข้อมูลเกรดยังถูกล็อคตามระเบียบวัดผล</h4>
+<p class="font-body-sm text-body-sm text-slate-600 max-w-md mt-1">
+          ระบบจะแสดงเกรดเฉลี่ยประจำภาค เกรดรายวิชา และคะแนนเก็บทั้งหมดแบบทันที เมื่อท่านกดยืนยันการส่งแบบประเมินครูผู้สอนด้านบน
+        </p>
+<button class="mt-space-md px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 font-label-sm text-label-sm rounded-lg flex items-center gap-1.5 transition-all" onclick="scrollToEval()">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span> ไปที่แบบประเมิน
+        </button>
+</div>
+<!-- Table Underneath (Revealed when unlocked) -->
+<div class="overflow-x-auto p-space-md">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-space-sm mb-space-md">
+<div class="bg-surface-container-low/60 p-space-sm rounded-xl">
+<span class="font-label-sm text-label-sm text-slate-600">GPA ประจำภาค 2/2567</span>
+<div class="font-headline-2xl text-headline-2xl text-lotus-primary font-bold">3.82</div>
+<span class="font-body-sm text-body-sm text-status-success font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> พัฒนาขึ้น +0.10
+            </span>
+</div>
+<div class="bg-surface-container-low/60 p-space-sm rounded-xl">
+<span class="font-label-sm text-label-sm text-slate-600">หน่วยกิตที่ลงทะเบียน</span>
+<div class="font-headline-2xl text-headline-2xl text-slate-800 font-bold">16.5</div>
+<span class="font-body-sm text-body-sm text-slate-400">ครบตามแผนการเรียน ม.5</span>
+</div>
+<div class="bg-surface-container-low/60 p-space-sm rounded-xl">
+<span class="font-label-sm text-label-sm text-slate-600">อันดับในห้อง 5/1</span>
+<div class="font-headline-2xl text-headline-2xl text-gold-regal font-bold">4 / 36</div>
+<span class="font-body-sm text-body-sm text-slate-400">อยู่ในเกณฑ์ดีเด่น</span>
+</div>
+<div class="bg-surface-container-low/60 p-space-sm rounded-xl">
+<span class="font-label-sm text-label-sm text-slate-600">การผ่านกิจกรรมพัฒนาฯ</span>
+<div class="font-headline-2xl text-headline-2xl text-status-success font-bold">ผ่านทุกวิชา</div>
+<span class="font-body-sm text-body-sm text-slate-400">แนะแนว / กิจกรรมจิตอาสา</span>
+</div>
+</div>
+<table class="w-full text-left font-body-md text-body-md">
+<thead class="bg-surface-container-low/70 text-slate-700 font-label-md text-label-md">
+<tr>
+<th class="py-3 px-4 rounded-l-lg">รหัสวิชา</th>
+<th class="py-3 px-4">ชื่อรายวิชา</th>
+<th class="py-3 px-3 text-center">หน่วยกิต</th>
+<th class="py-3 px-3 text-center">คะแนนเก็บ (70)</th>
+<th class="py-3 px-3 text-center">สอบปลายภาค (30)</th>
+<th class="py-3 px-3 text-center">รวม (100)</th>
+<th class="py-3 px-4 text-center rounded-r-lg">ระดับผลการเรียน</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 text-slate-800">
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="py-3 px-4 font-code-table text-code-table font-bold text-slate-900">ค32101</td>
+<td class="py-3 px-4 font-medium">คณิตศาสตร์เพิ่มเติม 3 (แคลคูลัสเบื้องต้น)</td>
+<td class="py-3 px-3 text-center">1.5</td>
+<td class="py-3 px-3 text-center font-code-table">62.5</td>
+<td class="py-3 px-3 text-center font-code-table">26.0</td>
+<td class="py-3 px-3 text-center font-code-table font-bold">88.5</td>
+<td class="py-3 px-4 text-center"><span class="bg-status-success-bg text-status-success px-2.5 py-0.5 rounded font-label-md font-bold">4.0</span></td>
+</tr>
+<tr class="bg-surface-bg/40 hover:bg-surface-container-low/30 transition-colors">
+<td class="py-3 px-4 font-code-table text-code-table font-bold text-slate-900">ว32101</td>
+<td class="py-3 px-4 font-medium">ฟิสิกส์เพิ่มเติม 3 (เสียง แสง และทัศนูปกรณ์)</td>
+<td class="py-3 px-3 text-center">1.5</td>
+<td class="py-3 px-3 text-center font-code-table">58.0</td>
+<td class="py-3 px-3 text-center font-code-table">24.5</td>
+<td class="py-3 px-3 text-center font-code-table font-bold">82.5</td>
+<td class="py-3 px-4 text-center"><span class="bg-status-success-bg text-status-success px-2.5 py-0.5 rounded font-label-md font-bold">4.0</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="py-3 px-4 font-code-table text-code-table font-bold text-slate-900">ว32121</td>
+<td class="py-3 px-4 font-medium">เคมีเพิ่มเติม 3 (อัตราและสมดุลเคมี)</td>
+<td class="py-3 px-3 text-center">1.5</td>
+<td class="py-3 px-3 text-center font-code-table">54.0</td>
+<td class="py-3 px-3 text-center font-code-table">23.0</td>
+<td class="py-3 px-3 text-center font-code-table font-bold">77.0</td>
+<td class="py-3 px-4 text-center"><span class="bg-lotus-subtle text-lotus-deep px-2.5 py-0.5 rounded font-label-md font-bold">3.5</span></td>
+</tr>
+<tr class="bg-surface-bg/40 hover:bg-surface-container-low/30 transition-colors">
+<td class="py-3 px-4 font-code-table text-code-table font-bold text-slate-900">อ32101</td>
+<td class="py-3 px-4 font-medium">ภาษาอังกฤษเชิงวิชาการ 3 (Academic Reading)</td>
+<td class="py-3 px-3 text-center">1.0</td>
+<td class="py-3 px-3 text-center font-code-table">64.0</td>
+<td class="py-3 px-3 text-center font-code-table">27.0</td>
+<td class="py-3 px-3 text-center font-code-table font-bold">91.0</td>
+<td class="py-3 px-4 text-center"><span class="bg-status-success-bg text-status-success px-2.5 py-0.5 rounded font-label-md font-bold">4.0</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="py-3 px-4 font-code-table text-code-table font-bold text-slate-900">ส32101</td>
+<td class="py-3 px-4 font-medium">พระพุทธศาสนาและจริยธรรมร่วมสมัย</td>
+<td class="py-3 px-3 text-center">0.5</td>
+<td class="py-3 px-3 text-center font-code-table">63.0</td>
+<td class="py-3 px-3 text-center font-code-table">26.5</td>
+<td class="py-3 px-3 text-center font-code-table font-bold">89.5</td>
+<td class="py-3 px-4 text-center"><span class="bg-status-success-bg text-status-success px-2.5 py-0.5 rounded font-label-md font-bold">4.0</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- ACADEMIC HISTORY & ATTENDANCE BENTO SECTION -->
+<div class="mt-space-xl grid grid-cols-1 xl:grid-cols-3 gap-space-lg">
+<!-- Left 2 Cols: Historical Performance & GPA Trend Chart -->
+<div class="xl:col-span-2 flex flex-col gap-space-lg">
+<!-- GPA Trend & History Card -->
+<div class="bg-surface-card p-space-lg rounded-xl shadow-sm flex flex-col">
+<div class="flex items-center justify-between pb-space-sm">
+<div>
+<h4 class="font-headline-md text-headline-md text-slate-900">แนวโน้มผลการเรียนสะสม (GPA Progression)</h4>
+<span class="font-body-sm text-body-sm text-slate-600">เปรียบเทียบผลการเรียน ม.4 เทอม 1 ถึง ม.5 เทอม 1 ที่รับรองอย่างเป็นทางการแล้ว</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-lotus-primary font-semibold bg-lotus-subtle px-2.5 py-1 rounded-lg">
+<span class="material-symbols-outlined text-[14px]">insights</span> เกียรตินิยมอันดับ 1 (เป้าหมาย)
+            </span>
+</div>
+</div>
+<!-- Inline SVG GPA Progression Chart -->
+<div class="mt-space-xs p-space-sm bg-surface-bg rounded-xl">
+<svg class="w-full h-36 overflow-visible" viewbox="0 0 540 150">
+<defs>
+<lineargradient id="chartGlow" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#C2185B" stop-opacity="0.25"></stop>
+<stop offset="100%" stop-color="#C2185B" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- Gridlines -->
+<line stroke="#E2E8F0" stroke-dasharray="3 3" x1="30" x2="510" y1="20" y2="20"></line>
+<text fill="#94A3B8" font-size="10" text-anchor="end" x="20" y="24">4.00</text>
+<line stroke="#E2E8F0" stroke-dasharray="3 3" x1="30" x2="510" y1="60" y2="60"></line>
+<text fill="#94A3B8" font-size="10" text-anchor="end" x="20" y="64">3.75</text>
+<line stroke="#E2E8F0" stroke-dasharray="3 3" x1="30" x2="510" y1="100" y2="100"></line>
+<text fill="#94A3B8" font-size="10" text-anchor="end" x="20" y="104">3.50</text>
+<line stroke="#E2E8F0" stroke-dasharray="3 3" x1="30" x2="510" y1="140" y2="140"></line>
+<text fill="#94A3B8" font-size="10" text-anchor="end" x="20" y="144">3.00</text>
+<!-- Area Fill -->
+<polygon fill="url(#chartGlow)" points="60,88 200,68 340,64 480,48 480,140 60,140"></polygon>
+<!-- Trend Polyline -->
+<polyline fill="none" points="60,88 200,68 340,64 480,48" stroke="#C2185B" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></polyline>
+<!-- Data Point 1: M.4 T.1 (3.62) -->
+<circle cx="60" cy="88" fill="#FFFFFF" r="5" stroke="#C2185B" stroke-width="3"></circle>
+<text fill="#1E293B" font-size="11" font-weight="600" text-anchor="middle" x="60" y="78">3.62</text>
+<text fill="#64748B" font-size="11" text-anchor="middle" x="60" y="135">ม.4 เทอม 1</text>
+<!-- Data Point 2: M.4 T.2 (3.70) -->
+<circle cx="200" cy="68" fill="#FFFFFF" r="5" stroke="#C2185B" stroke-width="3"></circle>
+<text fill="#1E293B" font-size="11" font-weight="600" text-anchor="middle" x="200" y="58">3.70</text>
+<text fill="#64748B" font-size="11" text-anchor="middle" x="200" y="135">ม.4 เทอม 2</text>
+<!-- Data Point 3: M.5 T.1 (3.72) -->
+<circle cx="340" cy="64" fill="#FFFFFF" r="5" stroke="#C2185B" stroke-width="3"></circle>
+<text fill="#1E293B" font-size="11" font-weight="600" text-anchor="middle" x="340" y="54">3.72</text>
+<text fill="#64748B" font-size="11" text-anchor="middle" x="340" y="135">ม.5 เทอม 1</text>
+<!-- Data Point 4: M.5 T.2 (Estimate/Revealed 3.82) -->
+<circle cx="480" cy="48" fill="#C59B27" r="6" stroke="#FFFFFF" stroke-width="2"></circle>
+<text fill="#C2185B" font-size="12" font-weight="700" text-anchor="middle" x="480" y="38">3.82*</text>
+<text fill="#C2185B" font-size="11" font-weight="600" text-anchor="middle" x="480" y="135">ม.5 เทอม 2</text>
+</svg>
+</div>
+<!-- Historical Terms Tabs & Micro-cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-sm mt-space-md">
+<div class="p-space-sm bg-surface-bg rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-slate-800 font-bold">ม.4 เทอม 1</span>
+<span class="text-status-success text-body-sm flex items-center font-bold">ผ่าน</span>
+</div>
+<div class="mt-2 flex items-baseline justify-between">
+<span class="text-slate-400 font-body-sm">GPA: 3.62</span>
+<span class="font-label-sm text-label-sm text-slate-600">17.0 หน่วยกิต</span>
+</div>
+<div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+<div class="bg-lotus-primary h-full rounded-full" style="width: 90.5%"></div>
+</div>
+</div>
+<div class="p-space-sm bg-surface-bg rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-slate-800 font-bold">ม.4 เทอม 2</span>
+<span class="text-status-success text-body-sm flex items-center font-bold">ผ่าน</span>
+</div>
+<div class="mt-2 flex items-baseline justify-between">
+<span class="text-slate-400 font-body-sm">GPA: 3.70</span>
+<span class="font-label-sm text-label-sm text-slate-600">17.0 หน่วยกิต</span>
+</div>
+<div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+<div class="bg-lotus-primary h-full rounded-full" style="width: 92.5%"></div>
+</div>
+</div>
+<div class="p-space-sm bg-surface-bg rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-slate-800 font-bold">ม.5 เทอม 1</span>
+<span class="text-status-success text-body-sm flex items-center font-bold">ผ่าน</span>
+</div>
+<div class="mt-2 flex items-baseline justify-between">
+<span class="text-slate-400 font-body-sm">GPA: 3.72</span>
+<span class="font-label-sm text-label-sm text-slate-600">17.5 หน่วยกิต</span>
+</div>
+<div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+<div class="bg-gold-regal h-full rounded-full" style="width: 93.0%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Development Activities & Character Credentials -->
+<div class="bg-surface-card p-space-lg rounded-xl shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-gold-regal text-[22px]">verified</span>
+<h4 class="font-headline-md text-headline-md text-slate-900">กิจกรรมพัฒนาผู้เรียน &amp; คุณลักษณะพึงประสงค์</h4>
+</div>
+<span class="font-label-sm text-label-sm bg-status-success-bg text-status-success px-2.5 py-0.5 rounded font-semibold">ผ่านเกณฑ์ระดับดีเยี่ยมทุกรายการ</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm">
+<div class="p-space-sm bg-surface-container-low/40 rounded-xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary-container text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">explore</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-slate-800 font-semibold">กิจกรรมลูกเสือ/รด.</span>
+<span class="font-body-sm text-body-sm text-slate-600">ผ่าน (เวลาเรียน 100%)</span>
+</div>
+</div>
+<div class="p-space-sm bg-surface-container-low/40 rounded-xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-gold-regal text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">groups</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-slate-800 font-semibold">ชุมนุมดาราศาสตร์ มจร</span>
+<span class="font-body-sm text-body-sm text-slate-600">ผ่าน (รองประธานชุมนุม)</span>
+</div>
+</div>
+<div class="p-space-sm bg-surface-container-low/40 rounded-xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-tertiary-container text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">self_improvement</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-slate-800 font-semibold">แนะแนว &amp; วิถีพุทธ</span>
+<span class="font-body-sm text-body-sm text-slate-600">ผ่าน (ปฏิบัติธรรมสม่ำเสมอ)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right 1 Col: Schedule & Attendance Health Gauge -->
+<div class="flex flex-col gap-space-lg">
+<!-- Attendance & 'เสี่ยง มส.' Monitor Card -->
+<div class="bg-surface-card p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<h4 class="font-headline-md text-headline-md text-slate-900">สถานะเวลาเรียนรายวิชา</h4>
+<span class="bg-status-success-bg text-status-success font-label-sm text-label-sm px-2 py-0.5 rounded font-semibold">ปลอดภัยทุกวิชา</span>
+</div>
+<!-- Attendance Ring & Stat Overview -->
+<div class="flex items-center gap-space-md p-space-sm bg-surface-bg rounded-xl my-space-xs">
+<div class="relative w-20 h-20 shrink-0">
+<svg class="w-full h-full -rotate-90" viewbox="0 0 36 36">
+<path class="text-slate-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+<path class="text-status-success" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="96.5, 100" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-label-md text-label-md font-bold text-slate-900">96.5%</span>
+<span class="text-[9px] text-slate-400">เข้าเรียน</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-slate-500">เกณฑ์ขั้นต่ำ มส (80%)</span>
+<span class="font-body-md text-body-md text-slate-800 font-semibold mt-0.5">ไม่มีรายวิชาที่อยู่ในโซนเสี่ยง</span>
+<span class="font-body-sm text-body-sm text-slate-400">ขาดเรียนได้อีก 4 คาบ (โควต้าสะสม)</span>
+</div>
+</div>
+<!-- Breakdown by Subject -->
+<div class="flex flex-col gap-2.5 mt-space-sm">
+<div>
+<div class="flex justify-between text-body-sm font-medium mb-1">
+<span class="text-slate-800">ว32101 ฟิสิกส์ 3</span>
+<span class="text-status-success font-code-table font-semibold">98.0% (ขาด 1 คาบ)</span>
+</div>
+<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+<div class="bg-status-success h-full rounded-full" style="width: 98%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm font-medium mb-1">
+<span class="text-slate-800">ค32101 คณิตเพิ่มเติม 3</span>
+<span class="text-status-success font-code-table font-semibold">95.5% (ขาด 2 คาบ)</span>
+</div>
+<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+<div class="bg-status-success h-full rounded-full" style="width: 95.5%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm font-medium mb-1">
+<span class="text-slate-800">ว32121 เคมีเพิ่มเติม 3</span>
+<span class="text-status-success font-code-table font-semibold">96.0% (ลาป่วย 1 คาบ)</span>
+</div>
+<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+<div class="bg-status-success h-full rounded-full" style="width: 96%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm font-medium mb-1">
+<span class="text-slate-800">อ32101 ภาษาอังกฤษเชิงวิชาการ</span>
+<span class="text-status-success font-code-table font-semibold">100% (มาเรียนครบ)</span>
+</div>
+<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+<div class="bg-lotus-primary h-full rounded-full" style="width: 100%"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-body-sm text-slate-400">
+<span>อัปเดตระบบเช็คชื่อล่าสุด: วันนี้ 08:30 น.</span>
+<span class="material-symbols-outlined text-[16px] text-status-success">done_all</span>
+</div>
+</div>
+<!-- Daily Schedule Today -->
+<div class="bg-surface-card p-space-lg rounded-xl shadow-sm flex flex-col">
+<div class="flex items-center justify-between pb-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-lotus-primary text-[20px]">calendar_today</span>
+<h4 class="font-headline-md text-headline-md text-slate-900">ตารางเรียนวันนี้ (พุธ)</h4>
+</div>
+<span class="font-label-sm text-label-sm text-slate-400">ห้องประจำ 512</span>
+</div>
+<div class="flex flex-col gap-2 mt-space-xs">
+<!-- Class 1 -->
+<div class="p-2.5 rounded-lg bg-surface-bg flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="font-code-table text-code-table text-slate-500 w-20">08:30 - 10:10</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-slate-900">คณิตศาสตร์เพิ่มเติม 3</span>
+<span class="font-body-sm text-body-sm text-slate-400">อ.สมเจตน์ • ห้อง 512</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm bg-status-success-bg text-status-success px-2 py-0.5 rounded font-semibold">เข้าเรียนแล้ว</span>
+</div>
+<!-- Class 2 -->
+<div class="p-2.5 rounded-lg bg-lotus-subtle/50 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="font-code-table text-code-table text-lotus-deep font-bold w-20">10:20 - 12:00</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-lotus-deep font-bold">ฟิสิกส์เพิ่มเติม 3 (แล็บ)</span>
+<span class="font-body-sm text-body-sm text-slate-600">อ.ธีรภัทร • ห้องปฏิบัติการฟิสิกส์ 2</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm bg-lotus-primary text-white px-2 py-0.5 rounded font-semibold animate-pulse">กำลังเรียน</span>
+</div>
+<!-- Class 3 -->
+<div class="p-2.5 rounded-lg bg-surface-bg flex items-center justify-between opacity-75">
+<div class="flex items-center gap-2.5">
+<span class="font-code-table text-code-table text-slate-500 w-20">13:00 - 14:40</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-slate-900">ภาษาอังกฤษเชิงวิชาการ</span>
+<span class="font-body-sm text-body-sm text-slate-400">Aj. Michael • Sound Lab 1</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-slate-400">คาบบ่าย</span>
+</div>
+</div>
+<div class="mt-space-md p-space-xs rounded-lg bg-surface-container-low/60 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-lotus-primary">notifications_active</span>
+<span class="font-body-sm text-body-sm text-slate-600">กิจกรรมลูกเสือ/ชุมนุมประจำสัปดาห์จะเริ่มเวลา 15:00 น.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive Scripts for Gatekeeper & Evaluation Form -->
+<script>
+    function toggleEvalForm() {
+      var drawer = document.getElementById('eval-form-drawer');
+      var icon = document.getElementById('toggle-eval-icon');
+      if (drawer.classList.contains('hidden')) {
+        drawer.classList.remove('hidden');
+        icon.textContent = 'expand_less';
+      } else {
+        drawer.classList.add('hidden');
+        icon.textContent = 'expand_more';
+      }
+    }
+
+    function scrollToEval() {
+      var container = document.getElementById('gatekeeper-container');
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var drawer = document.getElementById('eval-form-drawer');
+      drawer.classList.remove('hidden');
+    }
+
+    function setRating(groupNum, rating) {
+      var container = document.getElementById('star-group-' + groupNum);
+      var stars = container.querySelectorAll('.star-btn');
+      var label = document.getElementById('rating-label-' + groupNum);
+      var descriptors = ['1/5 ต้องปรับปรุง', '2/5 พอใช้', '3/5 ปานกลาง', '4/5 ดีมาก', '5/5 ดีเยี่ยม'];
+
+      stars.forEach(function(star, index) {
+        if (index < rating) {
+          star.classList.remove('text-slate-300');
+          star.classList.add('text-gold-regal');
+        } else {
+          star.classList.add('text-slate-300');
+          star.classList.remove('text-gold-regal');
+        }
+      });
+      label.textContent = descriptors[rating - 1];
+    }
+
+    function unlockGrades() {
+      var scrim = document.getElementById('lock-scrim');
+      var badge = document.getElementById('term-status-badge');
+      var gatekeeper = document.getElementById('gatekeeper-container');
+
+      // Animate lock fade out
+      scrim.style.transition = 'all 0.4s ease-out';
+      scrim.style.opacity = '0';
+      setTimeout(function() {
+        scrim.style.display = 'none';
+      }, 400);
+
+      // Update badge to verified
+      badge.className = 'bg-status-success-bg text-status-success px-3 py-1 rounded-full font-label-sm text-label-sm flex items-center gap-1 font-semibold';
+      badge.innerHTML = '<span class="material-symbols-outlined text-[14px]">lock_open</span><span>ปลดล็อคแล้ว (ประเมินครบ 100%)</span>';
+
+      // Update Gatekeeper banner into a congratulatory notification
+      gatekeeper.innerHTML = `
+        <div class="bg-status-success-bg p-space-md rounded-xl flex items-center justify-between">
+          <div class="flex items-center gap-space-sm">
+            <div class="w-9 h-9 rounded-xl bg-status-success text-white flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[20px]">check_circle</span>
+            </div>
+            <div>
+              <span class="font-label-md text-label-md text-status-success font-bold">บันทึกแบบประเมินเรียบร้อยแล้ว</span>
+              <p class="font-body-sm text-body-sm text-slate-700">ระบบได้เปิดเผยผลการเรียนภาคเรียนที่ 2/2567 ครบถ้วนทุกรายวิชา ขอบคุณสำหรับข้อเสนอแนะในการพัฒนาการเรียนการสอน</p>
+            </div>
+          </div>
+          <button onclick="window.print()" class="px-3 py-1.5 bg-white text-slate-800 font-label-sm text-label-sm rounded-lg shadow-sm hover:bg-slate-50 transition-all flex items-center gap-1 shrink-0">
+            <span class="material-symbols-outlined text-[16px]">print</span> พิมพ์รายงานผลการเรียน
+          </button>
+        </div>
+      `;
+
+      // Smooth scroll down to view grades
+      document.getElementById('locked-grade-view').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  </script>
+</div></main></div></body></html>

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict gwVfpZDrvxQaZawmPXgbs8S69VeUl2UO3tJi0PXbiXUC5CaVcL3H7U4Eh5PrLo1
+\restrict xdCdhqXSdqGMpXOmpagijoRKz3RlFrAgjOTQUotfkUCfMMS3dsk4qun0PlbyBBo
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -892,12 +892,12 @@ d4af3c39-9cd8-4db8-9eae-81896f979d24	staff@app.local	$2b$12$JvCtZTYa583tFb97mNUv
 12c57d95-e477-4b06-8bea-4ded5ff977b8	viewer@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	อาจารย์ผู้สอน	\N	credentials	\N	t	t	f	\N	\N	2026-09-11 03:08:15.426+07	2026-09-12 06:29:05.937+07
 b01e1fd7-3453-4258-b69e-df3ae3dfd969	lockme@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	บัญชีทดสอบล็อก	\N	credentials	\N	t	t	f	\N	\N	2026-09-11 03:08:15.437+07	2026-09-12 06:29:05.947+07
 e6e81291-4275-423e-9825-ef10dd12949e	forced@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	บัญชีบังคับเปลี่ยนรหัส	\N	credentials	\N	t	t	t	\N	\N	2026-09-11 03:08:15.447+07	2026-09-12 06:29:05.956+07
-e665ca42-7399-4354-bb6b-f9b75deb9829	admin@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	ผู้ดูแลสูงสุด (Admin)	\N	credentials	\N	t	t	f	th	2026-09-12 06:53:36.517+07	2026-09-11 03:08:15.394+07	2026-09-12 06:53:36.519+07
 e56ff9bd-eee2-46f7-9969-b822fe0cbe7a	somchai@satit.mcu.ac.th	$2b$12$JPQ8.OAKPF34IkMV9Q/LpuAlppqcqX60R2f97UKi8Y3ugoeCjbPKq	สมชาย ใจดี	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:20.387+07	2026-09-12 07:21:20.387+07
 f83eae06-3b6c-47a4-ad26-4a6350d2f22a	somsri@satit.mcu.ac.th	$2b$12$X35EajqrkzP3JXa4RaHs3utWumtuKvY0W849ygghmOtjCNp/Nkwpi	สมศรี รักเรียน	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:20.843+07	2026-09-12 07:21:20.843+07
 b9b589e5-8938-478b-a419-9e32a492b658	raysfksjfk@gmail.com	$2b$12$6wHlI2qmvY0OR081EY.Lq.Hc.vLY.ye3K5lnDKnpJPBWltDCx5DU2	อาจารย์อรรถพล จอมมงคล	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:21.329+07	2026-09-12 07:21:21.329+07
 19ff7a93-fc4c-4265-8ecb-e75d0e9b1a6f	raysf5jfk@gmail.com	$2b$12$xDmcOQ5PLlnBFXeKtYt.Be9E/4KGW0rPun7vca3Z.NBHqJzUxD9D.	อาจารย์นิโรจน์ วงศ์เมืองแก่น	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:21.817+07	2026-09-12 07:21:21.817+07
 e6631061-fa77-4f80-ba43-e35cf6e918e7	raysf5t53tksjfk@gmail.com	$2b$12$JOMeTa8prxKL3K4uzucsbeg6g4gX9QvXhIF1Wn.keu7j1bHXNOeo.	พระมหาศุภชัย สุญาโณ	\N	credentials	\N	f	t	f	\N	\N	2026-09-12 07:21:22.308+07	2026-09-12 07:21:22.308+07
+e665ca42-7399-4354-bb6b-f9b75deb9829	admin@app.local	$2b$12$JvCtZTYa583tFb97mNUv8Oqlfgg4M8.8z1LsnaeLiuNP9eu2.Udre	ผู้ดูแลสูงสุด (Admin)	\N	credentials	\N	t	t	f	th	2026-10-08 11:19:15.093+07	2026-09-11 03:08:15.394+07	2026-10-08 11:19:15.096+07
 \.
 
 
@@ -1531,5 +1531,5 @@ ALTER TABLE ONLY public.user_tenants
 -- PostgreSQL database dump complete
 --
 
-\unrestrict gwVfpZDrvxQaZawmPXgbs8S69VeUl2UO3tJi0PXbiXUC5CaVcL3H7U4Eh5PrLo1
+\unrestrict xdCdhqXSdqGMpXOmpagijoRKz3RlFrAgjOTQUotfkUCfMMS3dsk4qun0PlbyBBo
 
