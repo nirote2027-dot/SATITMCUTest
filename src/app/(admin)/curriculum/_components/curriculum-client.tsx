@@ -22,6 +22,7 @@ import {
   Download,
   Upload,
   FileCode,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -32,6 +33,7 @@ import {
   DataTable,
   StatusPill,
   LiyonDialog,
+  LiyonDialogCloseButton,
   LiyonDialogHeader,
   LiyonDialogBody,
   LiyonDialogFooter,
@@ -115,17 +117,17 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
   const [formCode, setFormCode] = useState("");
   const [formName, setFormName] = useState("");
   const [formNameEn, setFormNameEn] = useState("");
-  const [formDegreeLevel, setFormDegreeLevel] = useState("ปริญญาตรี (4 ปี)");
+  const [formDegreeLevel, setFormDegreeLevel] = useState("มัธยมศึกษาตอนต้น (ม.1 - ม.3)");
   const [formDegreeNameTh, setFormDegreeNameTh] = useState("");
   const [formDegreeNameEn, setFormDegreeNameEn] = useState("");
-  const [formCurriculumYear, setFormCurriculumYear] = useState("2567");
+  const [formCurriculumYear, setFormCurriculumYear] = useState("2551 (ปรับปรุง 2560)");
   const [formDepartmentId, setFormDepartmentId] = useState<string>("");
 
   // Form states - Tab 2: หน่วยกิตและระยะเวลา
-  const [formDurationYears, setFormDurationYears] = useState<string | number>("4");
-  const [formTotalCredits, setFormTotalCredits] = useState<string | number>("132");
-  const [formGeCredits, setFormGeCredits] = useState<string | number>("30");
-  const [formMajorCredits, setFormMajorCredits] = useState<string | number>("96");
+  const [formDurationYears, setFormDurationYears] = useState<string | number>("3");
+  const [formTotalCredits, setFormTotalCredits] = useState<string | number>("88");
+  const [formGeCredits, setFormGeCredits] = useState<string | number>("66");
+  const [formMajorCredits, setFormMajorCredits] = useState<string | number>("16");
   const [formElectiveCredits, setFormElectiveCredits] = useState<string | number>("6");
 
   // Form states - Tab 3: จุดเด่นและอาชีพ
@@ -134,7 +136,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
   const [formCareerProspects, setFormCareerProspects] = useState("");
   const [formDescription, setFormDescription] = useState("");
 
-  // Form states - Tab 4: สื่อและเอกสาร มคอ. 2
+  // Form states - Tab 4: สื่อและเอกสารหลักสูตร
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formPdfUrl, setFormPdfUrl] = useState("");
   const [formIsActive, setFormIsActive] = useState<string>("true");
@@ -225,21 +227,61 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
     reader.readAsText(file);
   };
 
+  const applyTemplate = (type: "JUNIOR" | "SENIOR_SCI" | "SENIOR_LANG") => {
+    if (type === "JUNIOR") {
+      setFormDegreeLevel("มัธยมศึกษาตอนต้น (ม.1 - ม.3)");
+      setFormDurationYears("3");
+      setFormTotalCredits("88");
+      setFormGeCredits("66");
+      setFormMajorCredits("16");
+      setFormElectiveCredits("6");
+      setFormCurriculumYear("2551 (ปรับปรุง 2560)");
+      if (!formName) setFormName("หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน ระดับมัธยมศึกษาตอนต้น (ม.1 - ม.3)");
+      if (!formDegreeNameTh) setFormDegreeNameTh("ประกาศนียบัตรมัธยมศึกษาตอนต้น (ม.3)");
+      if (!formDegreeNameEn) setFormDegreeNameEn("Certificate of Lower Secondary Education");
+      toast.success("ใช้แม่แบบโครงสร้าง ม.ต้น (ม.1-3) รวม 88 นก. เรียบร้อยแล้ว");
+    } else if (type === "SENIOR_SCI") {
+      setFormDegreeLevel("มัธยมศึกษาตอนปลาย (ม.4 - ม.6)");
+      setFormDurationYears("3");
+      setFormTotalCredits("84");
+      setFormGeCredits("41");
+      setFormMajorCredits("37");
+      setFormElectiveCredits("6");
+      setFormCurriculumYear("2551 (ปรับปรุง 2560)");
+      if (!formName) setFormName("หลักสูตรมัธยมศึกษาตอนปลาย แผนการเรียนวิทยาศาสตร์-คณิตศาสตร์ (ม.4 - ม.6)");
+      if (!formDegreeNameTh) setFormDegreeNameTh("ประกาศนียบัตรมัธยมศึกษาตอนปลาย (ม.6)");
+      if (!formDegreeNameEn) setFormDegreeNameEn("Certificate of Senior Secondary Education");
+      toast.success("ใช้แม่แบบโครงสร้าง ม.ปลาย แผนวิทย์-คณิต รวม 84 นก. เรียบร้อยแล้ว");
+    } else if (type === "SENIOR_LANG") {
+      setFormDegreeLevel("มัธยมศึกษาตอนปลาย (ม.4 - ม.6)");
+      setFormDurationYears("3");
+      setFormTotalCredits("82");
+      setFormGeCredits("41");
+      setFormMajorCredits("35");
+      setFormElectiveCredits("6");
+      setFormCurriculumYear("2551 (ปรับปรุง 2560)");
+      if (!formName) setFormName("หลักสูตรมัธยมศึกษาตอนปลาย แผนการเรียนภาษา-สังคมศึกษาและพุทธศาสน์ศึกษา (ม.4 - ม.6)");
+      if (!formDegreeNameTh) setFormDegreeNameTh("ประกาศนียบัตรมัธยมศึกษาตอนปลาย (ม.6)");
+      if (!formDegreeNameEn) setFormDegreeNameEn("Certificate of Senior Secondary Education");
+      toast.success("ใช้แม่แบบโครงสร้าง ม.ปลาย แผนศิลป์-ภาษา/พุทธศาสตร์ รวม 82 นก. เรียบร้อยแล้ว");
+    }
+  };
+
   const openCreateDialog = () => {
     setEditingItem(null);
     setActiveTab("general");
     setFormCode("");
     setFormName("");
     setFormNameEn("");
-    setFormDegreeLevel("ปริญญาตรี (4 ปี)");
-    setFormDegreeNameTh("");
-    setFormDegreeNameEn("");
-    setFormCurriculumYear("2567");
+    setFormDegreeLevel("มัธยมศึกษาตอนต้น (ม.1 - ม.3)");
+    setFormDegreeNameTh("ประกาศนียบัตรมัธยมศึกษาตอนต้น (ม.3)");
+    setFormDegreeNameEn("Certificate of Lower Secondary Education");
+    setFormCurriculumYear("2551 (ปรับปรุง 2560)");
     setFormDepartmentId(selectedDeptFilter !== "ALL" && selectedDeptFilter !== "NONE" ? selectedDeptFilter : "");
-    setFormDurationYears("4");
-    setFormTotalCredits("132");
-    setFormGeCredits("30");
-    setFormMajorCredits("96");
+    setFormDurationYears("3");
+    setFormTotalCredits("88");
+    setFormGeCredits("66");
+    setFormMajorCredits("16");
     setFormElectiveCredits("6");
     setFormPhilosophy("");
     setFormObjectives("");
@@ -311,7 +353,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
       const json = await res.json();
       if (res.ok && json.ok) {
         setFormPdfUrl(json.url);
-        toast.success("อัปโหลดเอกสาร มคอ. 2 สำเร็จ");
+        toast.success("อัปโหลดเอกสารหลักสูตรสำเร็จ");
       } else {
         toast.error(json.error || "ไม่สามารถอัปโหลดไฟล์ได้");
       }
@@ -439,7 +481,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
           </span>
           {row.curriculumYear && (
             <span className="text-[10px] text-muted-foreground block font-sans">
-              มคอ.2 พ.ศ. {row.curriculumYear}
+              หลักสูตร พ.ศ. {row.curriculumYear}
             </span>
           )}
         </div>
@@ -497,7 +539,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
     },
     {
       key: "pdfUrl",
-      header: "เอกสาร มคอ. 2",
+      header: "เอกสารหลักสูตร",
       className: "nowrap text-center",
       render: (row) =>
         row.pdfUrl ? (
@@ -508,7 +550,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900 hover:bg-red-100 transition-colors"
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>มคอ. 2</span>
+            <span>เอกสารหลักสูตร</span>
             <ExternalLink className="w-3 h-3 opacity-60" />
           </a>
         ) : (
@@ -537,7 +579,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
             {t("curriculum.title")}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            บริหารจัดการข้อมูลหลักสูตร โครงสร้างหน่วยกิต และเอกสาร มคอ. 2 เพื่อเผยแพร่สู่สาธารณะ
+            บริหารจัดการข้อมูลหลักสูตร โครงสร้างหน่วยกิต และเอกสารหลักสูตร เพื่อเผยแพร่สู่สาธารณะ
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -597,7 +639,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
         </div>
 
         <DataTable<CurriculumDto>
-          headHeading="สารบบหลักสูตร (TQF 2 Database)"
+          headHeading="สารบบหลักสูตร (Curriculum Database)"
           state={filteredItems.length === 0 ? "empty" : "data"}
           rows={filteredItems}
           columns={columns}
@@ -605,7 +647,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
           renderRowMenu={(row) => (
             <>
               <RowMenuItem onSelect={() => setViewingItem(row)} icon={<Eye className="h-4 w-4" />}>
-                ดูรายละเอียด มคอ. 2
+                ดูรายละเอียดหลักสูตร
               </RowMenuItem>
               {canManage && (
                 <>
@@ -632,12 +674,13 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
       </LiyonCard>
 
       {/* Add / Edit Dialog with 4 Tabs */}
-      <LiyonDialog open={modalOpen} onOpenChange={setModalOpen}>
+      <LiyonDialog open={modalOpen} onOpenChange={setModalOpen} wide>
+        <LiyonDialogCloseButton label="ปิดหน้าต่าง" />
         <LiyonDialogHeader
-          title={editingItem ? "แก้ไขหลักสูตร (มคอ. 2)" : "เพิ่มหลักสูตรใหม่ (มคอ. 2)"}
-          description="กรอกข้อมูลหลักสูตรตามแบบฟอร์ม มคอ. 2 สำหรับบันทึกในฐานข้อมูลและเผยแพร่ผ่าน Portal"
+          title={editingItem ? "แก้ไขหลักสูตรสถานศึกษา" : "เพิ่มหลักสูตรสถานศึกษาใหม่"}
+          description="กรอกข้อมูลหลักสูตรสำหรับบันทึกในฐานข้อมูลและเผยแพร่ผ่าน Portal"
         />
-        <LiyonDialogBody>
+        <LiyonDialogBody className="max-h-[70vh] sm:max-h-[75vh] overflow-y-auto overscroll-contain pr-1">
           <div className="space-y-4 py-1">
             {/* Tab Navigation and JSON Import/Export */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border/60 pb-1 gap-2">
@@ -726,6 +769,37 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
               </div>
             </div>
 
+            {/* Quick Template Preset Bar */}
+            <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                แม่แบบโครงสร้างเวลาเรียนตามเกณฑ์แกนกลาง:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => applyTemplate("JUNIOR")}
+                  className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-[11px] text-blue-800 dark:text-blue-200 font-medium transition-colors shadow-2xs cursor-pointer"
+                >
+                  ม.ต้น (ม.1-3) 88 นก.
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate("SENIOR_SCI")}
+                  className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-[11px] text-blue-800 dark:text-blue-200 font-medium transition-colors shadow-2xs cursor-pointer"
+                >
+                  ม.ปลาย วิทย์-คณิต 84 นก.
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate("SENIOR_LANG")}
+                  className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-[11px] text-blue-800 dark:text-blue-200 font-medium transition-colors shadow-2xs cursor-pointer"
+                >
+                  ม.ปลาย ศิลป์-ภาษา 82 นก.
+                </button>
+              </div>
+            </div>
+
             {/* TAB 1: General Info */}
             {activeTab === "general" && (
               <div className="space-y-4 pt-1">
@@ -737,7 +811,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                     <input
                       value={formCode}
                       onChange={(e) => setFormCode(e.target.value)}
-                      placeholder="เช่น 01001 หรือ B.Ed.01"
+                      placeholder="เช่น CURR-JHS-2568 หรือ CURR-SHS-SCI"
                       className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                       required
                     />
@@ -751,13 +825,13 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                       onChange={(e) => setFormDegreeLevel(e.target.value)}
                       className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
-                      <option value="ปริญญาตรี (4 ปี)">ปริญญาตรี (4 ปี)</option>
-                      <option value="ปริญญาตรี (5 ปี)">ปริญญาตรี (5 ปี)</option>
-                      <option value="ปริญญาโท (2 ปี)">ปริญญาโท (2 ปี)</option>
-                      <option value="ปริญญาเอก (3 ปี)">ปริญญาเอก (3 ปี)</option>
-                      <option value="ประกาศนียบัตรบัณฑิต">ประกาศนียบัตรบัณฑิต</option>
-                      <option value="มัธยมศึกษาตอนปลาย">มัธยมศึกษาตอนปลาย</option>
+                      <option value="มัธยมศึกษาตอนต้น (ม.1 - ม.3)">มัธยมศึกษาตอนต้น (ม.1 - ม.3)</option>
+                      <option value="มัธยมศึกษาตอนปลาย (ม.4 - ม.6)">มัธยมศึกษาตอนปลาย (ม.4 - ม.6)</option>
                       <option value="มัธยมศึกษาตอนต้น">มัธยมศึกษาตอนต้น</option>
+                      <option value="มัธยมศึกษาตอนปลาย">มัธยมศึกษาตอนปลาย</option>
+                      <option value="ปริญญาตรี (4 ปี)">ปริญญาตรี (4 ปี)</option>
+                      <option value="ปริญญาโท (2 ปี)">ปริญญาโท (2 ปี)</option>
+                      <option value="ประกาศนียบัตรวิชาชีพ (ปวช.)">ประกาศนียบัตรวิชาชีพ (ปวช.)</option>
                     </select>
                   </div>
                   <div>
@@ -848,8 +922,8 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
             {activeTab === "credits" && (
               <div className="space-y-4 pt-1">
                 <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 text-xs text-blue-800 dark:text-blue-300">
-                  <span className="font-semibold">หมวดที่ 3 ตามเกณฑ์มาตรฐาน มคอ. 2:</span>{" "}
-                  กำหนดโครงสร้างจำนวนหน่วยกิตตลอดหลักสูตร และจำแนกตามกลุ่มวิชา
+                  <span className="font-semibold">โครงสร้างเวลาเรียนตามหลักสูตรแกนกลางฯ:</span>{" "}
+                  มัธยมศึกษาตอนต้น เวลาเรียนพื้นฐาน 66 นก. (รวม 3 ปี 2,640 ชม.) / มัธยมศึกษาตอนปลาย เวลาเรียนพื้นฐาน 41 นก. (1,640 ชม.) และวิชาเพิ่มเติมตามแผนการเรียน
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -861,7 +935,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                       type="number"
                       value={formDurationYears}
                       onChange={(e) => setFormDurationYears(e.target.value)}
-                      placeholder="เช่น 4"
+                      placeholder="เช่น 3"
                       className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
@@ -873,7 +947,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                       type="number"
                       value={formTotalCredits}
                       onChange={(e) => setFormTotalCredits(e.target.value)}
-                      placeholder="เช่น 132"
+                      placeholder="เช่น 88 (ม.ต้น) หรือ 84 (ม.ปลาย)"
                       className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-bold text-primary"
                       required
                     />
@@ -885,14 +959,14 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground block mb-1">
-                        1. หมวดวิชาศึกษาทั่วไป (GE)
+                        1. รายวิชาพื้นฐาน (8 กลุ่มสาระ)
                       </label>
                       <div className="relative">
                         <input
                           type="number"
                           value={formGeCredits}
                           onChange={(e) => setFormGeCredits(e.target.value)}
-                          placeholder="เช่น 30"
+                          placeholder="เช่น 66 (ม.ต้น) หรือ 41 (ม.ปลาย)"
                           className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 pr-10"
                         />
                         <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">นก.</span>
@@ -900,14 +974,14 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground block mb-1">
-                        2. หมวดวิชาเฉพาะ / วิชาเอก
+                        2. รายวิชาเพิ่มเติม / ตามแผนการเรียน
                       </label>
                       <div className="relative">
                         <input
                           type="number"
                           value={formMajorCredits}
                           onChange={(e) => setFormMajorCredits(e.target.value)}
-                          placeholder="เช่น 96"
+                          placeholder="เช่น 16 (ม.ต้น) หรือ 37 (ม.ปลาย)"
                           className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 pr-10"
                         />
                         <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">นก.</span>
@@ -915,7 +989,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground block mb-1">
-                        3. หมวดวิชาเลือกเสรี
+                        3. วิชาเลือกเสรี / กิจกรรมพัฒนาผู้เรียน
                       </label>
                       <div className="relative">
                         <input
@@ -1031,10 +1105,10 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-xs font-bold text-foreground block">
-                        ไฟล์เล่มหลักสูตร มคอ. 2 (PDF)
+                        ไฟล์เล่มหลักสูตรสถานศึกษา (PDF)
                       </label>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        แนบไฟล์ PDF เพื่อให้นักศึกษา บุคลากร และประชาชนสามารถดาวน์โหลดอ่านได้
+                        แนบไฟล์ PDF เพื่อให้นักเรียน ผู้ปกครอง บุคลากร และประชาชนสามารถดาวน์โหลดอ่านได้
                       </p>
                     </div>
                     {formPdfUrl && (
@@ -1124,12 +1198,13 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
       </LiyonDialog>
 
       {/* TQF 2 Quick View Dossier Dialog */}
-      <LiyonDialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
+      <LiyonDialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)} wide>
+        <LiyonDialogCloseButton label="ปิดหน้าต่าง" />
         <LiyonDialogHeader
-          title="รายละเอียดเอกสารหลักสูตร (มคอ. 2)"
-          description={`รหัส ${viewingItem?.code} • ${viewingItem?.degreeLevel} • มคอ. 2 พ.ศ. ${viewingItem?.curriculumYear || "2567"}`}
+          title="รายละเอียดเอกสารหลักสูตรสถานศึกษา"
+          description={`รหัส ${viewingItem?.code} • ${viewingItem?.degreeLevel} • ปีหลักสูตร ${viewingItem?.curriculumYear || "2551 (ปรับปรุง 2560)"}`}
         />
-        <LiyonDialogBody>
+        <LiyonDialogBody className="max-h-[70vh] sm:max-h-[75vh] overflow-y-auto overscroll-contain pr-1">
           {viewingItem && (
             <div className="space-y-4 py-2">
               {/* Header card with Cover and Title */}
@@ -1242,7 +1317,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                     </div>
                     <div>
                       <div className="text-xs font-bold text-red-950 dark:text-red-200">
-                        เอกสารหลักสูตรฉบับสมบูรณ์ (มคอ. 2)
+                        เอกสารหลักสูตรฉบับสมบูรณ์
                       </div>
                       <div className="text-[11px] text-red-700 dark:text-red-400">
                         พร้อมให้เปิดอ่านหรือดาวน์โหลดในรูปแบบ PDF
@@ -1261,7 +1336,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                 </div>
               ) : (
                 <div className="text-center py-2 text-xs text-muted-foreground italic">
-                  ยังไม่ได้แนบไฟล์เอกสาร มคอ. 2 (PDF)
+                  ยังไม่ได้แนบไฟล์เอกสารหลักสูตร (PDF)
                 </div>
               )}
             </div>
@@ -1288,7 +1363,8 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
       </LiyonDialog>
 
       {/* Delete Dialog */}
-      <LiyonDialog open={!!deleteConfirmItem} onOpenChange={(open) => !open && setDeleteConfirmItem(null)}>
+      <LiyonDialog open={!!deleteConfirmItem} onOpenChange={(open) => !open && setDeleteConfirmItem(null)} danger>
+        <LiyonDialogCloseButton label="ปิดหน้าต่าง" />
         <LiyonDialogHeader
           title="ยืนยันการลบหลักสูตร"
           description="คุณต้องการลบหลักสูตรนี้ใช่หรือไม่?"

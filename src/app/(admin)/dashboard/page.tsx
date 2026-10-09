@@ -33,8 +33,8 @@ export default async function DashboardPage() {
             { title: "ระบบจัดการข่าวสารประชาสัมพันธ์", href: "/news", desc: "เผยแพร่ข่าวสาร ประกาศ กิจกรรมของคณะ" },
             { title: "ระบบจัดการบุคลากร", href: "/personnel", desc: "ข้อมูลอาจารย์และเจ้าหน้าที่ ทำเนียบบุคลากร" },
             { title: "ระบบจัดการหลักสูตร", href: "/curriculum", desc: "โครงสร้างหลักสูตร แผนการเรียน และรายวิชา" },
-            { title: "ระบบบริหารและอนุมัติเอกสาร", href: "/document", desc: "ยื่นคำร้อง ติดตามสถานะ และอนุมัติเอกสาร" },
-            { title: "ระบบจองห้องและยานพาหนะ", href: "/facility", desc: "จองห้องประชุม ห้องปฏิบัติการ และรถยนต์ส่วนกลาง" },
+            { title: "ทะเบียนและวัดผล สำหรับบุคลากร", href: "/satitmcuReg", desc: "ระบบงานทะเบียน บันทึกคะแนน และบริการเอกสาร" },
+            { title: "ศูนย์ดาวน์โหลด (Downloads)", href: "/download", desc: "จัดการและดาวน์โหลดแบบฟอร์มคำร้องและเอกสาร" },
           ].map((f) => (
             <Link key={f.href} href={f.href} style={{ textDecoration: "none", color: "inherit" }}>
               <LiyonCard className="p-5 h-full cursor-pointer transition-all hover:shadow-md">

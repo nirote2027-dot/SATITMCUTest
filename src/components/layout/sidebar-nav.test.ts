@@ -29,8 +29,8 @@ describe("sidebar-nav", () => {
     expect(getActiveNavChain("/nowhere")).toEqual([]);
     expect(getActiveNavChain("/curriculum").map((c) => c.title)).toEqual(["nav.academic", "curriculum.title"]);
     expect(getActiveNavChain("/department").map((c) => c.title)).toEqual(["nav.academic", "department.title"]);
-    expect(getActiveNavChain("/document").map((c) => c.title)).toEqual(["nav.services", "document.title"]);
-    expect(getActiveNavChain("/facility").map((c) => c.title)).toEqual(["nav.services", "facility.title"]);
+    expect(getActiveNavChain("/satitmcuReg").map((c) => c.title)).toEqual(["nav.services", "document.title"]);
+    expect(getActiveNavChain("/download").map((c) => c.title)).toEqual(["nav.services", "facility.title"]);
   });
   it("โครงเมนูมี 3 กลุ่ม", () => expect(sidebarGroups).toHaveLength(3));
 });

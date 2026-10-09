@@ -50,11 +50,11 @@ export const sidebarGroups: NavGroup[] = [
       },
       {
         title: "nav.services",
-        href: "/document",
+        href: "/satitmcuReg",
         icon: FileText,
         children: [
-          { title: "document.title", href: "/document", permission: DOCUMENT_P.read },
-          { title: "facility.title", href: "/facility", permission: FACILITY_P.read },
+          { title: "document.title", href: "/satitmcuReg", permission: DOCUMENT_P.read },
+          { title: "facility.title", href: "/download", permission: FACILITY_P.read },
         ],
       },
     ],

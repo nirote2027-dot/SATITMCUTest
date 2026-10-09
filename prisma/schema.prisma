@@ -44,6 +44,11 @@ model Tenant {
   documents    Document[]
   facilities   Facility[]
   reservations Reservation[]
+  students     Student[]
+  courseEnrollments CourseEnrollment[]
+  attendances  Attendance[]
+  gradeRecords GradeRecord[]
+  gradingSchemes CourseGradingScheme[]
 
   @@map("tenants")
 }
@@ -400,6 +405,10 @@ model Course {
   updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
 
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  enrollments CourseEnrollment[]
+  attendances Attendance[]
+  grades      GradeRecord[]
+  gradingSchemes CourseGradingScheme[]
 
   @@unique([curriculumId, courseCode])
   @@map("courses")
@@ -481,3 +490,131 @@ model Reservation {
   @@index([tenantId])
   @@map("reservations")
 }
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+  LATE
+}
+
+model Student {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  studentCode String   @map("student_code") @db.VarChar(50)
+  title       String   @default("ด.ช.") @db.VarChar(20)
+  firstName   String   @map("first_name") @db.VarChar(100)
+  lastName    String   @map("last_name") @db.VarChar(100)
+  classRoom   String   @map("class_room") @db.VarChar(50)
+  seatNo      Int      @map("seat_no")
+  gender      String?  @db.VarChar(10)
+  status      String   @default("ACTIVE") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments CourseEnrollment[]
+  attendances Attendance[]
+  grades      GradeRecord[]
+
+  @@unique([tenantId, studentCode])
+  @@index([tenantId])
+  @@index([classRoom])
+  @@map("students")
+}
+
+model CourseEnrollment {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  studentId    String   @map("student_id") @db.Uuid
+  courseId     String   @map("course_id") @db.Uuid
+  academicYear String   @default("2569") @map("academic_year") @db.VarChar(10)
+  semester     Int      @default(1)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId, academicYear, semester])
+  @@index([tenantId])
+  @@index([courseId])
+  @@map("course_enrollments")
+}
+
+model Attendance {
+  id        String           @id @default(uuid()) @db.Uuid
+  tenantId  String           @map("tenant_id") @db.Uuid
+  studentId String           @map("student_id") @db.Uuid
+  courseId  String?          @map("course_id") @db.Uuid
+  classDate DateTime         @map("class_date") @db.Date
+  period    Int              @default(1)
+  status    AttendanceStatus @default(PRESENT)
+  remarks   String?          @db.VarChar(255)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, courseId, classDate, period])
+  @@index([tenantId])
+  @@index([studentId])
+  @@index([classDate])
+  @@map("attendances")
+}
+
+model GradeRecord {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  studentId       String   @map("student_id") @db.Uuid
+  courseId        String   @map("course_id") @db.Uuid
+  academicYear    String   @default("2569") @map("academic_year") @db.VarChar(10)
+  semester        Int      @default(1)
+  assignmentScore Float    @default(0) @map("assignment_score")
+  midtermScore    Float    @default(0) @map("midterm_score")
+  behaviorScore   Float    @default(0) @map("behavior_score")
+  finalScore      Float    @default(0) @map("final_score")
+  totalScore      Float    @default(0) @map("total_score")
+  grade           String   @default("0") @db.VarChar(10)
+  isPassing       Boolean  @default(true) @map("is_passing")
+  remarks         String?  @db.VarChar(255)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId, academicYear, semester])
+  @@index([tenantId])
+  @@index([studentId])
+  @@index([courseId])
+  @@map("grade_records")
+}
+
+model CourseGradingScheme {
+  id                    String   @id @default(uuid()) @db.Uuid
+  tenantId              String   @map("tenant_id") @db.Uuid
+  courseId              String   @map("course_id") @db.Uuid
+  classRoom             String   @map("class_room") @db.VarChar(50)
+  academicYear          String   @default("2569") @map("academic_year") @db.VarChar(10)
+  semester              Int      @default(1)
+  maxAssignment         Float    @default(30) @map("max_assignment")
+  maxMidterm            Float    @default(20) @map("max_midterm")
+  maxBehavior           Float    @default(20) @map("max_behavior")
+  maxFinal              Float    @default(30) @map("max_final")
+  minAttendancePercent  Float    @default(80) @map("min_attendance_percent")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, classRoom, academicYear, semester])
+  @@index([tenantId])
+  @@index([courseId])
+  @@map("course_grading_schemes")
+}
+

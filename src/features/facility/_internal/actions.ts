@@ -21,7 +21,7 @@ export async function createFacilityAction(input: unknown): Promise<ActionResult
     const ctx = await requirePermission(FACILITY_P.manage);
     const parsed = createFacilitySchema.parse(input, { error: zodErrorMap(await getLocale()) });
     const result = await createFacility(ctx.tenantId, parsed);
-    revalidatePath("/facility");
+    revalidatePath("/download");
     return result;
   });
 }
@@ -31,7 +31,7 @@ export async function updateFacilityAction(input: unknown): Promise<ActionResult
     const ctx = await requirePermission(FACILITY_P.manage);
     const parsed = updateFacilitySchema.parse(input, { error: zodErrorMap(await getLocale()) });
     const result = await updateFacility(ctx.tenantId, parsed);
-    revalidatePath("/facility");
+    revalidatePath("/download");
     return result;
   });
 }
@@ -40,6 +40,6 @@ export async function deleteFacilityAction(id: string): Promise<ActionResult<voi
   return runAction(async () => {
     const ctx = await requirePermission(FACILITY_P.manage);
     await deleteFacility(ctx.tenantId, id);
-    revalidatePath("/facility");
+    revalidatePath("/download");
   });
 }

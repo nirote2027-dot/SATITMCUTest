@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Edit2, Trash2, Layers, AlertCircle, Building2, Car, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, Layers, AlertCircle, Building2, Car, Image as ImageIcon, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useT, useLocale } from "@/shared/lib/i18n/client";
 import { formatDate } from "@/shared/lib/format";
@@ -198,21 +198,21 @@ export function FacilityClient({ initialItems, canManage }: Props) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-blue-600" /> ระบบจัดการห้องประชุมและยานพาหนะ (Facilities)
+            <Download className="w-6 h-6 text-blue-600" /> ศูนย์ดาวน์โหลด (Downloads)
           </h1>
-          <p className="text-sm text-muted-foreground">เพิ่ม แก้ไข ลบ ห้องประชุม ห้องปฏิบัติการ และรถยนต์ส่วนกลาง พร้อมแนบรูปถ่าย</p>
+          <p className="text-sm text-muted-foreground">จัดการเอกสาร แบบฟอร์มคำร้อง และไฟล์ดาวน์โหลดสำหรับบุคลากรและนักเรียน</p>
         </div>
         {canManage && (
           <Button onClick={openCreateDialog} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white">
             <Plus className="h-4 w-4" />
-            เพิ่มห้อง / ยานพาหนะ
+            เพิ่มรายการดาวน์โหลด
           </Button>
         )}
       </div>
 
       <LiyonCard>
         <DataTable<FacilityDto>
-          headHeading="รายการทรัพยากร"
+          headHeading="รายการเอกสารและแบบฟอร์มสำหรับดาวน์โหลด"
           state={items.length === 0 ? "empty" : "data"}
           rows={items}
           columns={columns}

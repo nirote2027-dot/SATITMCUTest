@@ -132,20 +132,11 @@ export function PublicFooter({ logoUrl, nameTh, nameEn, user }: PublicFooterProp
               </li>
               <li>
                 <Link
-                  href="#document"
+                  href="#services"
                   className="flex items-center gap-2 text-slate-400 hover:text-white hover:translate-x-1 transition-all"
                 >
                   <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                  <span>คำร้องและเอกสารดาวน์โหลด</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#facility"
-                  className="flex items-center gap-2 text-slate-400 hover:text-white hover:translate-x-1 transition-all"
-                >
-                  <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                  <span>จองห้องประชุมและยานพาหนะ</span>
+                  <span>สารสนเทศ (ทะเบียนและดาวน์โหลด)</span>
                 </Link>
               </li>
             </ul>

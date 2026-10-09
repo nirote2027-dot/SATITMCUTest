@@ -62,8 +62,7 @@ export function PublicNavbar({ user, logoUrl, nameTh, nameEn }: PublicNavbarProp
     { href: "#news", label: t("roles.module.news") || "ข่าวสาร", icon: Newspaper },
     { href: "#personnel", label: t("roles.module.personnel") || "บุคลากร", icon: Users },
     { href: "#curriculum", label: t("roles.module.curriculum") || "หลักสูตร", icon: BookOpen },
-    { href: "#document", label: t("roles.module.document") || "เอกสาร/คำร้อง", icon: FileText },
-    { href: "#facility", label: t("roles.module.facility") || "จองห้อง/รถ", icon: Building2 },
+    { href: "#services", label: t("nav.services") || "สารสนเทศ", icon: FileText },
   ];
 
   return (

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict YvEiYNvdu4Xi2DJSn9DmYbRcLHfrQjhLEtBIaVUP69AtRNOsz7wqqBmWtA9CyCX
+\restrict aD7fH30R37iZiThZb6Hyrq6owZJfNM8Ps1XQaEc8JC71jZ1xrb1qVeYBLOu4khf
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -23,6 +23,7 @@ ALTER TABLE IF EXISTS ONLY public.user_tenants DROP CONSTRAINT IF EXISTS user_te
 ALTER TABLE IF EXISTS ONLY public.user_tenants DROP CONSTRAINT IF EXISTS user_tenants_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.user_roles DROP CONSTRAINT IF EXISTS user_roles_user_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.user_roles DROP CONSTRAINT IF EXISTS user_roles_role_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.students DROP CONSTRAINT IF EXISTS students_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.sample_items DROP CONSTRAINT IF EXISTS sample_items_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.roles DROP CONSTRAINT IF EXISTS roles_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.role_permissions DROP CONSTRAINT IF EXISTS role_permissions_role_id_fkey;
@@ -30,6 +31,9 @@ ALTER TABLE IF EXISTS ONLY public.role_permissions DROP CONSTRAINT IF EXISTS rol
 ALTER TABLE IF EXISTS ONLY public.reservations DROP CONSTRAINT IF EXISTS reservations_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.reservations DROP CONSTRAINT IF EXISTS reservations_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.reservations DROP CONSTRAINT IF EXISTS reservations_facility_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.grade_records DROP CONSTRAINT IF EXISTS grade_records_tenant_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.grade_records DROP CONSTRAINT IF EXISTS grade_records_student_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.grade_records DROP CONSTRAINT IF EXISTS grade_records_course_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.facilities DROP CONSTRAINT IF EXISTS facilities_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS employees_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS employees_tenant_id_fkey;
@@ -41,10 +45,18 @@ ALTER TABLE IF EXISTS ONLY public.departments DROP CONSTRAINT IF EXISTS departme
 ALTER TABLE IF EXISTS ONLY public.curriculums DROP CONSTRAINT IF EXISTS curriculums_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.curriculums DROP CONSTRAINT IF EXISTS curriculums_department_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.courses DROP CONSTRAINT IF EXISTS courses_curriculum_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.course_grading_schemes DROP CONSTRAINT IF EXISTS course_grading_schemes_tenant_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.course_grading_schemes DROP CONSTRAINT IF EXISTS course_grading_schemes_course_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.course_enrollments DROP CONSTRAINT IF EXISTS course_enrollments_tenant_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.course_enrollments DROP CONSTRAINT IF EXISTS course_enrollments_student_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.course_enrollments DROP CONSTRAINT IF EXISTS course_enrollments_course_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.categories DROP CONSTRAINT IF EXISTS categories_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.auth_tokens DROP CONSTRAINT IF EXISTS auth_tokens_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.audit_logs DROP CONSTRAINT IF EXISTS audit_logs_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.audit_logs DROP CONSTRAINT IF EXISTS audit_logs_actor_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.attendances DROP CONSTRAINT IF EXISTS attendances_tenant_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.attendances DROP CONSTRAINT IF EXISTS attendances_student_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.attendances DROP CONSTRAINT IF EXISTS attendances_course_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.articles DROP CONSTRAINT IF EXISTS articles_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.articles DROP CONSTRAINT IF EXISTS articles_category_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.articles DROP CONSTRAINT IF EXISTS articles_author_id_fkey;
@@ -56,11 +68,18 @@ DROP INDEX IF EXISTS public.user_tenants_tenant_id_idx;
 DROP INDEX IF EXISTS public.user_roles_user_tenant_id_role_id_scope_type_scope_id_key;
 DROP INDEX IF EXISTS public.user_roles_role_id_idx;
 DROP INDEX IF EXISTS public.tenants_code_key;
+DROP INDEX IF EXISTS public.students_tenant_id_student_code_key;
+DROP INDEX IF EXISTS public.students_tenant_id_idx;
+DROP INDEX IF EXISTS public.students_class_room_idx;
 DROP INDEX IF EXISTS public.sample_items_tenant_id_idx;
 DROP INDEX IF EXISTS public.roles_tenant_id_code_key;
 DROP INDEX IF EXISTS public.reservations_tenant_id_idx;
 DROP INDEX IF EXISTS public.reservations_facility_id_idx;
 DROP INDEX IF EXISTS public.permissions_code_key;
+DROP INDEX IF EXISTS public.grade_records_tenant_id_idx;
+DROP INDEX IF EXISTS public.grade_records_student_id_idx;
+DROP INDEX IF EXISTS public.grade_records_student_id_course_id_academic_year_semester_key;
+DROP INDEX IF EXISTS public.grade_records_course_id_idx;
 DROP INDEX IF EXISTS public.facilities_tenant_id_idx;
 DROP INDEX IF EXISTS public.employees_tenant_id_idx;
 DROP INDEX IF EXISTS public.employees_tenant_id_employee_code_key;
@@ -72,54 +91,74 @@ DROP INDEX IF EXISTS public.curriculums_tenant_id_idx;
 DROP INDEX IF EXISTS public.curriculums_tenant_id_code_key;
 DROP INDEX IF EXISTS public.curriculums_department_id_idx;
 DROP INDEX IF EXISTS public.courses_curriculum_id_course_code_key;
+DROP INDEX IF EXISTS public.course_grading_schemes_tenant_id_idx;
+DROP INDEX IF EXISTS public.course_grading_schemes_course_id_idx;
+DROP INDEX IF EXISTS public.course_grading_schemes_course_id_class_room_academic_year_s_key;
+DROP INDEX IF EXISTS public.course_enrollments_tenant_id_idx;
+DROP INDEX IF EXISTS public.course_enrollments_student_id_course_id_academic_year_semes_key;
+DROP INDEX IF EXISTS public.course_enrollments_course_id_idx;
 DROP INDEX IF EXISTS public.categories_tenant_id_slug_key;
 DROP INDEX IF EXISTS public.categories_tenant_id_idx;
 DROP INDEX IF EXISTS public.auth_tokens_user_id_purpose_idx;
 DROP INDEX IF EXISTS public.auth_tokens_token_hash_key;
 DROP INDEX IF EXISTS public.audit_logs_tenant_id_entity_entity_id_idx;
 DROP INDEX IF EXISTS public.audit_logs_tenant_id_created_at_idx;
+DROP INDEX IF EXISTS public.attendances_tenant_id_idx;
+DROP INDEX IF EXISTS public.attendances_student_id_idx;
+DROP INDEX IF EXISTS public.attendances_student_id_course_id_class_date_period_key;
+DROP INDEX IF EXISTS public.attendances_class_date_idx;
 DROP INDEX IF EXISTS public.articles_tenant_id_idx;
 DROP INDEX IF EXISTS public.approval_steps_document_id_step_order_key;
 ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_pkey;
 ALTER TABLE IF EXISTS ONLY public.user_tenants DROP CONSTRAINT IF EXISTS user_tenants_pkey;
 ALTER TABLE IF EXISTS ONLY public.user_roles DROP CONSTRAINT IF EXISTS user_roles_pkey;
 ALTER TABLE IF EXISTS ONLY public.tenants DROP CONSTRAINT IF EXISTS tenants_pkey;
+ALTER TABLE IF EXISTS ONLY public.students DROP CONSTRAINT IF EXISTS students_pkey;
 ALTER TABLE IF EXISTS ONLY public.sample_items DROP CONSTRAINT IF EXISTS sample_items_pkey;
 ALTER TABLE IF EXISTS ONLY public.roles DROP CONSTRAINT IF EXISTS roles_pkey;
 ALTER TABLE IF EXISTS ONLY public.role_permissions DROP CONSTRAINT IF EXISTS role_permissions_pkey;
 ALTER TABLE IF EXISTS ONLY public.reservations DROP CONSTRAINT IF EXISTS reservations_pkey;
 ALTER TABLE IF EXISTS ONLY public.permissions DROP CONSTRAINT IF EXISTS permissions_pkey;
 ALTER TABLE IF EXISTS ONLY public.login_throttles DROP CONSTRAINT IF EXISTS login_throttles_pkey;
+ALTER TABLE IF EXISTS ONLY public.grade_records DROP CONSTRAINT IF EXISTS grade_records_pkey;
 ALTER TABLE IF EXISTS ONLY public.facilities DROP CONSTRAINT IF EXISTS facilities_pkey;
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS employees_pkey;
 ALTER TABLE IF EXISTS ONLY public.documents DROP CONSTRAINT IF EXISTS documents_pkey;
 ALTER TABLE IF EXISTS ONLY public.departments DROP CONSTRAINT IF EXISTS departments_pkey;
 ALTER TABLE IF EXISTS ONLY public.curriculums DROP CONSTRAINT IF EXISTS curriculums_pkey;
 ALTER TABLE IF EXISTS ONLY public.courses DROP CONSTRAINT IF EXISTS courses_pkey;
+ALTER TABLE IF EXISTS ONLY public.course_grading_schemes DROP CONSTRAINT IF EXISTS course_grading_schemes_pkey;
+ALTER TABLE IF EXISTS ONLY public.course_enrollments DROP CONSTRAINT IF EXISTS course_enrollments_pkey;
 ALTER TABLE IF EXISTS ONLY public.categories DROP CONSTRAINT IF EXISTS categories_pkey;
 ALTER TABLE IF EXISTS ONLY public.auth_tokens DROP CONSTRAINT IF EXISTS auth_tokens_pkey;
 ALTER TABLE IF EXISTS ONLY public.audit_logs DROP CONSTRAINT IF EXISTS audit_logs_pkey;
+ALTER TABLE IF EXISTS ONLY public.attendances DROP CONSTRAINT IF EXISTS attendances_pkey;
 ALTER TABLE IF EXISTS ONLY public.articles DROP CONSTRAINT IF EXISTS articles_pkey;
 ALTER TABLE IF EXISTS ONLY public.approval_steps DROP CONSTRAINT IF EXISTS approval_steps_pkey;
 DROP TABLE IF EXISTS public.users;
 DROP TABLE IF EXISTS public.user_tenants;
 DROP TABLE IF EXISTS public.user_roles;
 DROP TABLE IF EXISTS public.tenants;
+DROP TABLE IF EXISTS public.students;
 DROP TABLE IF EXISTS public.sample_items;
 DROP TABLE IF EXISTS public.roles;
 DROP TABLE IF EXISTS public.role_permissions;
 DROP TABLE IF EXISTS public.reservations;
 DROP TABLE IF EXISTS public.permissions;
 DROP TABLE IF EXISTS public.login_throttles;
+DROP TABLE IF EXISTS public.grade_records;
 DROP TABLE IF EXISTS public.facilities;
 DROP TABLE IF EXISTS public.employees;
 DROP TABLE IF EXISTS public.documents;
 DROP TABLE IF EXISTS public.departments;
 DROP TABLE IF EXISTS public.curriculums;
 DROP TABLE IF EXISTS public.courses;
+DROP TABLE IF EXISTS public.course_grading_schemes;
+DROP TABLE IF EXISTS public.course_enrollments;
 DROP TABLE IF EXISTS public.categories;
 DROP TABLE IF EXISTS public.auth_tokens;
 DROP TABLE IF EXISTS public.audit_logs;
+DROP TABLE IF EXISTS public.attendances;
 DROP TABLE IF EXISTS public.articles;
 DROP TABLE IF EXISTS public.approval_steps;
 DROP TYPE IF EXISTS public."TokenPurpose";
@@ -129,6 +168,7 @@ DROP TYPE IF EXISTS public."FacilityType";
 DROP TYPE IF EXISTS public."FacilityStatus";
 DROP TYPE IF EXISTS public."DocStatus";
 DROP TYPE IF EXISTS public."CourseType";
+DROP TYPE IF EXISTS public."AttendanceStatus";
 DROP TYPE IF EXISTS public."ArticleStatus";
 DROP TYPE IF EXISTS public."ApprovalStatus";
 --
@@ -157,6 +197,20 @@ CREATE TYPE public."ArticleStatus" AS ENUM (
 
 
 ALTER TYPE public."ArticleStatus" OWNER TO postgres;
+
+--
+-- Name: AttendanceStatus; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."AttendanceStatus" AS ENUM (
+    'PRESENT',
+    'ABSENT',
+    'LEAVE',
+    'LATE'
+);
+
+
+ALTER TYPE public."AttendanceStatus" OWNER TO postgres;
 
 --
 -- Name: CourseType; Type: TYPE; Schema: public; Owner: postgres
@@ -292,6 +346,26 @@ CREATE TABLE public.articles (
 ALTER TABLE public.articles OWNER TO postgres;
 
 --
+-- Name: attendances; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.attendances (
+    id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    student_id uuid NOT NULL,
+    course_id uuid,
+    class_date date NOT NULL,
+    period integer DEFAULT 1 NOT NULL,
+    status public."AttendanceStatus" DEFAULT 'PRESENT'::public."AttendanceStatus" NOT NULL,
+    remarks character varying(255),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.attendances OWNER TO postgres;
+
+--
 -- Name: audit_logs; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -344,6 +418,46 @@ CREATE TABLE public.categories (
 
 
 ALTER TABLE public.categories OWNER TO postgres;
+
+--
+-- Name: course_enrollments; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.course_enrollments (
+    id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    student_id uuid NOT NULL,
+    course_id uuid NOT NULL,
+    academic_year character varying(10) DEFAULT '2569'::character varying NOT NULL,
+    semester integer DEFAULT 1 NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.course_enrollments OWNER TO postgres;
+
+--
+-- Name: course_grading_schemes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.course_grading_schemes (
+    id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    course_id uuid NOT NULL,
+    class_room character varying(50) NOT NULL,
+    academic_year character varying(10) DEFAULT '2569'::character varying NOT NULL,
+    semester integer DEFAULT 1 NOT NULL,
+    max_assignment double precision DEFAULT 30 NOT NULL,
+    max_midterm double precision DEFAULT 20 NOT NULL,
+    max_behavior double precision DEFAULT 20 NOT NULL,
+    max_final double precision DEFAULT 30 NOT NULL,
+    min_attendance_percent double precision DEFAULT 80 NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.course_grading_schemes OWNER TO postgres;
 
 --
 -- Name: courses; Type: TABLE; Schema: public; Owner: postgres
@@ -479,6 +593,32 @@ CREATE TABLE public.facilities (
 ALTER TABLE public.facilities OWNER TO postgres;
 
 --
+-- Name: grade_records; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.grade_records (
+    id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    student_id uuid NOT NULL,
+    course_id uuid NOT NULL,
+    academic_year character varying(10) DEFAULT '2569'::character varying NOT NULL,
+    semester integer DEFAULT 1 NOT NULL,
+    assignment_score double precision DEFAULT 0 NOT NULL,
+    midterm_score double precision DEFAULT 0 NOT NULL,
+    behavior_score double precision DEFAULT 0 NOT NULL,
+    final_score double precision DEFAULT 0 NOT NULL,
+    total_score double precision DEFAULT 0 NOT NULL,
+    grade character varying(10) DEFAULT '0'::character varying NOT NULL,
+    is_passing boolean DEFAULT true NOT NULL,
+    remarks character varying(255),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.grade_records OWNER TO postgres;
+
+--
 -- Name: login_throttles; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -576,6 +716,28 @@ CREATE TABLE public.sample_items (
 ALTER TABLE public.sample_items OWNER TO postgres;
 
 --
+-- Name: students; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.students (
+    id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    student_code character varying(50) NOT NULL,
+    title character varying(20) DEFAULT 'ด.ช.'::character varying NOT NULL,
+    first_name character varying(100) NOT NULL,
+    last_name character varying(100) NOT NULL,
+    class_room character varying(50) NOT NULL,
+    seat_no integer NOT NULL,
+    gender character varying(10),
+    status character varying(20) DEFAULT 'ACTIVE'::character varying NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.students OWNER TO postgres;
+
+--
 -- Name: tenants; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -668,6 +830,124 @@ COPY public.articles (id, tenant_id, category_id, author_id, title, content, cov
 
 
 --
+-- Data for Name: attendances; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.attendances (id, tenant_id, student_id, course_id, class_date, period, status, remarks, created_at, updated_at) FROM stdin;
+66bd35a7-9c0a-4e95-8abe-5f7ae5f2511d	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.054+07	2026-10-09 12:01:58.054+07
+1c4ece47-0538-4b9f-b032-119d4de154b4	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.068+07	2026-10-09 12:01:58.068+07
+e3811c17-7d96-48d7-aca2-4582cd56b32e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.073+07	2026-10-09 12:01:58.073+07
+3b30cd2c-5891-4071-9c2c-b12757d52546	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.077+07	2026-10-09 12:01:58.077+07
+1423c97e-4757-44f7-99b0-672ac58723b9	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.081+07	2026-10-09 12:01:58.081+07
+7f5d78b1-c458-46a9-b6a2-2c9666a35d94	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.086+07	2026-10-09 12:01:58.086+07
+9e35be29-4557-467b-85c8-a98644809407	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.09+07	2026-10-09 12:01:58.09+07
+f7fce96e-aae5-4fd0-8412-2378168fa4f7	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.095+07	2026-10-09 12:01:58.095+07
+c08e8594-9874-4bf5-9c70-3f766faf0654	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.1+07	2026-10-09 12:01:58.1+07
+e6795a47-8fd2-43fa-8b65-8b52a0c900dd	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-18	1	PRESENT	\N	2026-10-09 12:01:58.104+07	2026-10-09 12:01:58.104+07
+bbf444f3-8c03-4fb3-9272-4bdddfc0184a	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.108+07	2026-10-09 12:01:58.108+07
+f8054e85-a4e3-4c21-a236-ebc201fd5843	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.112+07	2026-10-09 12:01:58.112+07
+70f9819a-8e04-4468-b646-9995b762ae69	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.115+07	2026-10-09 12:01:58.115+07
+9fe42889-37a1-4982-bb90-70c41b67438b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.119+07	2026-10-09 12:01:58.119+07
+7caebe3c-0f52-4653-8d47-8385bc6fa34b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.123+07	2026-10-09 12:01:58.123+07
+5ca68760-a634-4c08-94e8-7f085dfb0fa3	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.126+07	2026-10-09 12:01:58.126+07
+5670d6b9-19f3-492b-8024-f17ee602f2c3	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.129+07	2026-10-09 12:01:58.129+07
+71aa8786-1978-46ac-8bd1-ff8f1dfafa61	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.133+07	2026-10-09 12:01:58.133+07
+9ea77316-51e7-4ada-a9a1-9099886b87c4	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-21	1	LATE	\N	2026-10-09 12:01:58.136+07	2026-10-09 12:01:58.136+07
+63700733-d148-4d2d-9410-4ceb3e4c207b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-21	1	PRESENT	\N	2026-10-09 12:01:58.139+07	2026-10-09 12:01:58.139+07
+14a8c9b9-4034-49c7-a5cc-086de0effd7e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.143+07	2026-10-09 12:01:58.143+07
+0f2ac5ec-17dc-4a33-bd68-cd02f7434c96	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.146+07	2026-10-09 12:01:58.146+07
+9bfef093-485c-482b-9f9d-c778244aa450	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.15+07	2026-10-09 12:01:58.15+07
+90c6c552-ca47-4736-8a8b-20f7f46deeae	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.153+07	2026-10-09 12:01:58.153+07
+91349f16-9a7b-430b-a7da-c5d596231973	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-24	1	ABSENT	\N	2026-10-09 12:01:58.156+07	2026-10-09 12:01:58.156+07
+8dbdba2f-1980-4019-aa19-d8c79384078b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.159+07	2026-10-09 12:01:58.159+07
+920294e2-f9b0-4533-8e7f-363aba8a7e2e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.163+07	2026-10-09 12:01:58.163+07
+ce316055-238e-4bc0-b2aa-5c056a1784ac	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.166+07	2026-10-09 12:01:58.166+07
+f4ce2970-63e5-4eab-988e-b0b30c1314a8	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.169+07	2026-10-09 12:01:58.169+07
+64450b38-8408-4eb2-b24d-0f431748698e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-24	1	PRESENT	\N	2026-10-09 12:01:58.172+07	2026-10-09 12:01:58.172+07
+69f27729-b79b-4e79-a4ee-ade8aeb507b1	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.176+07	2026-10-09 12:01:58.176+07
+89cbab2c-e7cc-47dc-97cb-f6ddce43907e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-27	1	LATE	\N	2026-10-09 12:01:58.178+07	2026-10-09 12:01:58.178+07
+d991a2b4-0ebb-4ec4-8c3e-4e6439f9d93a	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.181+07	2026-10-09 12:01:58.181+07
+187ff3c2-556a-498b-bc40-56723bb39791	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.185+07	2026-10-09 12:01:58.185+07
+15377c84-db19-4d5e-aa20-20517792c436	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.188+07	2026-10-09 12:01:58.188+07
+cd8dfca4-fc37-4c67-9552-d704e9d41a9c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.191+07	2026-10-09 12:01:58.191+07
+1ce36420-62f1-49c9-8931-d13ca6f4bd2b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.195+07	2026-10-09 12:01:58.195+07
+b97daf45-1ac8-4d2f-8cc2-f34056abb2bf	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.198+07	2026-10-09 12:01:58.198+07
+250d4633-32fc-48b7-ba44-425397b1aaf0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.201+07	2026-10-09 12:01:58.201+07
+9f5f34b6-e673-444f-b03d-75d7eb3f2f6a	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-27	1	PRESENT	\N	2026-10-09 12:01:58.205+07	2026-10-09 12:01:58.205+07
+c945b703-68a2-4fca-bb3e-34b4f0d8cd52	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-30	1	PRESENT	\N	2026-10-09 12:01:58.208+07	2026-10-09 12:01:58.208+07
+2504411c-1f6a-48a3-846c-dbedcc04af7c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-30	1	PRESENT	\N	2026-10-09 12:01:58.211+07	2026-10-09 12:01:58.211+07
+cbcd8595-e89d-44a4-b4c4-737d0e136478	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-30	1	PRESENT	\N	2026-10-09 12:01:58.215+07	2026-10-09 12:01:58.215+07
+72ef325c-b6ea-4dc0-af6a-906dae2223fa	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-30	1	PRESENT	\N	2026-10-09 12:01:58.219+07	2026-10-09 12:01:58.219+07
+f5775120-3d0a-467c-a305-ce41edf6e6c0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-05-30	1	ABSENT	\N	2026-10-09 12:01:58.222+07	2026-10-09 12:01:58.222+07
+a37d1778-f59a-4108-b105-db0634f9fc77	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-30	1	PRESENT	\N	2026-10-09 12:01:58.225+07	2026-10-09 12:01:58.225+07
+70633351-3e22-4651-a887-ebbd78168260	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-30	1	PRESENT	\N	2026-10-09 12:01:58.229+07	2026-10-09 12:01:58.229+07
+418834b7-b80e-4801-b64e-b3abb1c782cc	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-30	1	LEAVE	\N	2026-10-09 12:01:58.232+07	2026-10-09 12:01:58.232+07
+270d19fd-3a2d-4810-92c8-274457a52f3a	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-30	1	PRESENT	\N	2026-10-09 12:01:58.236+07	2026-10-09 12:01:58.236+07
+15630c59-8f19-4a79-89f9-f3c1807ba157	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-05-30	1	PRESENT	\N	2026-10-09 12:01:58.239+07	2026-10-09 12:01:58.239+07
+83701edc-da4a-4424-9d0c-4ce9aa61b78d	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.242+07	2026-10-09 12:01:58.242+07
+7f93fef3-2e93-4aaa-ab44-bb9978bafa6f	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.245+07	2026-10-09 12:01:58.245+07
+7bfc98f8-e712-4967-abe4-8d504c721e9b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-02	1	LEAVE	\N	2026-10-09 12:01:58.248+07	2026-10-09 12:01:58.248+07
+3f4541ef-a617-4a61-a54a-89190981bd7c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.251+07	2026-10-09 12:01:58.251+07
+46d9816c-57a3-4a30-a097-d5bd852393de	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.255+07	2026-10-09 12:01:58.255+07
+90a095a2-0f38-4a86-9bf2-f9836719c812	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.258+07	2026-10-09 12:01:58.258+07
+8c95b40c-e92e-4f3a-beb1-060420236406	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.261+07	2026-10-09 12:01:58.261+07
+32f1f9f8-f8f6-4528-953e-360082371e67	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.265+07	2026-10-09 12:01:58.265+07
+ef6e2dac-b264-41ef-8173-859761cc0d72	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.268+07	2026-10-09 12:01:58.268+07
+cfe662aa-88f7-4985-bb17-98c89696f36c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-02	1	PRESENT	\N	2026-10-09 12:01:58.271+07	2026-10-09 12:01:58.271+07
+48a946d4-58d6-46f5-8ed2-d407e8a541c8	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.275+07	2026-10-09 12:01:58.275+07
+a3314fef-9865-472d-98d9-3b91fed83c1c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.278+07	2026-10-09 12:01:58.278+07
+9edb9bb3-1fd4-4d2b-9843-bde6d55cc973	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.282+07	2026-10-09 12:01:58.282+07
+14c74dc6-290f-45b2-b45b-eea7fe8d2b6e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.287+07	2026-10-09 12:01:58.287+07
+92ff30ad-3dd8-4441-b5b5-bc61ce06e978	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-05	1	ABSENT	\N	2026-10-09 12:01:58.29+07	2026-10-09 12:01:58.29+07
+b86a029e-df50-4e43-8bf8-96454f5a5a54	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.293+07	2026-10-09 12:01:58.293+07
+11385e3c-bf6e-4016-846d-178dde8f7cbe	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.296+07	2026-10-09 12:01:58.296+07
+b63dd5c3-6764-4b1a-8aa6-301b991d368d	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.299+07	2026-10-09 12:01:58.299+07
+180a8af8-848e-414b-9dfb-3ddc0817b784	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.302+07	2026-10-09 12:01:58.302+07
+c85da275-d240-4fb3-a202-e8d1fd4c7818	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-05	1	PRESENT	\N	2026-10-09 12:01:58.305+07	2026-10-09 12:01:58.305+07
+ce813e53-69e5-4d14-bc3a-78c11eadb8de	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.308+07	2026-10-09 12:01:58.308+07
+d76af95e-20dc-427d-8f32-036e0655b0d5	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.312+07	2026-10-09 12:01:58.312+07
+cec49123-22cb-4124-aa2a-465520c0f1bd	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.315+07	2026-10-09 12:01:58.315+07
+c71a4734-8acf-4f5a-98c9-9cb9c64fdc04	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.318+07	2026-10-09 12:01:58.318+07
+f1dae13c-6d08-4663-8238-97648d5cb18b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.321+07	2026-10-09 12:01:58.321+07
+4ba91d2b-61e2-4c97-b198-67bd48dde9ec	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.325+07	2026-10-09 12:01:58.325+07
+eb646f01-f14e-423b-9ea3-98b502c47315	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.328+07	2026-10-09 12:01:58.328+07
+662883ed-4dd2-4caf-b86d-3e3c796a1b99	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.331+07	2026-10-09 12:01:58.331+07
+f4f49bd7-8295-47d6-81e3-01d17176c052	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.334+07	2026-10-09 12:01:58.334+07
+c317df22-8ca6-4d28-a76e-c666edd0ec06	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-08	1	PRESENT	\N	2026-10-09 12:01:58.338+07	2026-10-09 12:01:58.338+07
+3b05b211-939c-4b7d-b000-117d61ebf74a	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.341+07	2026-10-09 12:01:58.341+07
+9893217d-04f3-4023-b68a-a67d9341b6ef	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.345+07	2026-10-09 12:01:58.345+07
+ba1e892c-2ed2-4618-a8d7-4bae65b4a145	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.348+07	2026-10-09 12:01:58.348+07
+68e41f17-c654-4dc2-bbe0-0df333d6c7d8	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.351+07	2026-10-09 12:01:58.351+07
+e2b2e1c2-1e3f-49d8-89b2-db68e9514642	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-11	1	ABSENT	\N	2026-10-09 12:01:58.354+07	2026-10-09 12:01:58.354+07
+eabc8ba8-5090-4e96-9e37-75b7f2c69f49	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.358+07	2026-10-09 12:01:58.358+07
+9fd76244-6421-4f1e-b9d1-78d8ccfd0776	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.361+07	2026-10-09 12:01:58.361+07
+1632b3b9-35d2-44ff-9c41-a1defb4e97ca	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.364+07	2026-10-09 12:01:58.364+07
+4d652736-575b-476e-a068-40b8ec7cf88b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.368+07	2026-10-09 12:01:58.368+07
+d03edab2-714d-4de3-ac2f-d6f8768b0907	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-11	1	PRESENT	\N	2026-10-09 12:01:58.372+07	2026-10-09 12:01:58.372+07
+35ffc5ad-4c78-4c92-b131-a2364397924f	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.376+07	2026-10-09 12:01:58.376+07
+b4fe8986-8ac0-4ef4-91c1-caa3978f1349	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.379+07	2026-10-09 12:01:58.379+07
+fd1fb1c1-a518-484c-94db-1e865bd9a3aa	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.382+07	2026-10-09 12:01:58.382+07
+738f0365-7c08-45d8-8229-ff80c8e407d9	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.386+07	2026-10-09 12:01:58.386+07
+c57fe038-8138-4995-9a0a-a9879e18fe95	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.389+07	2026-10-09 12:01:58.389+07
+a963b6f1-98f7-4598-8cf2-ab47e04087a1	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.392+07	2026-10-09 12:01:58.392+07
+9d1c515b-28a9-4087-b4f0-f2b24242629d	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.395+07	2026-10-09 12:01:58.395+07
+dfd797f5-7d2c-4ec2-b857-bd450904af08	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.398+07	2026-10-09 12:01:58.398+07
+bf6b1a74-3918-4362-8ea5-2e218e4672be	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.402+07	2026-10-09 12:01:58.402+07
+a15deef8-dca1-4ec2-a6cd-2e8b6ef0ef9c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2026-06-14	1	PRESENT	\N	2026-10-09 12:01:58.406+07	2026-10-09 12:01:58.406+07
+095c85bb-9487-44be-bfa8-f9906b34e402	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-10-09	1	PRESENT	\N	2026-10-09 12:15:47.004+07	2026-10-09 12:56:30.147+07
+2a3ab258-10e9-4f77-98af-41e8a0908157	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-10-09	1	PRESENT	\N	2026-10-09 12:15:47.009+07	2026-10-09 12:56:30.152+07
+09f6771e-5370-48a1-8ff2-ae509f49ce4d	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-10-09	1	PRESENT	\N	2026-10-09 12:15:47.014+07	2026-10-09 12:56:30.157+07
+f5df22ee-7b13-4bfd-909d-26d2cd4d0962	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	11d82bca-1a48-4db5-a348-be7e4f47d305	2026-10-09	2	ABSENT	\N	2026-10-09 12:22:57.151+07	2026-10-09 12:22:57.151+07
+da5021be-6456-4556-90cf-0cbf42481372	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	11d82bca-1a48-4db5-a348-be7e4f47d305	2026-10-09	2	ABSENT	\N	2026-10-09 12:22:57.259+07	2026-10-09 12:22:57.259+07
+9d0c3c3f-a822-4cd0-938d-c3b3a9743b28	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	11d82bca-1a48-4db5-a348-be7e4f47d305	2026-10-09	2	ABSENT	\N	2026-10-09 12:22:57.264+07	2026-10-09 12:22:57.264+07
+472e5986-2703-425a-a053-8e96dc3e9515	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	11d82bca-1a48-4db5-a348-be7e4f47d305	2026-10-09	2	PRESENT	\N	2026-10-09 12:22:57.268+07	2026-10-09 12:22:57.268+07
+a4f18fe8-db07-4c4f-bb6f-6c217f5e2936	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	11d82bca-1a48-4db5-a348-be7e4f47d305	2026-10-09	2	PRESENT	\N	2026-10-09 12:22:57.272+07	2026-10-09 12:22:57.272+07
+1b783be7-36b4-4f0c-882e-2f8dc2e03e14	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-10-09	1	ABSENT	\N	2026-10-09 12:15:46.875+07	2026-10-09 12:56:29.902+07
+867957d2-d428-419a-8f6f-005d98b661a5	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	f24e501d-04de-4f98-b5e4-5b3e617e31da	2026-10-09	1	PRESENT	\N	2026-10-09 12:15:46.997+07	2026-10-09 12:56:30.143+07
+\.
+
+
+--
 -- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -701,10 +981,33 @@ COPY public.categories (id, tenant_id, name, slug, created_at, updated_at) FROM 
 
 
 --
+-- Data for Name: course_enrollments; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.course_enrollments (id, tenant_id, student_id, course_id, academic_year, semester, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: course_grading_schemes; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.course_grading_schemes (id, tenant_id, course_id, class_room, academic_year, semester, max_assignment, max_midterm, max_behavior, max_final, min_attendance_percent, created_at, updated_at) FROM stdin;
+b298efba-fbda-44d1-8555-688b9f5f4ae4	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	f24e501d-04de-4f98-b5e4-5b3e617e31da	ม.1/1	2569	1	50	10	20	20	80	2026-10-09 12:53:35.103+07	2026-10-09 12:53:35.103+07
+\.
+
+
+--
 -- Data for Name: courses; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.courses (id, curriculum_id, course_code, name, credits, semester, course_type, created_at, updated_at) FROM stdin;
+6c7a7261-4c54-461a-8d41-ac03411f930e	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ท21101	ภาษาไทยพื้นฐาน 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.95+07	2026-10-09 12:01:57.95+07
+f24e501d-04de-4f98-b5e4-5b3e617e31da	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ค21101	คณิตศาสตร์พื้นฐาน 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.966+07	2026-10-09 12:01:57.966+07
+5672f0fc-cb74-41d3-a754-f0f86372992b	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ว21101	วิทยาศาสตร์และเทคโนโลยี 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.975+07	2026-10-09 12:01:57.975+07
+11d82bca-1a48-4db5-a348-be7e4f47d305	7569727d-7d55-4623-92e2-c34884127588	ท31101	ภาษาไทยพื้นฐาน 1 (ม.4)	1	1	CORE	2026-10-09 12:01:57.981+07	2026-10-09 12:01:57.981+07
+abcca187-88e4-4a6b-bb32-73e7eca1507f	7569727d-7d55-4623-92e2-c34884127588	ค31101	คณิตศาสตร์เพิ่มเติม 1 (ม.4)	2	1	CORE	2026-10-09 12:01:57.986+07	2026-10-09 12:01:57.986+07
+55ae17a2-edef-4e9e-92a9-65ffba3f6d96	7569727d-7d55-4623-92e2-c34884127588	ว31101	ฟิสิกส์ 1 (ม.4)	2	1	CORE	2026-10-09 12:01:57.991+07	2026-10-09 12:01:57.991+07
 \.
 
 
@@ -713,12 +1016,9 @@ COPY public.courses (id, curriculum_id, course_code, name, credits, semester, co
 --
 
 COPY public.curriculums (id, tenant_id, code, name, degree_level, total_credits, description, is_active, created_at, updated_at, image_url, department_id, career_prospects, curriculum_year, degree_name_en, degree_name_th, duration_years, elective_credits, ge_credits, major_credits, name_en, objectives, pdf_url, philosophy) FROM stdin;
-05dfcfe4-e65b-4d90-a1a2-48a0e38e1a80	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	01001	หลักสูตรพุทธศาสตรบัณฑิต สาขาวิชาพระพุทธศาสนา	ปริญญาตรี (4 ปี)	132	หลักสูตรมุ่งเน้นการศึกษาหลักพุทธธรรม ปรัชญา และการประยุกต์ใช้เพื่อสันติสุขของสังคม	t	2026-09-12 03:46:28.469+07	2026-09-12 03:46:28.469+07	\N	d1000000-0000-0000-0000-000000000001	อาจารย์สอนวิชาพระพุทธศาสนา/สังคมศึกษา, นักวิชาการศาสนา, พระวิปัสสนาจารย์/ผู้นำเผยแผ่ศาสนา, เจ้าหน้าที่ฝ่ายบุคคลหรือองค์กรพัฒนาเอกชน	2567	Bachelor of Arts (Buddhism)	พุทธศาสตรบัณฑิต (พระพุทธศาสนา)	4	6	30	96	Bachelor of Arts Program in Buddhism	1. เพื่อผลิตบัณฑิตให้มีความรู้ความเชี่ยวชาญในพระพุทธศาสนาทั้งภาคทฤษฎีและปฏิบัติ\n2. เพื่อสร้างผู้นำทางจิตวิญญาณที่มีคุณธรรมและจริยธรรม\n3. เพื่อเผยแผ่หลักธรรมคำสอนสู่สังคมไทยและสากล	/uploads/sample-tqf2.pdf	มุ่งผลิตบัณฑิตให้มีความรู้ความเข้าใจในพระไตรปิฎก หลักธรรมทางพระพุทธศาสนาอย่างถ่องแท้ มีคุณธรรมจริยธรรม และสามารถประยุกต์ใช้เพื่อการพัฒนาจิตใจและสังคม
-7783b865-a199-4691-81cc-9cffef186636	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	01002	หลักสูตรครุศาสตรบัณฑิต สาขาวิชาการสอนพระพุทธศาสนาและสังคมศึกษา	ปริญญาตรี (4 ปี)	138	เตรียมความพร้อมวิชาชีพครูด้วยจิตวิญญาณพุทธปัญญา นวัตกรรมการสอนที่ทันสมัย	t	2026-09-12 03:46:28.482+07	2026-09-12 03:46:28.482+07	\N	d1000000-0000-0000-0000-000000000002	ครูผู้สอนวิชาพระพุทธศาสนาและสังคมศึกษาในสถานศึกษาขั้นพื้นฐาน, นักวิชาการศึกษา, นักพัฒนาสื่อและนวัตกรรมการเรียนรู้	2566	Bachelor of Education (Teaching Buddhism and Social Studies)	ครุศาสตรบัณฑิต (การสอนพระพุทธศาสนาและสังคมศึกษา)	4	6	30	102	Bachelor of Education Program in Teaching Buddhism and Social Studies	1. เพื่อผลิตครูและบุคลากรทางการศึกษาที่มีความรู้ความสามารถในศาสตร์การสอนวิถีพุทธ\n2. เพื่อส่งเสริมวิจัยและนวัตกรรมการจัดการเรียนรู้ในยุคดิจิทัล	/uploads/sample-tqf2.pdf	มุ่งพัฒนาครูผู้สอนที่มีจิตวิญญาณความเป็นครู มีสมรรถนะการจัดการเรียนรู้เชิงรุก (Active Learning) ผสานเทคโนโลยีดิจิทัลและคุณธรรมวิถีพุทธ
-719045ed-a95e-4854-ab5f-8c7acea8c822	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	01003	หลักสูตรศิลปศาสตรบัณฑิต สาขาวิชาภาษาอังกฤษเพื่อการสื่อสารสากล	ปริญญาตรี (4 ปี)	130	ภาษาอังกฤษเพื่อการสื่อสารระดับนานาชาติ เชื่อมโยงวัฒนธรรมและพุทธปัญญาสู่สากล	t	2026-09-12 03:46:28.488+07	2026-09-12 03:46:28.488+07	\N	d1000000-0000-0000-0000-000000000003	นักแปลและล่าม, เจ้าหน้าที่วิเทศสัมพันธ์, มัคคุเทศก์, ผู้ประสานงานโครงการระหว่างประเทศ, ครูผู้สอนภาษาอังกฤษ	2567	Bachelor of Arts (English for Global Communication)	ศิลปศาสตรบัณฑิต (ภาษาอังกฤษเพื่อการสื่อสารสากล)	4	6	30	94	Bachelor of Arts Program in English for Global Communication	1. เพื่อผลิตบัณฑิตที่มีสมรรถนะการใช้ภาษาอังกฤษเพื่อการสื่อสารระดับสูง\n2. เพื่อเตรียมความพร้อมสู่การทำงานในองค์กรระหว่างประเทศ	/uploads/sample-tqf2.pdf	มุ่งผลิตบัณฑิตที่มีทักษะภาษาอังกฤษระดับสากล มีความเข้าใจในความหลากหลายทางวัฒนธรรม และประยุกต์ใช้เพื่อการเผยแผ่และการทำงานในเวทีโลก
-5a3da450-337c-4b88-b01e-ebf57da78196	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	CURR-LANG-M4	หลักสูตรภาษาและวัฒนธรรมสากล มัธยมศึกษาตอนปลาย	HIGH_SCHOOL	81	หลักสูตรเน้นความเชี่ยวชาญด้านภาษาอังกฤษ ภาษาต่างประเทศที่สอง และการสื่อสารข้ามวัฒนธรรม	t	2026-09-12 02:47:31.472+07	2026-09-12 06:29:05.995+07	\N	d1000000-0000-0000-0000-000000000002	\N	2568	\N	มัธยมศึกษาตอนปลาย	4	12	30	39	Language & Global Culture Curriculum	\N	\N	\N
-db12bc94-57c3-4991-be3d-7d1e980afa8e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	CURR-BUD-M1	หลักสูตรพุทธศาสน์ศึกษาและภาษาบาลี (มคอ. 2)	JUNIOR_HIGH	88	หลักสูตรมาตรฐาน มคอ. 2 บูรณาการคุณธรรม จริยธรรม หลักพุทธธรรม และภาษาบาลีเบื้องต้นเพื่อชีวิต	t	2026-09-12 02:47:31.476+07	2026-09-12 06:29:06+07	\N	d1000000-0000-0000-0000-000000000003	\N	2568	\N	มัธยมศึกษาตอนต้น	4	12	32	44	Buddhist Studies & Pali Language Curriculum	\N	\N	\N
-6557890a-e0e3-47e5-a69b-9255127ff9c7	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	CURR-SCI-M4	หลักสูตรวิทยาศาสตร์-คณิตศาสตร์ มัธยมศึกษาตอนปลาย	HIGH_SCHOOL	84	หลักสูตรเน้นกระบวนการคิดวิเคราะห์ การทดลองทางวิทยาศาสตร์ คณิตศาสตร์เข้มข้น และนวัตกรรมเทคโนโลยี	t	2026-09-12 02:47:31.348+07	2026-09-12 06:29:05.981+07	\N	d1000000-0000-0000-0000-000000000001	\N	2568	\N	มัธยมศึกษาตอนปลาย	4	12	30	42	Science-Mathematics Curriculum (Senior High School)	\N	\N	\N
+c8692e29-4a5a-436d-b663-97d1b48dfbe1	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	CURR-JHS-2568	หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน ระดับมัธยมศึกษาตอนต้น (ม.1 - ม.3)	มัธยมศึกษาตอนต้น (ม.1 - ม.3)	88	หลักสูตร 3 ปี (ม.1-ม.3) เวลาเรียนพื้นฐาน 66 หน่วยกิต (2,640 ชม.) รายวิชาเพิ่มเติม 16 หน่วยกิต และกิจกรรมพัฒนาผู้เรียน 360 ชม. รวมเวลาเรียนตลอด 3 ปี ไม่น้อยกว่า 3,600 ชั่วโมง	t	2026-10-09 10:18:26.913+07	2026-10-09 10:18:26.913+07	https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&auto=format&fit=crop&q=80	ae2beb73-46cd-420a-b1cf-3ef0d1373286	ศึกษาต่อระดับมัธยมศึกษาตอนปลายสายสามัญ (แผนการเรียนวิทยาศาสตร์-คณิตศาสตร์, ศิลป์-คำนวณ, ศิลป์-ภาษา), สายอาชีวศึกษา (ปวช.), หรือสถาบันการศึกษาเฉพาะทาง	2551 (ปรับปรุง 2560)	Certificate of Lower Secondary Education	ประกาศนียบัตรมัธยมศึกษาตอนต้น (ม.3)	3	6	66	16	Basic Education Core Curriculum for Lower Secondary Education (Grade 7-9)	1. เพื่อปลูกฝังคุณธรรม จริยธรรม และค่านิยมที่พึงประสงค์ตามหลักพุทธศาสนา 2. เพื่อพัฒนาทักษะวิชาการพื้นฐาน 8 กลุ่มสาระการเรียนรู้ให้เต็มตามศักยภาพ 3. เพื่อเสริมสร้างสมรรถนะการคิดวิเคราะห์ วิทยาการคำนวณ และการสื่อสารสากล 4. เพื่อเตรียมความพร้อมในการศึกษาต่อระดับมัธยมศึกษาตอนปลาย	\N	มุ่งพัฒนาผู้เรียนให้มีความรู้คู่คุณธรรม มีปัญญารู้คิด มีความสามารถในการสื่อสาร การแก้ปัญหา ทักษะชีวิต และการใช้เทคโนโลยี บนพื้นฐานอัตลักษณ์พุทธธรรมของโรงเรียนสาธิต มจร
+7569727d-7d55-4623-92e2-c34884127588	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	CURR-SHS-SCI-2568	หลักสูตรมัธยมศึกษาตอนปลาย แผนการเรียนวิทยาศาสตร์-คณิตศาสตร์ (ม.4 - ม.6)	มัธยมศึกษาตอนปลาย (ม.4 - ม.6)	84	หลักสูตร 3 ปี รายวิชาพื้นฐาน 41 หน่วยกิต และวิชาเพิ่มเติมวิทยาศาสตร์-คณิตศาสตร์เข้มข้น 37 หน่วยกิต รวม 84 หน่วยกิต (เวลาเรียนรวมตลอด 3 ปี ไม่น้อยกว่า 3,600 ชม.)	t	2026-10-09 10:18:26.931+07	2026-10-09 10:18:26.931+07	https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=80	4e20abd2-3d49-40e4-a3b0-77fd9a6350c0	เข้าศึกษาต่อระดับอุดมศึกษาในคณะแพทยศาสตร์ ทันตแพทยศาสตร์ เภสัชศาสตร์ วิศวกรรมศาสตร์ วิทยาศาสตร์ เทคโนโลยีสารสนเทศ และสาขาวิทยาศาสตร์ประยุกต์ทุกสาขา	2551 (ปรับปรุง 2560)	Certificate of Senior Secondary Education	ประกาศนียบัตรมัธยมศึกษาตอนปลาย (ม.6)	3	6	41	37	Senior Secondary Curriculum: Science-Mathematics Program (Grade 10-12)	1. เพื่อสร้างความเข้มข้นทางวิชาการและทักษะการทดลองทางวิทยาศาสตร์และคณิตศาสตร์ขั้นสูง 2. พัฒนาทักษะการคิดเชิงคำนวณ โครงงานนวัตกรรม และเทคโนโลยีดิจิทัล 3. ปลูกฝังจิตวิญญาณแห่งการเป็นผู้นำที่มีคุณธรรมจริยธรรม 4. เตรียมความพร้อมอย่างสมบูรณ์สู่การเข้าศึกษาต่อในระดับอุดมศึกษา	\N	มุ่งเน้นความเป็นเลิศทางวิทยาศาสตร์ คณิตศาสตร์ และเทคโนโลยี ควบคู่คุณธรรมตามแนวพุทธศาสนา เพื่อสร้างนักวิจัย นวัตกร และผู้นำทางวิชาการแห่งอนาคต
+0ee15b94-e1d3-4ec3-9023-37a03f04f353	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	CURR-SHS-LANG-2568	หลักสูตรมัธยมศึกษาตอนปลาย แผนการเรียนภาษา-สังคมศึกษาและพุทธศาสน์ศึกษา (ม.4 - ม.6)	มัธยมศึกษาตอนปลาย (ม.4 - ม.6)	82	หลักสูตร 3 ปี รายวิชาพื้นฐาน 41 หน่วยกิต และวิชาเพิ่มเติมภาษา-สังคมศึกษา 35 หน่วยกิต รวม 82 หน่วยกิต ตอบโจทย์การศึกษาต่อด้านมนุษยศาสตร์และสังคมศาสตร์	t	2026-10-09 10:18:26.939+07	2026-10-09 10:18:26.939+07	https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=80	0d4ee502-6307-4aa7-993e-f7ab0b010d80	เข้าศึกษาต่อระดับอุดมศึกษาในคณะนิติศาสตร์ รัฐศาสตร์ อักษรศาสตร์/มนุษยศาสตร์ ศิลปศาสตร์ ครุศาสตร์ นิเทศศาสตร์ บริหารธุรกิจ และพุทธศาสตร์	2551 (ปรับปรุง 2560)	Certificate of Senior Secondary Education	ประกาศนียบัตรมัธยมศึกษาตอนปลาย (ม.6)	3	6	41	35	Senior Secondary Curriculum: Languages, Social & Buddhist Studies (Grade 10-12)	1. พัฒนาทักษะการสื่อสารภาษาอังกฤษและภาษาที่สองในระดับสากล 2. เข้าใจประวัติศาสตร์ วัฒนธรรม และหลักธรรมทางพระพุทธศาสนาอย่างลึกซึ้ง 3. เสริมสร้างความเป็นผู้นำทางสังคม มนุษยศาสตร์ และการสื่อสารร่วมสมัย	\N	มุ่งสร้างเยาวชนผู้เชี่ยวชาญด้านภาษา การสื่อสารสากล ความเข้าใจพหุวัฒนธรรม และหลักพุทธธรรมเพื่อเป็นเสาหลักทางจริยธรรมของสังคม
 \.
 
 
@@ -727,9 +1027,15 @@ db12bc94-57c3-4991-be3d-7d1e980afa8e	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	CURR-B
 --
 
 COPY public.departments (id, tenant_id, parent_id, name, created_at, updated_at, code, description) FROM stdin;
-d1000000-0000-0000-0000-000000000001	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี	2026-09-12 02:36:08.001+07	2026-09-12 06:29:05.97+07	SCI-MATH	จัดการเรียนการสอนวิทยาศาสตร์ คณิตศาสตร์ และเทคโนโลยีสารสนเทศ
-d1000000-0000-0000-0000-000000000002	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้ภาษาไทยและภาษาต่างประเทศ	2026-09-12 02:36:08.173+07	2026-09-12 06:29:05.974+07	LANG	จัดการเรียนการสอนภาษาไทย ภาษาอังกฤษ และภาษาต่างประเทศเสริม
-d1000000-0000-0000-0000-000000000003	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม	2026-09-12 02:36:08.18+07	2026-09-12 06:29:05.978+07	SOC-BUD	จัดการเรียนการสอนสังคมศึกษา ประวัติศาสตร์ พระพุทธศาสนา และภาษาบาลี
+b6b7da08-2176-4534-9d61-e172947e56f9	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้ภาษาไทย	2026-10-09 10:18:26.785+07	2026-10-09 10:18:26.785+07	THAI	จัดการเรียนการสอนทักษะการใช้ภาษาไทย การฟัง พูด อ่าน เขียน วรรณคดีและวรรณกรรม และการสื่อสารอย่างมีวิจารณญาณ
+e2b20aed-5758-4596-997b-322a1521313f	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้คณิตศาสตร์	2026-10-09 10:18:26.871+07	2026-10-09 10:18:26.871+07	MATH	จัดการเรียนการสอนสาระจำนวนและพีชคณิต การวัดและเรขาคณิต สถิติและความน่าจะเป็น เพื่อเสริมสร้างทักษะการคิดวิเคราะห์และการแก้ปัญหา
+4e20abd2-3d49-40e4-a3b0-77fd9a6350c0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี	2026-10-09 10:18:26.876+07	2026-10-09 10:18:26.876+07	SCI-TECH	จัดการเรียนการสอนวิทยาศาสตร์ชีวภาพ กายภาพ โลกและอวกาศ และเทคโนโลยี (วิทยาการคำนวณ / Coding) ตามหลักสูตรฉบับปรับปรุง พ.ศ. 2560
+0d4ee502-6307-4aa7-993e-f7ab0b010d80	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม	2026-10-09 10:18:26.883+07	2026-10-09 10:18:26.883+07	SOC-BUD	จัดการเรียนการสอนศาสนา ศีลธรรม จริยธรรม หน้าที่พลเมือง เศรษฐศาสตร์ ภูมิศาสตร์ และวิชาประวัติศาสตร์อย่างเข้มข้นตามประกาศ ศธ. 2565 พร้อมบูรณาการพระพุทธศาสนาและภาษาบาลี
+f5a67126-b6d2-444e-ac76-402f4819fe1d	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา	2026-10-09 10:18:26.888+07	2026-10-09 10:18:26.888+07	HEALTH-PE	จัดการเรียนการสอนการเจริญเติบโต การสร้างเสริมสุขภาพ สมรรถภาพทางกาย การออกกำลังกาย และการป้องกันโรคเพื่อสุขภาวะที่สมบูรณ์
+3083ef23-e065-4577-ac11-2088807c8627	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้ศิลปะ	2026-10-09 10:18:26.892+07	2026-10-09 10:18:26.892+07	ARTS	จัดการเรียนการสอนทัศนศิลป์ ดนตรี และนาฏศิลป์ พัฒนาความคิดริเริ่มสร้างสรรค์และสุนทรียภาพทางศิลปวัฒนธรรมไทยและสากล
+cc5dc1d4-1de4-4366-948c-8ab0bc8eaf0c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้การงานอาชีพ	2026-10-09 10:18:26.897+07	2026-10-09 10:18:26.897+07	CAREER	จัดการเรียนการสอนทักษะการดำรงชีวิต การทำงาน การจัดการธุรกิจเบื้องต้น และทักษะพื้นฐานทางอาชีพเพื่อการพึ่งพาตนเอง
+e5058bfd-087c-4963-9ad4-7e2865a06369	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ	2026-10-09 10:18:26.902+07	2026-10-09 10:18:26.902+07	FOREIGN-LANG	จัดการเรียนการสอนภาษาอังกฤษเพื่อการสื่อสารระดับสากล และภาษาต่างประเทศที่สอง (ภาษาจีน / ภาษาบาลี) เพื่อเปิดโลกทัศน์สู่สากล
+ae2beb73-46cd-420a-b1cf-3ef0d1373286	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	กลุ่มงานบริหารวิชาการและกิจกรรมพัฒนาผู้เรียน	2026-10-09 10:18:26.906+07	2026-10-09 10:18:26.906+07	ACADEMIC	ดูแลโครงสร้างหลักสูตรสถานศึกษา กิจกรรมพัฒนาผู้เรียน (แนะแนว ลูกเสือ-เนตรนารี กิจกรรมเพื่อสังคมและสาธารณประโยชน์)
 \.
 
 
@@ -746,9 +1052,9 @@ COPY public.documents (id, tenant_id, requester_id, doc_no, title, doc_type, fil
 --
 
 COPY public.employees (id, tenant_id, user_id, department_id, employee_code, first_name, last_name, "position", contact_info, is_active, created_at, updated_at, image_url) FROM stdin;
-eefbac9c-0f0d-4f00-8883-c4ba4d5bfac0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	d1000000-0000-0000-0000-000000000003	EMP-001	สมศักดิ์	ปัญญาดี	ผู้อำนวยการโรงเรียนสาธิต มจร	\N	t	2026-09-12 06:29:06.012+07	2026-09-12 06:29:06.012+07	\N
-e8d6991f-a7f2-44a4-b51e-d6d8f0f53eb8	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	d1000000-0000-0000-0000-000000000001	EMP-002	วิภาดา	รัตนโกสินทร์	หัวหน้ากลุ่มสาระวิทยาศาสตร์และเทคโนโลยี	\N	t	2026-09-12 06:29:06.018+07	2026-09-12 06:29:06.018+07	\N
-3d87f61a-934e-4898-9ef7-1c052e2ec5ce	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	d1000000-0000-0000-0000-000000000003	EMP-003	พระมหาบุญเลิศ	เขมธโร	หัวหน้ากลุ่มสาระสังคมศึกษาและภาษาบาลี	\N	t	2026-09-12 06:29:06.022+07	2026-09-12 06:29:06.022+07	\N
+eefbac9c-0f0d-4f00-8883-c4ba4d5bfac0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	\N	EMP-001	สมศักดิ์	ปัญญาดี	ผู้อำนวยการโรงเรียนสาธิต มจร	\N	t	2026-09-12 06:29:06.012+07	2026-10-09 10:08:24.321+07	\N
+3d87f61a-934e-4898-9ef7-1c052e2ec5ce	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	\N	EMP-003	พระมหาบุญเลิศ	เขมธโร	หัวหน้ากลุ่มสาระสังคมศึกษาและภาษาบาลี	\N	t	2026-09-12 06:29:06.022+07	2026-10-09 10:08:24.321+07	\N
+e8d6991f-a7f2-44a4-b51e-d6d8f0f53eb8	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	\N	EMP-002	นิโรจน์	วงศ์เมืองแก่น	หัวหน้ากลุ่มสาระวิทยาศาสตร์และเทคโนโลยี	{"email": null, "phone": null, "lineId": null, "address": null}	t	2026-09-12 06:29:06.018+07	2026-10-09 10:08:24.321+07	/uploads/3c1e4a7d-7849-48ec-87a9-db9becbc48c2.jpg
 \.
 
 
@@ -757,6 +1063,29 @@ e8d6991f-a7f2-44a4-b51e-d6d8f0f53eb8	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	\N	d10
 --
 
 COPY public.facilities (id, tenant_id, type, name, capacity, status, created_at, updated_at, image_url) FROM stdin;
+\.
+
+
+--
+-- Data for Name: grade_records; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.grade_records (id, tenant_id, student_id, course_id, academic_year, semester, assignment_score, midterm_score, behavior_score, final_score, total_score, grade, is_passing, remarks, created_at, updated_at) FROM stdin;
+a97d1bd2-853a-47f9-9d90-2a7adcf63527	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	99d6da80-3a97-409f-9264-6998723cad16	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	28	18	20	26	92	4	t	\N	2026-10-09 12:01:58.41+07	2026-10-09 12:01:58.41+07
+379b0b6f-2465-4f47-a4ad-226f6582e32b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	140a5cb5-79a3-4415-a167-f451ed101dba	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	25	16	19	24	84	4	t	\N	2026-10-09 12:01:58.422+07	2026-10-09 12:01:58.422+07
+089f41ce-a069-4fd8-bb07-6c707f1df26a	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	31bfedfd-7d37-4966-8aef-15094675c01b	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	22	14	18	22	76	3.5	t	\N	2026-10-09 12:01:58.426+07	2026-10-09 12:01:58.426+07
+409f8674-343d-4dc7-8cf0-87e0a54128d6	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	4bc941bd-088e-45d2-b574-60c76764e1f0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	20	13	17	18	68	2.5	t	\N	2026-10-09 12:01:58.43+07	2026-10-09 12:01:58.43+07
+9e63e9f7-865d-413d-ba26-a6c4ff58d3ad	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	9ce3e0d1-ecfb-4434-9088-62f8d673d937	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	24	15	12	22	73	มส	f	เวลาเรียนไม่ถึง 80%	2026-10-09 12:01:58.435+07	2026-10-09 12:01:58.435+07
+cdadc5e1-29d7-420c-8e5d-614530821a21	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	abcca187-88e4-4a6b-bb32-73e7eca1507f	2569	1	29	19	20	28	96	4	t	\N	2026-10-09 12:01:58.44+07	2026-10-09 12:01:58.44+07
+2c1d9e30-80bf-41d3-953c-48181defd2aa	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	abcca187-88e4-4a6b-bb32-73e7eca1507f	2569	1	26	17	20	25	88	4	t	\N	2026-10-09 12:01:58.444+07	2026-10-09 12:01:58.444+07
+5d4b70c3-1a3a-4dcb-9bb4-a659ce0711cb	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	abcca187-88e4-4a6b-bb32-73e7eca1507f	2569	1	23	15	19	21	78	3.5	t	\N	2026-10-09 12:01:58.449+07	2026-10-09 12:01:58.449+07
+3c9b7bea-f5ab-455e-af6d-f21eae4e0c48	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	abcca187-88e4-4a6b-bb32-73e7eca1507f	2569	1	21	14	18	19	72	3	t	\N	2026-10-09 12:01:58.455+07	2026-10-09 12:01:58.455+07
+968cace5-a235-4e6a-a9af-c3a617f8e688	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	abcca187-88e4-4a6b-bb32-73e7eca1507f	2569	1	18	12	17	18	65	2.5	t	\N	2026-10-09 12:01:58.458+07	2026-10-09 12:01:58.458+07
+d78e82da-38e2-4e71-a0b4-fdcdbfc74b2f	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	dbdb2e53-070f-4612-b197-d075c58cc138	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	25	15	12	24	76	3.5	t	\N	2026-10-09 12:14:54.046+07	2026-10-09 12:14:54.046+07
+ffd9bd23-c795-47d4-92a5-95b97b8b94d0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	565387f8-adba-45ab-9f39-19515556215c	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	0	0	0	0	0	0	f	\N	2026-10-09 12:14:54.085+07	2026-10-09 12:14:54.085+07
+b5f873ad-b1af-47d6-9229-3c8c3213f8a6	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	b7bb2c30-effa-4016-9ba3-3519d3eae188	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	0	0	0	0	0	0	f	\N	2026-10-09 12:14:54.121+07	2026-10-09 12:14:54.121+07
+7412dc1d-a95c-470f-9462-6e8d035796b3	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	963fa502-7291-4568-bbd0-4c2a272173a0	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	0	0	0	0	0	0	f	\N	2026-10-09 12:14:54.151+07	2026-10-09 12:14:54.151+07
+8610c0ff-4e59-4707-941d-60ada2a1f90f	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	07d2cd46-ca01-40d7-b321-9702f46c34fa	f24e501d-04de-4f98-b5e4-5b3e617e31da	2569	1	0	0	0	0	0	0	f	\N	2026-10-09 12:14:54.182+07	2026-10-09 12:14:54.182+07
 \.
 
 
@@ -835,6 +1164,24 @@ f38b3726-0965-45a9-be72-ad64d45f3d84	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	VIEWER
 --
 
 COPY public.sample_items (id, tenant_id, title, description, status, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: students; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.students (id, tenant_id, student_code, title, first_name, last_name, class_room, seat_no, gender, status, created_at, updated_at) FROM stdin;
+99d6da80-3a97-409f-9264-6998723cad16	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-101	ด.ช.	กิตติศักดิ์	เจริญสุข	ม.1/1	1	ชาย	ACTIVE	2026-10-09 12:01:58.002+07	2026-10-09 12:01:58.002+07
+140a5cb5-79a3-4415-a167-f451ed101dba	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-102	ด.ช.	ชญานนท์	พงษ์พิสุทธิ์	ม.1/1	2	ชาย	ACTIVE	2026-10-09 12:01:58.013+07	2026-10-09 12:01:58.013+07
+31bfedfd-7d37-4966-8aef-15094675c01b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-103	ด.ญ.	ณิชากร	มงคลสวัสดิ์	ม.1/1	3	หญิง	ACTIVE	2026-10-09 12:01:58.017+07	2026-10-09 12:01:58.017+07
+4bc941bd-088e-45d2-b574-60c76764e1f0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-104	ด.ญ.	ทักษอร	วรรณรัตน์	ม.1/1	4	หญิง	ACTIVE	2026-10-09 12:01:58.021+07	2026-10-09 12:01:58.021+07
+9ce3e0d1-ecfb-4434-9088-62f8d673d937	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-105	ด.ช.	ปภังกร	รักษ์แดนไทย	ม.1/1	5	ชาย	ACTIVE	2026-10-09 12:01:58.026+07	2026-10-09 12:01:58.026+07
+dbdb2e53-070f-4612-b197-d075c58cc138	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-401	นาย	พงศกร	เมธาวัฒน์	ม.4/1	1	ชาย	ACTIVE	2026-10-09 12:01:58.03+07	2026-10-09 12:01:58.03+07
+565387f8-adba-45ab-9f39-19515556215c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-402	นาย	ภาณุวิชญ์	เลิศวิทยากุล	ม.4/1	2	ชาย	ACTIVE	2026-10-09 12:01:58.035+07	2026-10-09 12:01:58.035+07
+b7bb2c30-effa-4016-9ba3-3519d3eae188	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-403	น.ส.	วริศรา	เกียรติบำรุง	ม.4/1	3	หญิง	ACTIVE	2026-10-09 12:01:58.039+07	2026-10-09 12:01:58.039+07
+963fa502-7291-4568-bbd0-4c2a272173a0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-404	น.ส.	ศศิธร	ประเสริฐสิน	ม.4/1	4	หญิง	ACTIVE	2026-10-09 12:01:58.043+07	2026-10-09 12:01:58.043+07
+07d2cd46-ca01-40d7-b321-9702f46c34fa	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-405	นาย	อัครพล	ธนสารสมบูรณ์	ม.4/1	5	ชาย	ACTIVE	2026-10-09 12:01:58.048+07	2026-10-09 12:01:58.048+07
 \.
 
 
@@ -918,6 +1265,14 @@ ALTER TABLE ONLY public.articles
 
 
 --
+-- Name: attendances attendances_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.attendances
+    ADD CONSTRAINT attendances_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -939,6 +1294,22 @@ ALTER TABLE ONLY public.auth_tokens
 
 ALTER TABLE ONLY public.categories
     ADD CONSTRAINT categories_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: course_enrollments course_enrollments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.course_enrollments
+    ADD CONSTRAINT course_enrollments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: course_grading_schemes course_grading_schemes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.course_grading_schemes
+    ADD CONSTRAINT course_grading_schemes_pkey PRIMARY KEY (id);
 
 
 --
@@ -990,6 +1361,14 @@ ALTER TABLE ONLY public.facilities
 
 
 --
+-- Name: grade_records grade_records_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.grade_records
+    ADD CONSTRAINT grade_records_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: login_throttles login_throttles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1035,6 +1414,14 @@ ALTER TABLE ONLY public.roles
 
 ALTER TABLE ONLY public.sample_items
     ADD CONSTRAINT sample_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: students students_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.students
+    ADD CONSTRAINT students_pkey PRIMARY KEY (id);
 
 
 --
@@ -1084,6 +1471,34 @@ CREATE INDEX articles_tenant_id_idx ON public.articles USING btree (tenant_id);
 
 
 --
+-- Name: attendances_class_date_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX attendances_class_date_idx ON public.attendances USING btree (class_date);
+
+
+--
+-- Name: attendances_student_id_course_id_class_date_period_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX attendances_student_id_course_id_class_date_period_key ON public.attendances USING btree (student_id, course_id, class_date, period);
+
+
+--
+-- Name: attendances_student_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX attendances_student_id_idx ON public.attendances USING btree (student_id);
+
+
+--
+-- Name: attendances_tenant_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX attendances_tenant_id_idx ON public.attendances USING btree (tenant_id);
+
+
+--
 -- Name: audit_logs_tenant_id_created_at_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1123,6 +1538,48 @@ CREATE INDEX categories_tenant_id_idx ON public.categories USING btree (tenant_i
 --
 
 CREATE UNIQUE INDEX categories_tenant_id_slug_key ON public.categories USING btree (tenant_id, slug);
+
+
+--
+-- Name: course_enrollments_course_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX course_enrollments_course_id_idx ON public.course_enrollments USING btree (course_id);
+
+
+--
+-- Name: course_enrollments_student_id_course_id_academic_year_semes_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX course_enrollments_student_id_course_id_academic_year_semes_key ON public.course_enrollments USING btree (student_id, course_id, academic_year, semester);
+
+
+--
+-- Name: course_enrollments_tenant_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX course_enrollments_tenant_id_idx ON public.course_enrollments USING btree (tenant_id);
+
+
+--
+-- Name: course_grading_schemes_course_id_class_room_academic_year_s_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX course_grading_schemes_course_id_class_room_academic_year_s_key ON public.course_grading_schemes USING btree (course_id, class_room, academic_year, semester);
+
+
+--
+-- Name: course_grading_schemes_course_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX course_grading_schemes_course_id_idx ON public.course_grading_schemes USING btree (course_id);
+
+
+--
+-- Name: course_grading_schemes_tenant_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX course_grading_schemes_tenant_id_idx ON public.course_grading_schemes USING btree (tenant_id);
 
 
 --
@@ -1203,6 +1660,34 @@ CREATE INDEX facilities_tenant_id_idx ON public.facilities USING btree (tenant_i
 
 
 --
+-- Name: grade_records_course_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX grade_records_course_id_idx ON public.grade_records USING btree (course_id);
+
+
+--
+-- Name: grade_records_student_id_course_id_academic_year_semester_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX grade_records_student_id_course_id_academic_year_semester_key ON public.grade_records USING btree (student_id, course_id, academic_year, semester);
+
+
+--
+-- Name: grade_records_student_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX grade_records_student_id_idx ON public.grade_records USING btree (student_id);
+
+
+--
+-- Name: grade_records_tenant_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX grade_records_tenant_id_idx ON public.grade_records USING btree (tenant_id);
+
+
+--
 -- Name: permissions_code_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1235,6 +1720,27 @@ CREATE UNIQUE INDEX roles_tenant_id_code_key ON public.roles USING btree (tenant
 --
 
 CREATE INDEX sample_items_tenant_id_idx ON public.sample_items USING btree (tenant_id);
+
+
+--
+-- Name: students_class_room_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX students_class_room_idx ON public.students USING btree (class_room);
+
+
+--
+-- Name: students_tenant_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX students_tenant_id_idx ON public.students USING btree (tenant_id);
+
+
+--
+-- Name: students_tenant_id_student_code_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX students_tenant_id_student_code_key ON public.students USING btree (tenant_id, student_code);
 
 
 --
@@ -1320,6 +1826,30 @@ ALTER TABLE ONLY public.articles
 
 
 --
+-- Name: attendances attendances_course_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.attendances
+    ADD CONSTRAINT attendances_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: attendances attendances_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.attendances
+    ADD CONSTRAINT attendances_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: attendances attendances_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.attendances
+    ADD CONSTRAINT attendances_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: audit_logs audit_logs_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1349,6 +1879,46 @@ ALTER TABLE ONLY public.auth_tokens
 
 ALTER TABLE ONLY public.categories
     ADD CONSTRAINT categories_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: course_enrollments course_enrollments_course_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.course_enrollments
+    ADD CONSTRAINT course_enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: course_enrollments course_enrollments_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.course_enrollments
+    ADD CONSTRAINT course_enrollments_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: course_enrollments course_enrollments_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.course_enrollments
+    ADD CONSTRAINT course_enrollments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: course_grading_schemes course_grading_schemes_course_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.course_grading_schemes
+    ADD CONSTRAINT course_grading_schemes_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: course_grading_schemes course_grading_schemes_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.course_grading_schemes
+    ADD CONSTRAINT course_grading_schemes_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -1440,6 +2010,30 @@ ALTER TABLE ONLY public.facilities
 
 
 --
+-- Name: grade_records grade_records_course_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.grade_records
+    ADD CONSTRAINT grade_records_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: grade_records grade_records_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.grade_records
+    ADD CONSTRAINT grade_records_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: grade_records grade_records_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.grade_records
+    ADD CONSTRAINT grade_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: reservations reservations_facility_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1496,6 +2090,14 @@ ALTER TABLE ONLY public.sample_items
 
 
 --
+-- Name: students students_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.students
+    ADD CONSTRAINT students_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: user_roles user_roles_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1531,5 +2133,5 @@ ALTER TABLE ONLY public.user_tenants
 -- PostgreSQL database dump complete
 --
 
-\unrestrict YvEiYNvdu4Xi2DJSn9DmYbRcLHfrQjhLEtBIaVUP69AtRNOsz7wqqBmWtA9CyCX
+\unrestrict aD7fH30R37iZiThZb6Hyrq6owZJfNM8Ps1XQaEc8JC71jZ1xrb1qVeYBLOu4khf
 

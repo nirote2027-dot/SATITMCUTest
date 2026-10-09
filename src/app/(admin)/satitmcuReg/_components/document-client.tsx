@@ -196,21 +196,21 @@ export function DocumentClient({ initialItems, canManage }: Props) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-600" /> ระบบบริหารจัดการและอนุมัติเอกสาร (Document Management)
+            <FileText className="w-6 h-6 text-blue-600" /> ทะเบียนและวัดผล สำหรับบุคลากร
           </h1>
-          <p className="text-sm text-muted-foreground">ยื่นคำร้อง ติดตามสถานะ อนุมัติเอกสาร และแนบไฟล์เอกสารประกอบ</p>
+          <p className="text-sm text-muted-foreground">ระบบงานทะเบียน บันทึกผลการเรียน และบริการเอกสารทางการศึกษาสำหรับบุคลากร</p>
         </div>
         {canManage && (
           <Button onClick={openCreateDialog} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white">
             <Plus className="h-4 w-4" />
-            ยื่นคำร้อง / สร้างเอกสาร
+            ยื่นคำร้อง / เพิ่มรายการ
           </Button>
         )}
       </div>
 
       <LiyonCard>
         <DataTable<DocumentDto>
-          headHeading="รายการเอกสารคำร้อง"
+          headHeading="รายการเอกสารและคำร้องทะเบียนวัดผล"
           state={items.length === 0 ? "empty" : "data"}
           rows={items}
           columns={columns}

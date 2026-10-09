@@ -21,7 +21,7 @@ export async function createDocumentAction(input: unknown): Promise<ActionResult
     const ctx = await requirePermission(DOCUMENT_P.documentManage);
     const parsed = createDocumentSchema.parse(input, { error: zodErrorMap(await getLocale()) });
     const result = await createDocument(ctx.tenantId, ctx.userId, parsed);
-    revalidatePath("/document");
+    revalidatePath("/satitmcuReg");
     return result;
   });
 }
@@ -31,7 +31,7 @@ export async function updateDocumentAction(input: unknown): Promise<ActionResult
     const ctx = await requirePermission(DOCUMENT_P.documentManage);
     const parsed = updateDocumentSchema.parse(input, { error: zodErrorMap(await getLocale()) });
     const result = await updateDocument(ctx.tenantId, parsed);
-    revalidatePath("/document");
+    revalidatePath("/satitmcuReg");
     return result;
   });
 }
@@ -40,6 +40,6 @@ export async function deleteDocumentAction(id: string): Promise<ActionResult<voi
   return runAction(async () => {
     const ctx = await requirePermission(DOCUMENT_P.documentManage);
     await deleteDocument(ctx.tenantId, id);
-    revalidatePath("/document");
+    revalidatePath("/satitmcuReg");
   });
 }

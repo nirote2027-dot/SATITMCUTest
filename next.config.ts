@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
+  async redirects() {
+    return [
+      { source: "/document", destination: "/satitmcuReg", permanent: true },
+      { source: "/facility", destination: "/download", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

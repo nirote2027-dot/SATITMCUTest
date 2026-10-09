@@ -122,7 +122,7 @@ async function main() {
     },
     {
       code: "CURR-BUD-M1",
-      name: "หลักสูตรพุทธศาสน์ศึกษาและภาษาบาลี (มคอ. 2)",
+      name: "หลักสูตรพุทธศาสน์ศึกษาและภาษาบาลี (หลักสูตรสถานศึกษา)",
       nameEn: "Buddhist Studies & Pali Language Curriculum",
       degreeLevel: "JUNIOR_HIGH",
       degreeNameTh: "มัธยมศึกษาตอนต้น",
@@ -131,7 +131,7 @@ async function main() {
       geCredits: 32,
       majorCredits: 44,
       electiveCredits: 12,
-      description: "หลักสูตรมาตรฐาน มคอ. 2 บูรณาการคุณธรรม จริยธรรม หลักพุทธธรรม และภาษาบาลีเบื้องต้นเพื่อชีวิต",
+      description: "หลักสูตรมาตรฐาน บูรณาการคุณธรรม จริยธรรม หลักพุทธธรรม และภาษาบาลีเบื้องต้นเพื่อชีวิต",
       departmentId: deptMap["SOC-BUD"],
     },
   ];

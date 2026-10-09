@@ -24,22 +24,27 @@ export interface LiyonDialogProps {
   danger?: boolean;
   /** `.dlg.wide` — max-width กว้างขึ้นสำหรับฟอร์มยาว */
   wide?: boolean;
+  className?: string;
+  contentClassName?: string;
   children: React.ReactNode;
 }
 
-export function LiyonDialog({ open, onOpenChange, danger, wide, children }: LiyonDialogProps) {
+export function LiyonDialog({ open, onOpenChange, danger, wide, className, contentClassName, children }: LiyonDialogProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[3px]" />
         <DialogPrimitive.Content
           className={cn(
-            "dlg fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 outline-none",
+            "dlg fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 outline-none max-h-[calc(100dvh-2rem)] flex flex-col",
             danger && "danger",
             wide && "wide",
+            className,
           )}
         >
-          <div className="box">{children}</div>
+          <div className={cn("box flex flex-col max-h-[calc(100dvh-2rem)] overflow-hidden", contentClassName)}>
+            {children}
+          </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -65,11 +70,12 @@ export interface LiyonDialogHeaderProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   titleId?: string;
+  className?: string;
 }
 
-export function LiyonDialogHeader({ title, description, titleId }: LiyonDialogHeaderProps) {
+export function LiyonDialogHeader({ title, description, titleId, className }: LiyonDialogHeaderProps) {
   return (
-    <div className="hd">
+    <div className={cn("hd flex-shrink-0", className)}>
       <DialogPrimitive.Title asChild {...(titleId ? { id: titleId } : {})}>
         <h2>{title}</h2>
       </DialogPrimitive.Title>
@@ -83,11 +89,11 @@ export function LiyonDialogHeader({ title, description, titleId }: LiyonDialogHe
 }
 
 export function LiyonDialogBody({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("bd", className)}>{children}</div>;
+  return <div className={cn("bd overflow-y-auto overscroll-contain flex-1 min-h-0", className)}>{children}</div>;
 }
 
 export function LiyonDialogFooter({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("ft", className)}>{children}</div>;
+  return <div className={cn("ft flex-shrink-0", className)}>{children}</div>;
 }
 
 export { DialogPrimitive as LiyonDialogPrimitive };
