@@ -351,6 +351,7 @@ model Employee {
   tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  courses    Course[]
 
   @@unique([tenantId, employeeCode])
   @@index([tenantId])
@@ -394,23 +395,28 @@ model Curriculum {
 }
 
 model Course {
-  id           String     @id @default(uuid()) @db.Uuid
-  curriculumId String     @map("curriculum_id") @db.Uuid
-  courseCode   String     @map("course_code") @db.VarChar(100)
-  name         String     @db.VarChar(255)
-  credits      Int
-  semester     Int?
-  courseType   CourseType @default(CORE) @map("course_type")
-  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
+  id             String     @id @default(uuid()) @db.Uuid
+  curriculumId   String     @map("curriculum_id") @db.Uuid
+  courseCode     String     @map("course_code") @db.VarChar(100)
+  name           String     @db.VarChar(255)
+  credits        Float      @default(1.0)
+  semester       Int?       @default(1)
+  courseType     CourseType @default(CORE) @map("course_type")
+  subjectGroup   String?    @map("subject_group") @db.VarChar(255)
+  instructorName String?    @map("instructor_name") @db.VarChar(255)
+  instructorId   String?    @map("instructor_id") @db.Uuid
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
 
-  curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
-  enrollments CourseEnrollment[]
-  attendances Attendance[]
-  grades      GradeRecord[]
+  curriculum     Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  instructor     Employee?  @relation(fields: [instructorId], references: [id], onDelete: SetNull)
+  enrollments    CourseEnrollment[]
+  attendances    Attendance[]
+  grades         GradeRecord[]
   gradingSchemes CourseGradingScheme[]
 
   @@unique([curriculumId, courseCode])
+  @@index([instructorId])
   @@map("courses")
 }
 
@@ -499,18 +505,20 @@ enum AttendanceStatus {
 }
 
 model Student {
-  id          String   @id @default(uuid()) @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
-  studentCode String   @map("student_code") @db.VarChar(50)
-  title       String   @default("ด.ช.") @db.VarChar(20)
-  firstName   String   @map("first_name") @db.VarChar(100)
-  lastName    String   @map("last_name") @db.VarChar(100)
-  classRoom   String   @map("class_room") @db.VarChar(50)
-  seatNo      Int      @map("seat_no")
-  gender      String?  @db.VarChar(10)
-  status      String   @default("ACTIVE") @db.VarChar(20)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  studentCode  String   @map("student_code") @db.VarChar(50)
+  title        String   @default("ด.ช.") @db.VarChar(20)
+  firstName    String   @map("first_name") @db.VarChar(100)
+  lastName     String   @map("last_name") @db.VarChar(100)
+  classRoom    String   @map("class_room") @db.VarChar(50)
+  seatNo       Int      @map("seat_no")
+  academicYear String   @default("2569") @map("academic_year") @db.VarChar(10)
+  semester     Int      @default(1)
+  gender       String?  @db.VarChar(10)
+  status       String   @default("ACTIVE") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   enrollments CourseEnrollment[]
@@ -520,6 +528,7 @@ model Student {
   @@unique([tenantId, studentCode])
   @@index([tenantId])
   @@index([classRoom])
+  @@index([academicYear])
   @@map("students")
 }
 

@@ -6,6 +6,9 @@ import type {
   StudentAttendanceSummary,
   GradeRecordDto,
   CourseGradingSchemeDto,
+  ImportStudentInput,
+  ImportBatchStudentsResult,
+  InstructorDto,
 } from "./types";
 
 export function calculateGrade(
@@ -151,11 +154,21 @@ export async function saveGradingScheme(
 
 export async function listStudents(
   tenantId: string,
-  filter?: { classRoom?: string; search?: string },
+  filter?: { classRoom?: string; academicYear?: string; semester?: number; search?: string },
 ): Promise<StudentDto[]> {
   const where: any = { tenantId };
   if (filter?.classRoom && filter.classRoom !== "ALL") {
-    where.classRoom = filter.classRoom;
+    if (/^ม\.[1-6]$/.test(filter.classRoom)) {
+      where.classRoom = { startsWith: filter.classRoom };
+    } else {
+      where.classRoom = filter.classRoom;
+    }
+  }
+  if (filter?.academicYear && filter.academicYear !== "ALL") {
+    where.academicYear = filter.academicYear;
+  }
+  if (filter?.semester !== undefined && filter.semester !== null && filter.semester !== 0) {
+    where.semester = Number(filter.semester);
   }
   if (filter?.search) {
     const q = filter.search.trim();
@@ -181,6 +194,8 @@ export async function listStudents(
     fullName: `${s.title}${s.firstName} ${s.lastName}`,
     classRoom: s.classRoom,
     seatNo: s.seatNo,
+    academicYear: s.academicYear,
+    semester: s.semester,
     gender: s.gender,
     status: s.status,
     createdAt: s.createdAt.toISOString(),
@@ -196,7 +211,10 @@ export async function createStudent(
     lastName: string;
     classRoom: string;
     seatNo: number;
+    academicYear?: string;
+    semester?: number;
     gender?: string;
+    status?: string;
   },
 ): Promise<StudentDto> {
   const created = await prisma.student.create({
@@ -208,7 +226,10 @@ export async function createStudent(
       lastName: data.lastName.trim(),
       classRoom: data.classRoom.trim(),
       seatNo: Number(data.seatNo),
+      academicYear: data.academicYear?.trim() || "2569",
+      semester: data.semester ? Number(data.semester) : 1,
       gender: data.gender || "ชาย",
+      status: data.status || "ACTIVE",
     },
   });
 
@@ -221,6 +242,8 @@ export async function createStudent(
     fullName: `${created.title}${created.firstName} ${created.lastName}`,
     classRoom: created.classRoom,
     seatNo: created.seatNo,
+    academicYear: created.academicYear,
+    semester: created.semester,
     gender: created.gender,
     status: created.status,
     createdAt: created.createdAt.toISOString(),
@@ -237,6 +260,8 @@ export async function updateStudent(
     lastName?: string;
     classRoom?: string;
     seatNo?: number;
+    academicYear?: string;
+    semester?: number;
     gender?: string;
     status?: string;
   },
@@ -250,6 +275,8 @@ export async function updateStudent(
       ...(data.lastName ? { lastName: data.lastName.trim() } : {}),
       ...(data.classRoom ? { classRoom: data.classRoom.trim() } : {}),
       ...(data.seatNo !== undefined ? { seatNo: Number(data.seatNo) } : {}),
+      ...(data.academicYear ? { academicYear: data.academicYear.trim() } : {}),
+      ...(data.semester !== undefined ? { semester: Number(data.semester) } : {}),
       ...(data.gender !== undefined ? { gender: data.gender } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
     },
@@ -264,6 +291,8 @@ export async function updateStudent(
     fullName: `${updated.title}${updated.firstName} ${updated.lastName}`,
     classRoom: updated.classRoom,
     seatNo: updated.seatNo,
+    academicYear: updated.academicYear,
+    semester: updated.semester,
     gender: updated.gender,
     status: updated.status,
     createdAt: updated.createdAt.toISOString(),
@@ -276,10 +305,185 @@ export async function deleteStudent(tenantId: string, id: string): Promise<void>
   });
 }
 
+export async function importBatchStudents(
+  tenantId: string,
+  items: ImportStudentInput[],
+  options?: { overwriteExisting?: boolean },
+): Promise<ImportBatchStudentsResult> {
+  const overwrite = options?.overwriteExisting ?? true;
+  let createdCount = 0;
+  let updatedCount = 0;
+  let failedCount = 0;
+  const errors: { row: number; studentCode?: string; message: string }[] = [];
+  const processedStudents: StudentDto[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const rowNum = i + 1;
+    const studentCode = item.studentCode?.trim();
+    const firstName = item.firstName?.trim();
+    const lastName = item.lastName?.trim();
+    const classRoom = item.classRoom?.trim() || "ม.1/1";
+    const seatNo = Number(item.seatNo) || rowNum;
+    const academicYear = item.academicYear?.trim() || "2569";
+    const semester = item.semester ? Number(item.semester) : 1;
+    const title =
+      item.title?.trim() ||
+      (classRoom.startsWith("ม.4") || classRoom.startsWith("ม.5") || classRoom.startsWith("ม.6") ? "นาย" : "ด.ช.");
+    let gender = item.gender?.trim();
+    if (!gender) {
+      if (title.includes("ญ") || title.includes("น.ส.")) gender = "หญิง";
+      else gender = "ชาย";
+    }
+    const status = item.status?.trim() || "ACTIVE";
+
+    if (!studentCode || !firstName || !lastName) {
+      failedCount++;
+      errors.push({
+        row: rowNum,
+        studentCode,
+        message: "ข้อมูลไม่ครบถ้วน (ต้องมี รหัสนักเรียน, ชื่อจริง, นามสกุล)",
+      });
+      continue;
+    }
+
+    try {
+      const existing = await prisma.student.findUnique({
+        where: {
+          tenantId_studentCode: { tenantId, studentCode },
+        },
+      });
+
+      if (existing) {
+        if (overwrite) {
+          const updated = await prisma.student.update({
+            where: { id: existing.id },
+            data: {
+              title,
+              firstName,
+              lastName,
+              classRoom,
+              seatNo,
+              academicYear,
+              semester,
+              gender,
+              status,
+            },
+          });
+          updatedCount++;
+          processedStudents.push({
+            id: updated.id,
+            studentCode: updated.studentCode,
+            title: updated.title,
+            firstName: updated.firstName,
+            lastName: updated.lastName,
+            fullName: `${updated.title}${updated.firstName} ${updated.lastName}`,
+            classRoom: updated.classRoom,
+            seatNo: updated.seatNo,
+            academicYear: updated.academicYear,
+            semester: updated.semester,
+            gender: updated.gender,
+            status: updated.status,
+            createdAt: updated.createdAt.toISOString(),
+          });
+        } else {
+          // skip update
+          processedStudents.push({
+            id: existing.id,
+            studentCode: existing.studentCode,
+            title: existing.title,
+            firstName: existing.firstName,
+            lastName: existing.lastName,
+            fullName: `${existing.title}${existing.firstName} ${existing.lastName}`,
+            classRoom: existing.classRoom,
+            seatNo: existing.seatNo,
+            academicYear: existing.academicYear,
+            semester: existing.semester,
+            gender: existing.gender,
+            status: existing.status,
+            createdAt: existing.createdAt.toISOString(),
+          });
+        }
+      } else {
+        const created = await prisma.student.create({
+          data: {
+            tenantId,
+            studentCode,
+            title,
+            firstName,
+            lastName,
+            classRoom,
+            seatNo,
+            academicYear,
+            semester,
+            gender,
+            status,
+          },
+        });
+        createdCount++;
+        processedStudents.push({
+          id: created.id,
+          studentCode: created.studentCode,
+          title: created.title,
+          firstName: created.firstName,
+          lastName: created.lastName,
+          fullName: `${created.title}${created.firstName} ${created.lastName}`,
+          classRoom: created.classRoom,
+          seatNo: created.seatNo,
+          academicYear: created.academicYear,
+          semester: created.semester,
+          gender: created.gender,
+          status: created.status,
+          createdAt: created.createdAt.toISOString(),
+        });
+      }
+    } catch (err: any) {
+      failedCount++;
+      errors.push({
+        row: rowNum,
+        studentCode,
+        message: err.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+      });
+    }
+  }
+
+  return {
+    total: items.length,
+    created: createdCount,
+    updated: updatedCount,
+    failed: failedCount,
+    errors,
+    students: processedStudents,
+  };
+}
+
+export async function listInstructors(tenantId: string): Promise<InstructorDto[]> {
+  const employees = await prisma.employee.findMany({
+    where: { tenantId, isActive: true },
+    include: { department: { select: { name: true } } },
+    orderBy: { firstName: "asc" },
+  });
+
+  return employees.map((emp) => {
+    const fullName = `${emp.firstName} ${emp.lastName}`.trim();
+    return {
+      id: emp.id,
+      employeeCode: emp.employeeCode,
+      name: fullName,
+      fullName: fullName,
+      position: emp.position,
+      departmentName: emp.department?.name,
+    };
+  });
+}
+
 export async function listCourses(tenantId: string): Promise<CourseDto[]> {
   const courses = await prisma.course.findMany({
     where: { curriculum: { tenantId } },
-    include: { curriculum: { select: { name: true } } },
+    include: {
+      curriculum: { select: { name: true } },
+      instructor: { select: { id: true, firstName: true, lastName: true, position: true } },
+    },
     orderBy: { courseCode: "asc" },
   });
 
@@ -290,6 +494,10 @@ export async function listCourses(tenantId: string): Promise<CourseDto[]> {
     credits: c.credits,
     semester: c.semester,
     curriculumName: c.curriculum?.name,
+    curriculumId: c.curriculumId,
+    subjectGroup: c.subjectGroup,
+    instructorName: c.instructor ? `${c.instructor.firstName} ${c.instructor.lastName}` : c.instructorName,
+    instructorId: c.instructorId,
   }));
 }
 
@@ -301,6 +509,9 @@ export async function createCourse(
     credits: number;
     semester?: number;
     curriculumId?: string;
+    subjectGroup?: string;
+    instructorName?: string;
+    instructorId?: string;
   },
 ): Promise<CourseDto> {
   let currId = data.curriculumId;
@@ -327,10 +538,16 @@ export async function createCourse(
       curriculumId: currId,
       courseCode: data.courseCode.trim(),
       name: data.name.trim(),
-      credits: Number(data.credits) || 1,
+      credits: Number(data.credits) || 1.0,
       semester: data.semester ? Number(data.semester) : 1,
+      subjectGroup: data.subjectGroup?.trim() || null,
+      instructorName: data.instructorName?.trim() || null,
+      instructorId: data.instructorId || null,
     },
-    include: { curriculum: { select: { name: true } } },
+    include: {
+      curriculum: { select: { name: true } },
+      instructor: { select: { id: true, firstName: true, lastName: true, position: true } },
+    },
   });
 
   return {
@@ -340,6 +557,56 @@ export async function createCourse(
     credits: created.credits,
     semester: created.semester,
     curriculumName: created.curriculum?.name,
+    curriculumId: created.curriculumId,
+    subjectGroup: created.subjectGroup,
+    instructorName: created.instructor ? `${created.instructor.firstName} ${created.instructor.lastName}` : created.instructorName,
+    instructorId: created.instructorId,
+  };
+}
+
+export async function updateCourse(
+  tenantId: string,
+  id: string,
+  data: {
+    courseCode?: string;
+    name?: string;
+    credits?: number;
+    semester?: number;
+    curriculumId?: string;
+    subjectGroup?: string;
+    instructorName?: string;
+    instructorId?: string;
+  },
+): Promise<CourseDto> {
+  const updated = await prisma.course.update({
+    where: { id },
+    data: {
+      ...(data.courseCode ? { courseCode: data.courseCode.trim() } : {}),
+      ...(data.name ? { name: data.name.trim() } : {}),
+      ...(data.credits !== undefined ? { credits: Number(data.credits) || 1.0 } : {}),
+      ...(data.semester !== undefined ? { semester: Number(data.semester) || 1 } : {}),
+      ...(data.curriculumId ? { curriculumId: data.curriculumId } : {}),
+      ...(data.subjectGroup !== undefined ? { subjectGroup: data.subjectGroup?.trim() || null } : {}),
+      ...(data.instructorName !== undefined ? { instructorName: data.instructorName?.trim() || null } : {}),
+      ...(data.instructorId !== undefined ? { instructorId: data.instructorId || null } : {}),
+    },
+    include: {
+      curriculum: { select: { name: true } },
+      instructor: { select: { id: true, firstName: true, lastName: true, position: true } },
+    },
+  });
+
+  return {
+    id: updated.id,
+    courseCode: updated.courseCode,
+    name: updated.name,
+    credits: updated.credits,
+    semester: updated.semester,
+    curriculumName: updated.curriculum?.name,
+    curriculumId: updated.curriculumId,
+    subjectGroup: updated.subjectGroup,
+    instructorName: updated.instructor ? `${updated.instructor.firstName} ${updated.instructor.lastName}` : updated.instructorName,
+    instructorId: updated.instructorId,
   };
 }
 

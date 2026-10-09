@@ -20,6 +20,9 @@ import {
   Check,
   AlertCircle,
   Percent,
+  Upload,
+  GraduationCap,
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -34,16 +37,23 @@ import {
 import type {
   StudentDto,
   CourseDto,
+  InstructorDto,
   StudentAttendanceSummary,
   GradeRecordDto,
   CourseGradingSchemeDto,
+  ImportStudentInput,
+  ParsedCsvStudent,
 } from "@/features/registration";
 import {
   createStudentAction,
   updateStudentAction,
   deleteStudentAction,
+  importBatchStudentsAction,
+  parseStudentsCsv,
   createCourseAction,
+  updateCourseAction,
   deleteCourseAction,
+  getInstructorsAction,
   recordBatchAttendanceAction,
   saveBatchGradesAction,
   getGradingSchemeAction,
@@ -117,6 +127,11 @@ export function RegistrationClient({
   const [searchStudent, setSearchStudent] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<string>(initialCourses[0]?.id || "");
 
+  // Student Filters (Tab 1)
+  const [studentFilterYear, setStudentFilterYear] = useState<string>("2569");
+  const [studentFilterSemester, setStudentFilterSemester] = useState<string>("1");
+  const [studentFilterClass, setStudentFilterClass] = useState<string>("ALL");
+
   // Student Dialog
   const [studentModalOpen, setStudentModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentDto | null>(null);
@@ -129,12 +144,40 @@ export function RegistrationClient({
   const [formClassRoom, setFormClassRoom] = useState("ม.1/1");
   const [formSeatNo, setFormSeatNo] = useState("1");
   const [formGender, setFormGender] = useState("ชาย");
+  const [formAcademicYear, setFormAcademicYear] = useState("2569");
+  const [formSemester, setFormSemester] = useState("1");
+  const [formStatus, setFormStatus] = useState("ACTIVE");
 
-  // Course Dialog
+  // Import CSV Dialog & State
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [csvFileName, setCsvFileName] = useState("");
+  const [parsedRows, setParsedRows] = useState<ParsedCsvStudent[]>([]);
+  const [importDefaultYear, setImportDefaultYear] = useState<string>("2569");
+  const [importDefaultSemester, setImportDefaultSemester] = useState<string>("1");
+  const [importDefaultClassRoom, setImportDefaultClassRoom] = useState<string>("ม.1/1");
+  const [importOverwrite, setImportOverwrite] = useState<boolean>(true);
+  const [importFilterTab, setImportFilterTab] = useState<"all" | "valid" | "invalid">("all");
+
+  // Course Dialog & Management
   const [courseModalOpen, setCourseModalOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<CourseDto | null>(null);
+  const [deleteConfirmCourse, setDeleteConfirmCourse] = useState<CourseDto | null>(null);
+
   const [formCourseCode, setFormCourseCode] = useState("");
   const [formCourseName, setFormCourseName] = useState("");
   const [formCredits, setFormCredits] = useState("1.0");
+  const [formCourseSemester, setFormCourseSemester] = useState("1");
+  const [formSubjectGroup, setFormSubjectGroup] = useState("กลุ่มสาระการเรียนรู้ภาษาไทย");
+  const [formInstructorId, setFormInstructorId] = useState("");
+  const [formInstructorName, setFormInstructorName] = useState("");
+
+  // Course Filter & Search in Tab 2
+  const [searchCourse, setSearchCourse] = useState("");
+  const [filterSubjectGroup, setFilterSubjectGroup] = useState("ALL");
+  const [filterCourseSemester, setFilterCourseSemester] = useState("ALL");
+
+  // Instructors list
+  const [instructors, setInstructors] = useState<InstructorDto[]>([]);
 
   // Attendance Check State
   const [attendanceDate, setAttendanceDate] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -198,6 +241,51 @@ export function RegistrationClient({
     }
   }, [availableCourses, selectedCourseId]);
 
+  // Load Instructors for Course Management
+  useEffect(() => {
+    startTransition(async () => {
+      try {
+        const res = await getInstructorsAction();
+        if (res.ok && res.data) {
+          setInstructors(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to load instructors:", err);
+      }
+    });
+  }, []);
+
+  // Filtered Courses (Tab 2)
+  const filteredCoursesList = useMemo(() => {
+    return courses.filter((c) => {
+      if (filterCourseSemester !== "ALL" && c.semester !== Number(filterCourseSemester)) {
+        return false;
+      }
+      if (filterSubjectGroup !== "ALL" && c.subjectGroup !== filterSubjectGroup) {
+        return false;
+      }
+      if (searchCourse) {
+        const q = searchCourse.toLowerCase().trim();
+        const codeMatch = c.courseCode.toLowerCase().includes(q);
+        const nameMatch = c.name.toLowerCase().includes(q);
+        const teacherMatch = (c.instructorName || "").toLowerCase().includes(q);
+        const groupMatch = (c.subjectGroup || "").toLowerCase().includes(q);
+        if (!codeMatch && !nameMatch && !teacherMatch && !groupMatch) return false;
+      }
+      return true;
+    });
+  }, [courses, filterCourseSemester, filterSubjectGroup, searchCourse]);
+
+  // Tab 1: Academic Years List
+  const academicYearsList = useMemo(() => {
+    const set = new Set(students.map((s) => s.academicYear).filter(Boolean));
+    set.add("2569");
+    set.add("2568");
+    set.add("2567");
+    set.add("2570");
+    return Array.from(set).sort().reverse();
+  }, [students]);
+
   // Unique Classrooms
   const classRooms = useMemo(() => {
     const set = new Set(students.map((s) => s.classRoom));
@@ -206,17 +294,35 @@ export function RegistrationClient({
     return Array.from(set).sort();
   }, [students]);
 
-  // Filtered Students
+  // Filtered Students (Tab 1: Academic Year, Semester, Grade/Class, Search)
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
-      const matchClass = selectedClassRoom === "ALL" || s.classRoom === selectedClassRoom;
-      const matchSearch =
-        !searchStudent ||
-        s.studentCode.toLowerCase().includes(searchStudent.toLowerCase()) ||
-        s.fullName.toLowerCase().includes(searchStudent.toLowerCase());
-      return matchClass && matchSearch;
+      // Academic year filter
+      if (studentFilterYear !== "ALL" && s.academicYear && s.academicYear !== studentFilterYear) {
+        return false;
+      }
+      // Semester filter
+      if (studentFilterSemester !== "ALL" && s.semester !== undefined && s.semester !== Number(studentFilterSemester)) {
+        return false;
+      }
+      // Classroom / Grade filter (e.g. "ม.4" matches all "ม.4/*")
+      if (studentFilterClass !== "ALL") {
+        if (/^ม\.[1-6]$/.test(studentFilterClass)) {
+          if (!s.classRoom.startsWith(studentFilterClass)) return false;
+        } else if (s.classRoom !== studentFilterClass) {
+          return false;
+        }
+      }
+      // Search
+      if (searchStudent) {
+        const q = searchStudent.toLowerCase().trim();
+        const codeMatch = s.studentCode.toLowerCase().includes(q);
+        const nameMatch = s.fullName.toLowerCase().includes(q);
+        if (!codeMatch && !nameMatch) return false;
+      }
+      return true;
     });
-  }, [students, selectedClassRoom, searchStudent]);
+  }, [students, studentFilterYear, studentFilterSemester, studentFilterClass, searchStudent]);
 
   // Current classroom students for attendance & grading
   const currentClassStudents = useMemo(() => {
@@ -381,14 +487,28 @@ export function RegistrationClient({
   // Open Create Student
   const openCreateStudent = () => {
     setEditingStudent(null);
-    const nextSeat = currentClassStudents.length + 1;
-    setFormStudentCode(`STU69-${selectedClassRoom.replace("ม.", "").replace("/", "")}${String(nextSeat).padStart(2, "0")}`);
-    setFormTitle(selectedClassRoom.startsWith("ม.4") ? "นาย" : "ด.ช.");
+    const targetClass =
+      studentFilterClass !== "ALL" && !/^ม\.[1-6]$/.test(studentFilterClass)
+        ? studentFilterClass
+        : studentFilterClass.startsWith("ม.4")
+        ? "ม.4/1"
+        : selectedClassRoom !== "ALL"
+        ? selectedClassRoom
+        : "ม.1/1";
+    const nextSeat = students.filter((s) => s.classRoom === targetClass).length + 1;
+    const year = studentFilterYear !== "ALL" ? studentFilterYear : "2569";
+    const sem = studentFilterSemester !== "ALL" ? studentFilterSemester : "1";
+    const yearShort = year.slice(-2);
+    setFormStudentCode(`STU${yearShort}-${targetClass.replace("ม.", "").replace("/", "")}${String(nextSeat).padStart(2, "0")}`);
+    setFormTitle(targetClass.startsWith("ม.4") || targetClass.startsWith("ม.5") || targetClass.startsWith("ม.6") ? "นาย" : "ด.ช.");
     setFormFirstName("");
     setFormLastName("");
-    setFormClassRoom(selectedClassRoom === "ALL" ? "ม.1/1" : selectedClassRoom);
+    setFormClassRoom(targetClass);
     setFormSeatNo(String(nextSeat));
     setFormGender("ชาย");
+    setFormAcademicYear(year);
+    setFormSemester(sem);
+    setFormStatus("ACTIVE");
     setStudentModalOpen(true);
   };
 
@@ -402,6 +522,9 @@ export function RegistrationClient({
     setFormClassRoom(s.classRoom);
     setFormSeatNo(String(s.seatNo));
     setFormGender(s.gender || "ชาย");
+    setFormAcademicYear(s.academicYear || "2569");
+    setFormSemester(String(s.semester || 1));
+    setFormStatus(s.status || "ACTIVE");
     setStudentModalOpen(true);
   };
 
@@ -423,6 +546,9 @@ export function RegistrationClient({
             classRoom: formClassRoom,
             seatNo: Number(formSeatNo),
             gender: formGender,
+            academicYear: formAcademicYear,
+            semester: Number(formSemester),
+            status: formStatus,
           });
           if (!res.ok) {
             toast.error(res.error.message || "เกิดข้อผิดพลาด");
@@ -440,6 +566,9 @@ export function RegistrationClient({
             classRoom: formClassRoom,
             seatNo: Number(formSeatNo),
             gender: formGender,
+            academicYear: formAcademicYear,
+            semester: Number(formSemester),
+            status: formStatus,
           });
           if (!res.ok) {
             toast.error(res.error.message || "เกิดข้อผิดพลาด");
@@ -474,28 +603,237 @@ export function RegistrationClient({
     });
   };
 
-  // Save Course
-  const handleCreateCourse = () => {
+  // Open Import Modal
+  const openImportModal = () => {
+    setParsedRows([]);
+    setCsvFileName("");
+    setImportDefaultYear(studentFilterYear !== "ALL" ? studentFilterYear : "2569");
+    setImportDefaultSemester(studentFilterSemester !== "ALL" ? studentFilterSemester : "1");
+    setImportDefaultClassRoom(
+      studentFilterClass !== "ALL" && !/^ม\.[1-6]$/.test(studentFilterClass)
+        ? studentFilterClass
+        : selectedClassRoom !== "ALL"
+        ? selectedClassRoom
+        : "ม.1/1",
+    );
+    setImportOverwrite(true);
+    setImportFilterTab("all");
+    setImportModalOpen(true);
+  };
+
+  // Download CSV Template with UTF-8 BOM
+  const handleDownloadCsvTemplate = () => {
+    const csvContent =
+      "\uFEFF" +
+      "เลขที่,รหัสนักเรียน,คำนำหน้า,ชื่อ,นามสกุล,ระดับชั้น,ปีการศึกษา,ภาคเรียน,เพศ,สถานะ\n" +
+      '1,"STU69-101","ด.ช.","กิตติศักดิ์","รักเรียน","ม.1/1","2569",1,"ชาย","กำลังศึกษา"\n' +
+      '2,"STU69-102","ด.ญ.","จินตนา","ปัญญาดี","ม.1/1","2569",1,"หญิง","กำลังศึกษา"\n' +
+      '3,"STU69-103","ด.ช.","ณัฐดนัย","สุขเกษม","ม.1/1","2569",1,"ชาย","กำลังศึกษา"\n' +
+      '1,"STU69-401","นาย","ธนพล","รุ่งเรือง","ม.4/1","2569",1,"ชาย","กำลังศึกษา"\n' +
+      '2,"STU69-402","น.ส.","พรทิพย์","วิไลวรรณ","ม.4/1","2569",1,"หญิง","กำลังศึกษา"\n';
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `SATIT_Students_Template_${new Date().getFullYear()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("ดาวน์โหลดแม่แบบไฟล์ CSV เรียบร้อยแล้ว");
+  };
+
+  // Upload & Parse CSV
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) {
+        toast.error("ไม่สามารถอ่านข้อมูลจากไฟล์ได้ หรือไฟล์ว่างเปล่า");
+        return;
+      }
+      const { rows, errors } = parseStudentsCsv(text, {
+        academicYear: importDefaultYear,
+        semester: Number(importDefaultSemester) || 1,
+        defaultClassRoom: importDefaultClassRoom,
+      });
+
+      if (errors.length > 0) {
+        toast.error(errors[0]);
+        return;
+      }
+
+      setParsedRows(rows);
+      if (rows.length === 0) {
+        toast.error("ไม่พบแถวข้อมูลนักเรียนในไฟล์");
+      } else {
+        const validCount = rows.filter((r) => r.isValid).length;
+        toast.success(`อ่านข้อมูลสำเร็จ: พบทั้งหมด ${rows.length} คน (ข้อมูลสมบูรณ์ ${validCount} คน)`);
+      }
+    };
+    reader.onerror = () => {
+      toast.error("เกิดข้อผิดพลาดในการเปิดไฟล์ CSV");
+    };
+    reader.readAsText(file, "utf-8");
+  };
+
+  // Re-apply defaults if user adjusts dropdowns
+  const handleReapplyDefaults = (year: string, sem: string, room: string) => {
+    setImportDefaultYear(year);
+    setImportDefaultSemester(sem);
+    setImportDefaultClassRoom(room);
+    setParsedRows((prev) =>
+      prev.map((r) => ({
+        ...r,
+        academicYear: r.academicYear || year,
+        semester: r.semester || Number(sem),
+        classRoom: r.classRoom || room,
+      })),
+    );
+  };
+
+  // Confirm Import
+  const handleConfirmImport = () => {
+    const validRows = parsedRows.filter((r) => r.isValid);
+    if (validRows.length === 0) {
+      toast.error("ไม่มีข้อมูลนักเรียนที่ถูกต้องสำหรับนำเข้า");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const payload: ImportStudentInput[] = validRows.map((r) => ({
+          studentCode: r.studentCode,
+          title: r.title,
+          firstName: r.firstName,
+          lastName: r.lastName,
+          classRoom: r.classRoom,
+          seatNo: r.seatNo,
+          academicYear: r.academicYear,
+          semester: r.semester,
+          gender: r.gender,
+          status: r.status,
+        }));
+
+        const res = await importBatchStudentsAction(payload, {
+          overwriteExisting: importOverwrite,
+        });
+
+        if (!res.ok) {
+          toast.error(res.error.message || "เกิดข้อผิดพลาดในการนำเข้า");
+          return;
+        }
+
+        const data = res.data;
+        // Merge with existing students state
+        setStudents((prev) => {
+          const map = new Map(prev.map((s) => [s.studentCode, s]));
+          for (const s of data.students) {
+            map.set(s.studentCode, s);
+          }
+          return Array.from(map.values()).sort((a, b) => {
+            if (a.classRoom !== b.classRoom) return a.classRoom.localeCompare(b.classRoom);
+            return a.seatNo - b.seatNo;
+          });
+        });
+
+        toast.success(
+          `นำเข้าข้อมูลสำเร็จ! บันทึกใหม่ ${data.created} คน, อัปเดต ${data.updated} คน${
+            data.failed > 0 ? `, ล้มเหลว ${data.failed} คน` : ""
+          }`,
+        );
+
+        setImportModalOpen(false);
+        setParsedRows([]);
+        setCsvFileName("");
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการนำเข้าข้อมูล");
+      }
+    });
+  };
+
+  // Preview filtered rows for modal
+  const displayedPreviewRows = useMemo(() => {
+    if (importFilterTab === "valid") return parsedRows.filter((r) => r.isValid);
+    if (importFilterTab === "invalid") return parsedRows.filter((r) => !r.isValid);
+    return parsedRows;
+  }, [parsedRows, importFilterTab]);
+
+  // Open Create Course
+  const openCreateCourse = () => {
+    setEditingCourse(null);
+    setFormCourseCode("");
+    setFormCourseName("");
+    setFormCredits("1.0");
+    setFormCourseSemester("1");
+    setFormSubjectGroup("กลุ่มสาระการเรียนรู้ภาษาไทย");
+    setFormInstructorId("");
+    setFormInstructorName("");
+    setCourseModalOpen(true);
+  };
+
+  // Open Edit Course
+  const openEditCourse = (course: CourseDto) => {
+    setEditingCourse(course);
+    setFormCourseCode(course.courseCode);
+    setFormCourseName(course.name);
+    setFormCredits(String(course.credits || 1.0));
+    setFormCourseSemester(String(course.semester || 1));
+    setFormSubjectGroup(course.subjectGroup || "กลุ่มสาระการเรียนรู้ภาษาไทย");
+    setFormInstructorId(course.instructorId || "");
+    setFormInstructorName(course.instructorName || "");
+    setCourseModalOpen(true);
+  };
+
+  // Save Course (Create / Edit)
+  const handleSaveCourse = () => {
     if (!formCourseCode || !formCourseName) {
       toast.error("กรุณากรอกรหัสวิชาและชื่อรายวิชา");
       return;
     }
+
     startTransition(async () => {
       try {
-        const res = await createCourseAction({
-          courseCode: formCourseCode,
-          name: formCourseName,
-          credits: Number(formCredits) || 1,
-        });
-        if (!res.ok) {
-          toast.error(res.error.message || "เกิดข้อผิดพลาด");
-          return;
+        if (editingCourse) {
+          const res = await updateCourseAction(editingCourse.id, {
+            courseCode: formCourseCode,
+            name: formCourseName,
+            credits: parseFloat(formCredits) || 1.0,
+            semester: parseInt(formCourseSemester, 10) || 1,
+            subjectGroup: formSubjectGroup,
+            instructorId: formInstructorId || undefined,
+            instructorName: formInstructorName || undefined,
+          });
+          if (!res.ok) {
+            toast.error(res.error.message || "เกิดข้อผิดพลาดในการแก้ไขรายวิชา");
+            return;
+          }
+          setCourses((prev) => prev.map((c) => (c.id === editingCourse.id ? res.data : c)));
+          toast.success("แก้ไขข้อมูลรายวิชาสำเร็จ");
+          setCourseModalOpen(false);
+        } else {
+          const res = await createCourseAction({
+            courseCode: formCourseCode,
+            name: formCourseName,
+            credits: parseFloat(formCredits) || 1.0,
+            semester: parseInt(formCourseSemester, 10) || 1,
+            subjectGroup: formSubjectGroup,
+            instructorId: formInstructorId || undefined,
+            instructorName: formInstructorName || undefined,
+          });
+          if (!res.ok) {
+            toast.error(res.error.message || "เกิดข้อผิดพลาดในการเพิ่มรายวิชา");
+            return;
+          }
+          setCourses((prev) => [...prev, res.data]);
+          toast.success("เพิ่มรายวิชาใหม่สำเร็จ");
+          setCourseModalOpen(false);
         }
-        setCourses((prev) => [...prev, res.data]);
-        toast.success("เพิ่มรายวิชาสำเร็จ");
-        setCourseModalOpen(false);
-        setFormCourseCode("");
-        setFormCourseName("");
       } catch (e: any) {
         toast.error(e.message || "เกิดข้อผิดพลาด");
       }
@@ -503,17 +841,18 @@ export function RegistrationClient({
   };
 
   // Delete Course
-  const handleDeleteCourse = (id: string) => {
-    if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายวิชานี้?")) return;
+  const handleDeleteCourse = () => {
+    if (!deleteConfirmCourse) return;
     startTransition(async () => {
       try {
-        const res = await deleteCourseAction(id);
+        const res = await deleteCourseAction(deleteConfirmCourse.id);
         if (!res.ok) {
-          toast.error(res.error.message || "ไม่สามารถลบได้");
+          toast.error(res.error.message || "ไม่สามารถลบรายวิชานี้ได้");
           return;
         }
-        setCourses((prev) => prev.filter((c) => c.id !== id));
-        toast.success("ลบรายวิชาสำเร็จ");
+        setCourses((prev) => prev.filter((c) => c.id !== deleteConfirmCourse.id));
+        toast.success(`ลบรายวิชา ${deleteConfirmCourse.courseCode} สำเร็จ`);
+        setDeleteConfirmCourse(null);
       } catch (e: any) {
         toast.error(e.message || "เกิดข้อผิดพลาด");
       }
@@ -650,10 +989,10 @@ export function RegistrationClient({
     let csvContent = "\uFEFF"; // UTF-8 BOM for Excel / Google Sheets Thai encoding
 
     if (type === "students") {
-      filename = `Students_${selectedClassRoom}_${new Date().toISOString().split("T")[0]}.csv`;
-      csvContent += "เลขที่,รหัสนักเรียน,คำนำหน้า,ชื่อ,นามสกุล,ระดับชั้น,เพศ,สถานะ\n";
+      filename = `Students_${studentFilterYear}_Sem${studentFilterSemester}_${studentFilterClass}_${new Date().toISOString().split("T")[0]}.csv`;
+      csvContent += "เลขที่,รหัสนักเรียน,คำนำหน้า,ชื่อ,นามสกุล,ระดับชั้น,ปีการศึกษา,ภาคเรียน,เพศ,สถานะ\n";
       for (const s of filteredStudents) {
-        csvContent += `"${s.seatNo}","${s.studentCode}","${s.title}","${s.firstName}","${s.lastName}","${s.classRoom}","${s.gender || ""}","${s.status}"\n`;
+        csvContent += `"${s.seatNo}","${s.studentCode}","${s.title}","${s.firstName}","${s.lastName}","${s.classRoom}","${s.academicYear || "2569"}","${s.semester || 1}","${s.gender || ""}","${s.status || "ACTIVE"}"\n`;
       }
     } else if (type === "grades") {
       const course = courses.find((c) => c.id === selectedCourseId);
@@ -739,10 +1078,19 @@ export function RegistrationClient({
             เปิด Google Sheets <ExternalLink className="w-3.5 h-3.5" />
           </a>
           {canManage && (
-            <Button onClick={openCreateStudent} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white">
-              <Plus className="w-4 h-4" />
-              เพิ่มนักเรียน
-            </Button>
+            <>
+              <Button
+                onClick={openImportModal}
+                className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs font-semibold"
+              >
+                <Upload className="w-4 h-4" />
+                นำเข้า CSV (Import)
+              </Button>
+              <Button onClick={openCreateStudent} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white shadow-xs font-semibold">
+                <Plus className="w-4 h-4" />
+                เพิ่มนักเรียน
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -808,43 +1156,123 @@ export function RegistrationClient({
       {activeTab === "students" && (
         <div className="space-y-4">
           {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs font-bold text-slate-600 shrink-0">ระดับชั้น/ห้อง:</span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setSelectedClassRoom("ALL")}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                    selectedClassRoom === "ALL" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  ทั้งหมด
-                </button>
-                {classRooms.map((cr) => (
-                  <button
-                    key={cr}
-                    type="button"
-                    onClick={() => setSelectedClassRoom(cr)}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                      selectedClassRoom === cr ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    }`}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* 1. ปีการศึกษา */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 shrink-0">ปีการศึกษา:</span>
+                  <select
+                    value={studentFilterYear}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setStudentFilterYear(e.target.value)}
+                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs"
                   >
-                    {cr}
-                  </button>
-                ))}
+                    <option value="ALL">ทุกปีการศึกษา</option>
+                    {academicYearsList.map((y) => (
+                      <option key={y} value={y}>
+                        ปี {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. ภาคเรียน / เทอม */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 shrink-0">เทอม:</span>
+                  <select
+                    value={studentFilterSemester}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setStudentFilterSemester(e.target.value)}
+                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs"
+                  >
+                    <option value="ALL">ทุกเทอม</option>
+                    <option value="1">เทอม 1</option>
+                    <option value="2">เทอม 2</option>
+                  </select>
+                </div>
+
+                {/* 3. ระดับชั้น / ห้อง */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 shrink-0">ระดับชั้น/ห้อง:</span>
+                  <select
+                    value={studentFilterClass}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setStudentFilterClass(e.target.value)}
+                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs"
+                  >
+                    <option value="ALL">ทั้งหมดทุกระดับชั้น</option>
+                    <optgroup label="ระดับชั้น (แสดงทุกห้อง)">
+                      <option value="ม.1">ชั้น ม.1 ทั้งหมด</option>
+                      <option value="ม.2">ชั้น ม.2 ทั้งหมด</option>
+                      <option value="ม.3">ชั้น ม.3 ทั้งหมด</option>
+                      <option value="ม.4">ชั้น ม.4 ทั้งหมด</option>
+                      <option value="ม.5">ชั้น ม.5 ทั้งหมด</option>
+                      <option value="ม.6">ชั้น ม.6 ทั้งหมด</option>
+                    </optgroup>
+                    <optgroup label="ห้องเรียนเฉพาะ">
+                      {classRooms.map((cr) => (
+                        <option key={cr} value={cr}>
+                          ห้อง {cr}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              {/* Search */}
+              <div className="relative w-full lg:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="ค้นหาชื่อ หรือรหัสนักเรียน..."
+                  value={searchStudent}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchStudent(e.target.value)}
+                  className="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden"
+                />
               </div>
             </div>
 
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="ค้นหาชื่อ หรือรหัสนักเรียน..."
-                value={searchStudent}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchStudent(e.target.value)}
-                className="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden"
-              />
+            {/* Indicator of current selection */}
+            <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <span>ตัวกรองที่เลือก:</span>
+                <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                  ปี {studentFilterYear === "ALL" ? "ทั้งหมด" : studentFilterYear}
+                </span>
+                <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                  {studentFilterSemester === "ALL" ? "ทุกเทอม" : `เทอม ${studentFilterSemester}`}
+                </span>
+                <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                  {studentFilterClass === "ALL" ? "ทุกห้อง" : studentFilterClass.length === 3 ? `ชั้น ${studentFilterClass}` : `ห้อง ${studentFilterClass}`}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="font-medium">
+                  พบข้อมูล <span className="font-bold text-slate-900">{filteredStudents.length}</span> คน จากทั้งหมด {students.length} คน
+                </div>
+                {canManage && (
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={openImportModal}
+                      className="h-7 px-2.5 text-xs gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      นำเข้า CSV
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={openCreateStudent}
+                      className="h-7 px-2.5 text-xs gap-1 bg-blue-700 hover:bg-blue-800 text-white font-semibold"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      เพิ่มนักเรียน
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -858,6 +1286,7 @@ export function RegistrationClient({
                     <th className="py-3 px-4 w-32">รหัสนักเรียน</th>
                     <th className="py-3 px-4">ชื่อ - นามสกุล</th>
                     <th className="py-3 px-4 w-28 text-center">ระดับชั้น/ห้อง</th>
+                    <th className="py-3 px-4 w-28 text-center">ปี/เทอม</th>
                     <th className="py-3 px-4 w-20 text-center">เพศ</th>
                     <th className="py-3 px-4 w-28 text-center">สถานะ</th>
                     <th className="py-3 px-4 w-28 text-center">การจัดการ</th>
@@ -866,8 +1295,8 @@ export function RegistrationClient({
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-slate-400">
-                        ไม่พบข้อมูลนักเรียน
+                      <td colSpan={8} className="text-center py-10 text-slate-400">
+                        ไม่พบข้อมูลนักเรียนที่ตรงกับเงื่อนไขที่เลือก (ปีการศึกษา {studentFilterYear} เทอม {studentFilterSemester} {studentFilterClass})
                       </td>
                     </tr>
                   ) : (
@@ -881,9 +1310,32 @@ export function RegistrationClient({
                             {s.classRoom}
                           </span>
                         </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+                            {s.academicYear || "2569"}/{s.semester || 1}
+                          </span>
+                        </td>
                         <td className="py-3 px-4 text-center text-xs text-slate-600">{s.gender || "-"}</td>
                         <td className="py-3 px-4 text-center">
-                          <StatusPill tone="ok">กำลังศึกษา</StatusPill>
+                          {s.status === "GRADUATED" ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              สำเร็จการศึกษา
+                            </span>
+                          ) : s.status === "SUSPENDED" ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                              พักการเรียน
+                            </span>
+                          ) : s.status === "TRANSFERRED" ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                              ย้ายสถานศึกษา
+                            </span>
+                          ) : s.status === "DROPOUT" ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                              พ้นสภาพ
+                            </span>
+                          ) : (
+                            <StatusPill tone="ok">กำลังศึกษา</StatusPill>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-1">
@@ -920,52 +1372,186 @@ export function RegistrationClient({
       ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === "courses" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">รายวิชาในหลักสูตรสถานศึกษา</h2>
-              <p className="text-xs text-slate-500">จัดการรหัสวิชา ชื่อวิชา และหน่วยกิตสำหรับบันทึกคะแนนและเช็คชื่อ</p>
+          {/* Header & Controls Bar */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-blue-700" />
+                  รายวิชาในหลักสูตรสถานศึกษา ({courses.length} วิชา)
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  จัดการรหัสวิชา ชื่อวิชา หน่วยกิต ภาคเรียน กลุ่มสาระการเรียนรู้ และอาจารย์ผู้สอนประจำวิชา
+                </p>
+              </div>
+              {canManage && (
+                <Button
+                  onClick={openCreateCourse}
+                  className="gap-2 bg-blue-700 hover:bg-blue-800 text-white shadow-xs font-semibold shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  เพิ่มรายวิชา
+                </Button>
+              )}
             </div>
-            {canManage && (
-              <Button onClick={() => setCourseModalOpen(true)} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white">
-                <Plus className="w-4 h-4" />
-                เพิ่มรายวิชา
-              </Button>
-            )}
+
+            {/* Filter & Search Controls */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* 1. กลุ่มสาระการเรียนรู้ */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 shrink-0">กลุ่มสาระฯ:</span>
+                  <select
+                    value={filterSubjectGroup}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterSubjectGroup(e.target.value)}
+                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs max-w-[220px] truncate"
+                  >
+                    <option value="ALL">ทุกกลุ่มสาระการเรียนรู้</option>
+                    <option value="กลุ่มสาระการเรียนรู้ภาษาไทย">กลุ่มสาระฯ ภาษาไทย</option>
+                    <option value="กลุ่มสาระการเรียนรู้คณิตศาสตร์">กลุ่มสาระฯ คณิตศาสตร์</option>
+                    <option value="กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี">กลุ่มสาระฯ วิทยาศาสตร์และเทคโนโลยี</option>
+                    <option value="กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม">กลุ่มสาระฯ สังคมศึกษาฯ</option>
+                    <option value="กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ">กลุ่มสาระฯ ภาษาต่างประเทศ</option>
+                    <option value="กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา">กลุ่มสาระฯ สุขศึกษาและพลศึกษา</option>
+                    <option value="กลุ่มสาระการเรียนรู้ศิลปะ">กลุ่มสาระฯ ศิลปะ</option>
+                    <option value="กลุ่มสาระการเรียนรู้การงานอาชีพ">กลุ่มสาระฯ การงานอาชีพ</option>
+                    <option value="พุทธศาสน์ศึกษาและภาษาบาลี">พุทธศาสน์ศึกษาและภาษาบาลี</option>
+                  </select>
+                </div>
+
+                {/* 2. ภาคเรียน */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 shrink-0">ภาคเรียน:</span>
+                  <select
+                    value={filterCourseSemester}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterCourseSemester(e.target.value)}
+                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs"
+                  >
+                    <option value="ALL">ทุกภาคเรียน</option>
+                    <option value="1">ภาคเรียนที่ 1</option>
+                    <option value="2">ภาคเรียนที่ 2</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Search */}
+              <div className="relative w-full lg:w-72">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="ค้นหารหัสวิชา, ชื่อวิชา, อาจารย์ผู้สอน..."
+                  value={searchCourse}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchCourse(e.target.value)}
+                  className="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden"
+                />
+              </div>
+            </div>
           </div>
 
+          {/* Courses Table */}
           <LiyonCard>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-bold uppercase">
-                    <th className="py-3 px-4 w-32">รหัสวิชา</th>
+                    <th className="py-3 px-4 w-28">รหัสวิชา</th>
                     <th className="py-3 px-4">ชื่อรายวิชา</th>
-                    <th className="py-3 px-4 w-28 text-center">หน่วยกิต</th>
-                    <th className="py-3 px-4 w-24 text-center">ภาคเรียน</th>
-                    <th className="py-3 px-4">หลักสูตรที่สังกัด</th>
-                    <th className="py-3 px-4 w-24 text-center">การจัดการ</th>
+                    <th className="py-3 px-4 w-24 text-center">หน่วยกิต</th>
+                    <th className="py-3 px-4 w-28 text-center">ภาคเรียน</th>
+                    <th className="py-3 px-4 w-52">กลุ่มสาระฯ / หลักสูตรที่สังกัด</th>
+                    <th className="py-3 px-4 w-48">อาจารย์ผู้สอน</th>
+                    <th className="py-3 px-4 w-28 text-center">การจัดการ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {courses.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4 font-mono text-xs font-bold text-blue-700">{c.courseCode}</td>
-                      <td className="py-3 px-4 font-semibold text-slate-900">{c.name}</td>
-                      <td className="py-3 px-4 text-center font-bold text-slate-700">{c.credits}</td>
-                      <td className="py-3 px-4 text-center text-xs text-slate-600">ภาคเรียนที่ {c.semester || 1}</td>
-                      <td className="py-3 px-4 text-xs text-slate-500">{c.curriculumName || "หลักสูตรแกนกลาง"}</td>
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCourse(c.id)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="ลบรายวิชา"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                  {filteredCoursesList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-10 text-slate-400">
+                        ไม่พบข้อมูลรายวิชาที่ตรงกับเงื่อนไขการค้นหา
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredCoursesList.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
+                        {/* รหัสวิชา */}
+                        <td className="py-3 px-4">
+                          <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                            {c.courseCode}
+                          </span>
+                        </td>
+
+                        {/* ชื่อรายวิชา */}
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-900">{c.name}</div>
+                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                            {c.curriculumName || "หลักสูตรสถานศึกษา"}
+                          </div>
+                        </td>
+
+                        {/* หน่วยกิต */}
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            {Number(c.credits).toFixed(1)} นก.
+                          </span>
+                        </td>
+
+                        {/* ภาคเรียน */}
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            เทอม {c.semester || 1}
+                          </span>
+                        </td>
+
+                        {/* กลุ่มสาระฯ */}
+                        <td className="py-3 px-4">
+                          <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-50/70 text-indigo-800 border border-indigo-200/80">
+                            {c.subjectGroup || "กลุ่มสาระการเรียนรู้ทั่วไป"}
+                          </span>
+                        </td>
+
+                        {/* อาจารย์ผู้สอน */}
+                        <td className="py-3 px-4">
+                          {c.instructorName ? (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-800 font-semibold">
+                              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span className="truncate">{c.instructorName}</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openEditCourse(c)}
+                              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                            >
+                              <Plus className="w-3 h-3" />
+                              เลือกอาจารย์ผู้สอน
+                            </button>
+                          )}
+                        </td>
+
+                        {/* การจัดการ (แก้ไข, ลบ) */}
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openEditCourse(c)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="แก้ไขรายวิชา"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmCourse(c)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="ลบรายวิชา"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1417,7 +2003,73 @@ export function RegistrationClient({
       <LiyonDialog open={studentModalOpen} onOpenChange={setStudentModalOpen}>
         <LiyonDialogHeader title={editingStudent ? "แก้ไขข้อมูลนักเรียน" : "เพิ่มนักเรียนใหม่"} />
         <LiyonDialogBody className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          {/* ส่วนที่ 1: ข้อมูลปีการศึกษา เทอม ชั้น/ห้อง และสถานะ */}
+          <div className="p-3.5 bg-blue-50/50 rounded-xl border border-blue-100 space-y-3">
+            <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+              <span>📅 ข้อมูลปีการศึกษา เทอม ชั้น/ห้อง และสถานะ</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">ปีการศึกษา *</label>
+                <input
+                  type="text"
+                  value={formAcademicYear}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormAcademicYear(e.target.value)}
+                  placeholder="เช่น 2569"
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">เทอม (ภาคเรียน) *</label>
+                <select
+                  value={formSemester}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormSemester(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white font-medium"
+                >
+                  <option value="1">ภาคเรียนที่ 1</option>
+                  <option value="2">ภาคเรียนที่ 2</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">ระดับชั้น/ห้อง *</label>
+                <select
+                  value={formClassRoom}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormClassRoom(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white font-medium"
+                >
+                  <option value="ม.1/1">ม.1/1</option>
+                  <option value="ม.1/2">ม.1/2</option>
+                  <option value="ม.2/1">ม.2/1</option>
+                  <option value="ม.2/2">ม.2/2</option>
+                  <option value="ม.3/1">ม.3/1</option>
+                  <option value="ม.3/2">ม.3/2</option>
+                  <option value="ม.4/1">ม.4/1</option>
+                  <option value="ม.4/2">ม.4/2</option>
+                  <option value="ม.5/1">ม.5/1</option>
+                  <option value="ม.5/2">ม.5/2</option>
+                  <option value="ม.6/1">ม.6/1</option>
+                  <option value="ม.6/2">ม.6/2</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">สถานะนักเรียน *</label>
+                <select
+                  value={formStatus}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormStatus(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white font-semibold text-slate-800"
+                >
+                  <option value="ACTIVE">กำลังศึกษา</option>
+                  <option value="GRADUATED">สำเร็จการศึกษา</option>
+                  <option value="SUSPENDED">พักการเรียน</option>
+                  <option value="TRANSFERRED">ย้ายสถานศึกษา</option>
+                  <option value="DROPOUT">พ้นสภาพ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* ส่วนที่ 2: รหัสนักเรียน เลขที่ และเพศ */}
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">รหัสนักเรียน *</label>
               <input
@@ -1425,7 +2077,7 @@ export function RegistrationClient({
                 value={formStudentCode}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormStudentCode(e.target.value)}
                 placeholder="เช่น STU69-101"
-                className="w-full text-sm border border-slate-200 rounded-lg p-2"
+                className="w-full text-sm border border-slate-200 rounded-lg p-2 font-mono"
               />
             </div>
             <div>
@@ -1438,8 +2090,20 @@ export function RegistrationClient({
                 className="w-full text-sm border border-slate-200 rounded-lg p-2"
               />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">เพศ</label>
+              <select
+                value={formGender}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormGender(e.target.value)}
+                className="w-full text-sm border border-slate-200 rounded-lg p-2"
+              >
+                <option value="ชาย">ชาย</option>
+                <option value="หญิง">หญิง</option>
+              </select>
+            </div>
           </div>
 
+          {/* ส่วนที่ 3: คำนำหน้า ชื่อจริง นามสกุล */}
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">คำนำหน้า</label>
@@ -1475,37 +2139,6 @@ export function RegistrationClient({
               />
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">ระดับชั้น/ห้อง *</label>
-              <select
-                value={formClassRoom}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormClassRoom(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg p-2"
-              >
-                <option value="ม.1/1">ม.1/1</option>
-                <option value="ม.1/2">ม.1/2</option>
-                <option value="ม.2/1">ม.2/1</option>
-                <option value="ม.3/1">ม.3/1</option>
-                <option value="ม.4/1">ม.4/1</option>
-                <option value="ม.4/2">ม.4/2</option>
-                <option value="ม.5/1">ม.5/1</option>
-                <option value="ม.6/1">ม.6/1</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">เพศ</label>
-              <select
-                value={formGender}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormGender(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg p-2"
-              >
-                <option value="ชาย">ชาย</option>
-                <option value="หญิง">หญิง</option>
-              </select>
-            </div>
-          </div>
         </LiyonDialogBody>
         <LiyonDialogFooter>
           <Button variant="outline" onClick={() => setStudentModalOpen(false)}>
@@ -1518,49 +2151,176 @@ export function RegistrationClient({
       </LiyonDialog>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          MODAL: CREATE COURSE
+          MODAL: CREATE / EDIT COURSE
       ═══════════════════════════════════════════════════════════════════════ */}
       <LiyonDialog open={courseModalOpen} onOpenChange={setCourseModalOpen}>
-        <LiyonDialogHeader title="เพิ่มรายวิชาใหม่" />
+        <LiyonDialogHeader title={editingCourse ? "แก้ไขข้อมูลรายวิชา" : "เพิ่มรายวิชาใหม่"} />
         <LiyonDialogBody className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">รหัสวิชา *</label>
-            <input
-              type="text"
-              value={formCourseCode}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCourseCode(e.target.value)}
-              placeholder="เช่น ท21101, ค31101"
-              className="w-full text-sm border border-slate-200 rounded-lg p-2"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">รหัสวิชา *</label>
+              <input
+                type="text"
+                value={formCourseCode}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCourseCode(e.target.value)}
+                placeholder="เช่น ท21101, ค31101"
+                className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">ชื่อรายวิชา *</label>
+              <input
+                type="text"
+                value={formCourseName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCourseName(e.target.value)}
+                placeholder="เช่น ภาษาไทยพื้นฐาน 1"
+                className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">ชื่อรายวิชา *</label>
-            <input
-              type="text"
-              value={formCourseName}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCourseName(e.target.value)}
-              placeholder="เช่น ภาษาไทยพื้นฐาน 1"
-              className="w-full text-sm border border-slate-200 rounded-lg p-2"
-            />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">จำนวนหน่วยกิต *</label>
+              <input
+                type="number"
+                step="0.5"
+                min="0.5"
+                max="10"
+                value={formCredits}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCredits(e.target.value)}
+                className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">ภาคเรียน (เทอม) *</label>
+              <select
+                value={formCourseSemester}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormCourseSemester(e.target.value)}
+                className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden bg-white"
+              >
+                <option value="1">ภาคเรียนที่ 1</option>
+                <option value="2">ภาคเรียนที่ 2</option>
+              </select>
+            </div>
           </div>
+
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">จำนวนหน่วยกิต</label>
-            <input
-              type="number"
-              step="0.5"
-              min="0.5"
-              value={formCredits}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCredits(e.target.value)}
-              className="w-full text-sm border border-slate-200 rounded-lg p-2"
-            />
+            <label className="block text-xs font-bold text-slate-700 mb-1">กลุ่มสาระการเรียนรู้ / หลักสูตรที่สังกัด *</label>
+            <select
+              value={formSubjectGroup}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormSubjectGroup(e.target.value)}
+              className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden bg-white"
+            >
+              <option value="กลุ่มสาระการเรียนรู้ภาษาไทย">กลุ่มสาระการเรียนรู้ภาษาไทย</option>
+              <option value="กลุ่มสาระการเรียนรู้คณิตศาสตร์">กลุ่มสาระการเรียนรู้คณิตศาสตร์</option>
+              <option value="กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี">กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</option>
+              <option value="กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม">กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม</option>
+              <option value="กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ">กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ</option>
+              <option value="กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา">กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา</option>
+              <option value="กลุ่มสาระการเรียนรู้ศิลปะ">กลุ่มสาระการเรียนรู้ศิลปะ</option>
+              <option value="กลุ่มสาระการเรียนรู้การงานอาชีพ">กลุ่มสาระการเรียนรู้การงานอาชีพ</option>
+              <option value="พุทธศาสน์ศึกษาและภาษาบาลี">พุทธศาสน์ศึกษาและภาษาบาลี</option>
+            </select>
+          </div>
+
+          {/* อาจารย์ผู้สอน */}
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-800">
+                👨‍🏫 อาจารย์ผู้สอน (เชื่อมต่อบุคลากร / กำหนดเอง)
+              </label>
+              {formInstructorId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormInstructorId("");
+                    setFormInstructorName("");
+                  }}
+                  className="text-[11px] text-red-600 hover:underline font-semibold"
+                >
+                  ล้างการเลือก
+                </button>
+              )}
+            </div>
+
+            {/* เลือกจากรายชื่อครู / อาจารย์ในระบบ */}
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1">เลือกจากอาจารย์/บุคลากรในระบบ:</label>
+              <select
+                value={formInstructorId}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                  const instId = e.target.value;
+                  setFormInstructorId(instId);
+                  if (instId) {
+                    const inst = instructors.find((i) => i.id === instId);
+                    if (inst) {
+                      setFormInstructorName(inst.fullName);
+                    }
+                  }
+                }}
+                className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden bg-white"
+              >
+                <option value="">-- ไม่ระบุ / ระบุชื่อเองด้านล่าง --</option>
+                {instructors.map((inst) => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.fullName} {inst.position ? `(${inst.position})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ช่องกรอกชื่ออาจารย์ผู้สอน (แสดงชื่อที่เลือก หรือพิมพ์เอง) */}
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1">หรือพิมพ์ชื่ออาจารย์ผู้สอนโดยตรง:</label>
+              <input
+                type="text"
+                value={formInstructorName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  setFormInstructorName(e.target.value);
+                  if (formInstructorId) {
+                    const inst = instructors.find((i) => i.id === formInstructorId);
+                    if (inst && inst.fullName !== e.target.value) {
+                      setFormInstructorId("");
+                    }
+                  }
+                }}
+                placeholder="เช่น อ.วิภาดา รัตนโกสินทร์, พระมหาบุญเลิศ เขมธโร"
+                className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden bg-white"
+              />
+            </div>
           </div>
         </LiyonDialogBody>
         <LiyonDialogFooter>
           <Button variant="outline" onClick={() => setCourseModalOpen(false)}>
             ยกเลิก
           </Button>
-          <Button onClick={handleCreateCourse} disabled={isPending} className="bg-blue-700 hover:bg-blue-800 text-white">
-            บันทึกรายวิชา
+          <Button onClick={handleSaveCourse} disabled={isPending} className="bg-blue-700 hover:bg-blue-800 text-white font-semibold">
+            {editingCourse ? "บันทึกการแก้ไข" : "บันทึกรายวิชา"}
+          </Button>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MODAL: DELETE COURSE CONFIRM
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <LiyonDialog open={!!deleteConfirmCourse} onOpenChange={() => setDeleteConfirmCourse(null)}>
+        <LiyonDialogHeader title="ยืนยันการลบรายวิชา" />
+        <LiyonDialogBody>
+          <p className="text-sm text-slate-600">
+            คุณแน่ใจหรือไม่ว่าต้องการลบรายวิชา{" "}
+            <b>
+              {deleteConfirmCourse?.courseCode} - {deleteConfirmCourse?.name}
+            </b>
+            ? การกระทำนี้ไม่สามารถย้อนกลับได้
+          </p>
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setDeleteConfirmCourse(null)}>
+            ยกเลิก
+          </Button>
+          <Button onClick={handleDeleteCourse} disabled={isPending} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
+            ยืนยันการลบ
           </Button>
         </LiyonDialogFooter>
       </LiyonDialog>
@@ -1774,6 +2534,230 @@ export function RegistrationClient({
             className="bg-blue-700 hover:bg-blue-800 text-white gap-1.5"
           >
             <Save className="w-4 h-4" /> บันทึกเกณฑ์คะแนน
+          </Button>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MODAL: IMPORT STUDENTS CSV
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <LiyonDialog open={importModalOpen} onOpenChange={setImportModalOpen}>
+        <LiyonDialogHeader
+          title="📥 นำเข้ารายชื่อนักเรียนจากไฟล์ CSV (Import Students CSV)"
+        />
+        <LiyonDialogBody className="space-y-4 max-h-[75vh] overflow-y-auto">
+          {/* Header Description & Download Template */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-blue-50/60 rounded-xl border border-blue-200">
+            <div>
+              <div className="text-xs font-bold text-blue-900">
+                รองรับไฟล์ CSV จาก Google Sheets, Microsoft Excel หรือโปรแกรมระบบทะเบียน
+              </div>
+              <div className="text-[11px] text-blue-700 mt-0.5">
+                หัวตารางที่รองรับ: เลขที่, รหัสนักเรียน, คำนำหน้า, ชื่อ, นามสกุล, ระดับชั้น, ปีการศึกษา, ภาคเรียน, เพศ, สถานะ
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadCsvTemplate}
+              className="shrink-0 gap-1.5 text-xs bg-white text-blue-700 border-blue-300 hover:bg-blue-50 font-semibold"
+            >
+              <Download className="w-3.5 h-3.5" />
+              ดาวน์โหลดแม่แบบ CSV
+            </Button>
+          </div>
+
+          {/* File Picker & Upload Area */}
+          <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-5 text-center transition-all bg-slate-50/50 hover:bg-blue-50/30">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleFileUpload}
+              id="csv-file-input"
+              className="hidden"
+            />
+            <label htmlFor="csv-file-input" className="cursor-pointer block">
+              <Upload className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <div className="text-sm font-bold text-slate-800">
+                {csvFileName ? `ไฟล์ที่เลือก: ${csvFileName}` : "คลิกเพื่อเลือกไฟล์ CSV หรือลากไฟล์มาวางที่นี่"}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                เข้ารหัส UTF-8 หรือ UTF-8 with BOM เพื่อให้แสดงผลภาษาไทยถูกต้องสมบูรณ์
+              </div>
+            </label>
+          </div>
+
+          {/* Fallback Defaults Configuration */}
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+            <div className="text-xs font-bold text-slate-700">
+              ⚙️ ค่าเริ่มต้น (ใช้กรณีที่ในไฟล์ CSV ไม่ได้ระบุคอลัมน์นั้น ๆ ไว้):
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">ปีการศึกษาเริ่มต้น:</label>
+                <select
+                  value={importDefaultYear}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => handleReapplyDefaults(e.target.value, importDefaultSemester, importDefaultClassRoom)}
+                  className="w-full text-xs border border-slate-200 rounded-lg p-1.5 bg-white font-medium"
+                >
+                  <option value="2570">2570</option>
+                  <option value="2569">2569</option>
+                  <option value="2568">2568</option>
+                  <option value="2567">2567</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">ภาคเรียนเริ่มต้น:</label>
+                <select
+                  value={importDefaultSemester}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => handleReapplyDefaults(importDefaultYear, e.target.value, importDefaultClassRoom)}
+                  className="w-full text-xs border border-slate-200 rounded-lg p-1.5 bg-white font-medium"
+                >
+                  <option value="1">ภาคเรียนที่ 1</option>
+                  <option value="2">ภาคเรียนที่ 2</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">ระดับชั้น/ห้องเริ่มต้น:</label>
+                <select
+                  value={importDefaultClassRoom}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => handleReapplyDefaults(importDefaultYear, importDefaultSemester, e.target.value)}
+                  className="w-full text-xs border border-slate-200 rounded-lg p-1.5 bg-white font-medium"
+                >
+                  <option value="ม.1/1">ม.1/1</option>
+                  <option value="ม.1/2">ม.1/2</option>
+                  <option value="ม.2/1">ม.2/1</option>
+                  <option value="ม.3/1">ม.3/1</option>
+                  <option value="ม.4/1">ม.4/1</option>
+                  <option value="ม.4/2">ม.4/2</option>
+                  <option value="ม.5/1">ม.5/1</option>
+                  <option value="ม.6/1">ม.6/1</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="overwrite-checkbox"
+                checked={importOverwrite}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setImportOverwrite(e.target.checked)}
+                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="overwrite-checkbox" className="text-xs text-slate-700 cursor-pointer">
+                <b>เขียนทับ/อัปเดตข้อมูลเดิม</b> หากพบรหัสนักเรียนซ้ำในระบบ (Overwrite existing records)
+              </label>
+            </div>
+          </div>
+
+          {/* Preview Section */}
+          {parsedRows.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                  <span>ตัวอย่างข้อมูลที่อ่านได้:</span>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] bg-slate-100 font-semibold text-slate-700">
+                    ทั้งหมด {parsedRows.length} แถว
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                    ✓ พร้อมนำเข้า {parsedRows.filter((r) => r.isValid).length}
+                  </span>
+                  {parsedRows.some((r) => !r.isValid) && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
+                      ✕ ไม่สมบูรณ์ {parsedRows.filter((r) => !r.isValid).length}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setImportFilterTab("all")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      importFilterTab === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    ทั้งหมด ({parsedRows.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportFilterTab("valid")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      importFilterTab === "valid" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    พร้อมนำเข้า ({parsedRows.filter((r) => r.isValid).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportFilterTab("invalid")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      importFilterTab === "invalid" ? "bg-rose-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    ไม่สมบูรณ์ ({parsedRows.filter((r) => !r.isValid).length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Preview Table */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto text-xs shadow-2xs">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-slate-100 sticky top-0 text-slate-600 font-bold uppercase text-[11px]">
+                    <tr className="border-b border-slate-200">
+                      <th className="py-2 px-2.5 text-center w-10">แถว</th>
+                      <th className="py-2 px-2.5 text-center w-12">เลขที่</th>
+                      <th className="py-2 px-2.5 w-28">รหัสนักเรียน</th>
+                      <th className="py-2 px-2.5">ชื่อ - นามสกุล</th>
+                      <th className="py-2 px-2.5 text-center w-20">ระดับชั้น</th>
+                      <th className="py-2 px-2.5 text-center w-20">ปี/เทอม</th>
+                      <th className="py-2 px-2.5 text-center w-14">เพศ</th>
+                      <th className="py-2 px-2.5 text-center w-20">สถานะ</th>
+                      <th className="py-2 px-2.5 text-center w-24">ความพร้อม</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {displayedPreviewRows.map((r) => (
+                      <tr key={r.rowNumber} className={r.isValid ? "hover:bg-slate-50" : "bg-rose-50/50"}>
+                        <td className="py-2 px-2.5 text-center text-slate-400">{r.rowNumber}</td>
+                        <td className="py-2 px-2.5 text-center font-bold text-slate-700">{r.seatNo}</td>
+                        <td className="py-2 px-2.5 font-mono text-blue-700 font-semibold">{r.studentCode}</td>
+                        <td className="py-2 px-2.5 font-medium text-slate-900">{r.fullName}</td>
+                        <td className="py-2 px-2.5 text-center font-semibold text-slate-700">{r.classRoom}</td>
+                        <td className="py-2 px-2.5 text-center font-mono text-slate-600">{r.academicYear}/{r.semester}</td>
+                        <td className="py-2 px-2.5 text-center text-slate-600">{r.gender}</td>
+                        <td className="py-2 px-2.5 text-center text-[11px] text-slate-600">{r.status}</td>
+                        <td className="py-2 px-2.5 text-center">
+                          {r.isValid ? (
+                            <span className="text-emerald-700 font-bold text-[11px] inline-flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" /> พร้อม
+                            </span>
+                          ) : (
+                            <span className="text-rose-600 font-bold text-[11px]" title={r.errorMsg}>
+                              ✕ {r.errorMsg}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setImportModalOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleConfirmImport}
+            disabled={isPending || parsedRows.filter((r) => r.isValid).length === 0}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            ยืนยันนำเข้าข้อมูล ({parsedRows.filter((r) => r.isValid).length} คน)
           </Button>
         </LiyonDialogFooter>
       </LiyonDialog>

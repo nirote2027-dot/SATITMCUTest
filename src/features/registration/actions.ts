@@ -9,8 +9,11 @@ import {
   createStudent,
   updateStudent,
   deleteStudent,
+  importBatchStudents,
   listCourses,
+  listInstructors,
   createCourse,
+  updateCourse,
   deleteCourse,
   recordBatchAttendance,
   getStudentAttendanceSummaries,
@@ -26,10 +29,15 @@ import type {
   StudentAttendanceSummary,
   GradeRecordDto,
   CourseGradingSchemeDto,
+  ImportStudentInput,
+  ImportBatchStudentsResult,
+  InstructorDto,
 } from "./types";
 
 export async function getStudentsAction(filter?: {
   classRoom?: string;
+  academicYear?: string;
+  semester?: number;
   search?: string;
 }): Promise<ActionResult<StudentDto[]>> {
   return runAction(async () => {
@@ -46,6 +54,9 @@ export async function createStudentAction(data: {
   classRoom: string;
   seatNo: number;
   gender?: string;
+  academicYear?: string;
+  semester?: number;
+  status?: string;
 }): Promise<ActionResult<StudentDto>> {
   return runAction(async () => {
     const ctx = await requirePermission(DOCUMENT_P.documentManage);
@@ -65,6 +76,8 @@ export async function updateStudentAction(
     classRoom?: string;
     seatNo?: number;
     gender?: string;
+    academicYear?: string;
+    semester?: number;
     status?: string;
   },
 ): Promise<ActionResult<StudentDto>> {
@@ -84,10 +97,29 @@ export async function deleteStudentAction(id: string): Promise<ActionResult<void
   });
 }
 
+export async function importBatchStudentsAction(
+  items: ImportStudentInput[],
+  options?: { overwriteExisting?: boolean },
+): Promise<ActionResult<ImportBatchStudentsResult>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const result = await importBatchStudents(ctx.tenantId, items, options);
+    revalidatePath("/satitmcuReg");
+    return result;
+  });
+}
+
 export async function getCoursesAction(): Promise<ActionResult<CourseDto[]>> {
   return runAction(async () => {
     const ctx = await requirePermission(DOCUMENT_P.documentRead);
     return listCourses(ctx.tenantId);
+  });
+}
+
+export async function getInstructorsAction(): Promise<ActionResult<InstructorDto[]>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentRead);
+    return listInstructors(ctx.tenantId);
   });
 }
 
@@ -96,10 +128,35 @@ export async function createCourseAction(data: {
   name: string;
   credits: number;
   semester?: number;
+  curriculumId?: string;
+  subjectGroup?: string;
+  instructorName?: string;
+  instructorId?: string;
 }): Promise<ActionResult<CourseDto>> {
   return runAction(async () => {
     const ctx = await requirePermission(DOCUMENT_P.documentManage);
     const result = await createCourse(ctx.tenantId, data);
+    revalidatePath("/satitmcuReg");
+    return result;
+  });
+}
+
+export async function updateCourseAction(
+  id: string,
+  data: {
+    courseCode?: string;
+    name?: string;
+    credits?: number;
+    semester?: number;
+    curriculumId?: string;
+    subjectGroup?: string;
+    instructorName?: string;
+    instructorId?: string;
+  },
+): Promise<ActionResult<CourseDto>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const result = await updateCourse(ctx.tenantId, id, data);
     revalidatePath("/satitmcuReg");
     return result;
   });

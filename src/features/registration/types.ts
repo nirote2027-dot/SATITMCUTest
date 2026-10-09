@@ -7,8 +7,10 @@ export interface StudentDto {
   fullName: string;
   classRoom: string; // e.g. "ม.1/1", "ม.1/2", "ม.4/1", "ม.4/2"
   seatNo: number;
+  academicYear: string; // e.g. "2569", "2568"
+  semester: number; // 1 or 2
   gender?: string | null;
-  status: string; // "ACTIVE" | "RESIGNED" | "GRADUATED"
+  status: string; // "ACTIVE" | "RESIGNED" | "GRADUATED" | "SUSPENDED" | "TRANSFERRED"
   createdAt: string;
 }
 
@@ -19,6 +21,19 @@ export interface CourseDto {
   credits: number;
   semester?: number | null;
   curriculumName?: string;
+  curriculumId?: string;
+  subjectGroup?: string | null;
+  instructorName?: string | null;
+  instructorId?: string | null;
+}
+
+export interface InstructorDto {
+  id: string;
+  employeeCode?: string;
+  name: string;
+  fullName: string;
+  position?: string | null;
+  departmentName?: string | null;
 }
 
 export interface AttendanceDto {
@@ -86,5 +101,27 @@ export interface CourseGradingSchemeDto {
   maxBehavior: number;
   maxFinal: number;
   minAttendancePercent: number;
+}
+
+export interface ImportStudentInput {
+  studentCode: string;
+  title?: string;
+  firstName: string;
+  lastName: string;
+  classRoom: string;
+  seatNo: number;
+  academicYear?: string;
+  semester?: number;
+  gender?: string;
+  status?: string;
+}
+
+export interface ImportBatchStudentsResult {
+  total: number;
+  created: number;
+  updated: number;
+  failed: number;
+  errors: { row: number; studentCode?: string; message: string }[];
+  students: StudentDto[];
 }
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict aeG7O3muQ8z0ufRanOjQrwfmA5zCw1k9YDtO1C2hAggTjBLXuhWm8BgGTMpJN4h
+\restrict CTK3Xr2zYOwdcgeH56svyOyQR5TiZy6G9MNlqM8QyNToYq1Vd68x0fqqU5kw2R4
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -44,6 +44,7 @@ ALTER TABLE IF EXISTS ONLY public.departments DROP CONSTRAINT IF EXISTS departme
 ALTER TABLE IF EXISTS ONLY public.departments DROP CONSTRAINT IF EXISTS departments_parent_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.curriculums DROP CONSTRAINT IF EXISTS curriculums_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.curriculums DROP CONSTRAINT IF EXISTS curriculums_department_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.courses DROP CONSTRAINT IF EXISTS courses_instructor_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.courses DROP CONSTRAINT IF EXISTS courses_curriculum_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.course_grading_schemes DROP CONSTRAINT IF EXISTS course_grading_schemes_tenant_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.course_grading_schemes DROP CONSTRAINT IF EXISTS course_grading_schemes_course_id_fkey;
@@ -71,6 +72,7 @@ DROP INDEX IF EXISTS public.tenants_code_key;
 DROP INDEX IF EXISTS public.students_tenant_id_student_code_key;
 DROP INDEX IF EXISTS public.students_tenant_id_idx;
 DROP INDEX IF EXISTS public.students_class_room_idx;
+DROP INDEX IF EXISTS public.students_academic_year_idx;
 DROP INDEX IF EXISTS public.sample_items_tenant_id_idx;
 DROP INDEX IF EXISTS public.roles_tenant_id_code_key;
 DROP INDEX IF EXISTS public.reservations_tenant_id_idx;
@@ -90,6 +92,7 @@ DROP INDEX IF EXISTS public.departments_parent_id_idx;
 DROP INDEX IF EXISTS public.curriculums_tenant_id_idx;
 DROP INDEX IF EXISTS public.curriculums_tenant_id_code_key;
 DROP INDEX IF EXISTS public.curriculums_department_id_idx;
+DROP INDEX IF EXISTS public.courses_instructor_id_idx;
 DROP INDEX IF EXISTS public.courses_curriculum_id_course_code_key;
 DROP INDEX IF EXISTS public.course_grading_schemes_tenant_id_idx;
 DROP INDEX IF EXISTS public.course_grading_schemes_course_id_idx;
@@ -468,11 +471,14 @@ CREATE TABLE public.courses (
     curriculum_id uuid NOT NULL,
     course_code character varying(100) NOT NULL,
     name character varying(255) NOT NULL,
-    credits integer NOT NULL,
-    semester integer,
+    credits double precision DEFAULT 1.0 NOT NULL,
+    semester integer DEFAULT 1,
     course_type public."CourseType" DEFAULT 'CORE'::public."CourseType" NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone NOT NULL
+    updated_at timestamp with time zone NOT NULL,
+    instructor_id uuid,
+    instructor_name character varying(255),
+    subject_group character varying(255)
 );
 
 
@@ -731,7 +737,9 @@ CREATE TABLE public.students (
     gender character varying(10),
     status character varying(20) DEFAULT 'ACTIVE'::character varying NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone NOT NULL
+    updated_at timestamp with time zone NOT NULL,
+    academic_year character varying(10) DEFAULT '2569'::character varying NOT NULL,
+    semester integer DEFAULT 1 NOT NULL
 );
 
 
@@ -1001,13 +1009,13 @@ b298efba-fbda-44d1-8555-688b9f5f4ae4	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	f24e50
 -- Data for Name: courses; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.courses (id, curriculum_id, course_code, name, credits, semester, course_type, created_at, updated_at) FROM stdin;
-6c7a7261-4c54-461a-8d41-ac03411f930e	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ท21101	ภาษาไทยพื้นฐาน 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.95+07	2026-10-09 12:01:57.95+07
-f24e501d-04de-4f98-b5e4-5b3e617e31da	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ค21101	คณิตศาสตร์พื้นฐาน 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.966+07	2026-10-09 12:01:57.966+07
-5672f0fc-cb74-41d3-a754-f0f86372992b	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ว21101	วิทยาศาสตร์และเทคโนโลยี 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.975+07	2026-10-09 12:01:57.975+07
-11d82bca-1a48-4db5-a348-be7e4f47d305	7569727d-7d55-4623-92e2-c34884127588	ท31101	ภาษาไทยพื้นฐาน 1 (ม.4)	1	1	CORE	2026-10-09 12:01:57.981+07	2026-10-09 12:01:57.981+07
-abcca187-88e4-4a6b-bb32-73e7eca1507f	7569727d-7d55-4623-92e2-c34884127588	ค31101	คณิตศาสตร์เพิ่มเติม 1 (ม.4)	2	1	CORE	2026-10-09 12:01:57.986+07	2026-10-09 12:01:57.986+07
-55ae17a2-edef-4e9e-92a9-65ffba3f6d96	7569727d-7d55-4623-92e2-c34884127588	ว31101	ฟิสิกส์ 1 (ม.4)	2	1	CORE	2026-10-09 12:01:57.991+07	2026-10-09 12:01:57.991+07
+COPY public.courses (id, curriculum_id, course_code, name, credits, semester, course_type, created_at, updated_at, instructor_id, instructor_name, subject_group) FROM stdin;
+6c7a7261-4c54-461a-8d41-ac03411f930e	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ท21101	ภาษาไทยพื้นฐาน 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.95+07	2026-10-09 12:01:57.95+07	\N	\N	\N
+f24e501d-04de-4f98-b5e4-5b3e617e31da	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ค21101	คณิตศาสตร์พื้นฐาน 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.966+07	2026-10-09 12:01:57.966+07	\N	\N	\N
+11d82bca-1a48-4db5-a348-be7e4f47d305	7569727d-7d55-4623-92e2-c34884127588	ท31101	ภาษาไทยพื้นฐาน 1 (ม.4)	1	1	CORE	2026-10-09 12:01:57.981+07	2026-10-09 12:01:57.981+07	\N	\N	\N
+abcca187-88e4-4a6b-bb32-73e7eca1507f	7569727d-7d55-4623-92e2-c34884127588	ค31101	คณิตศาสตร์เพิ่มเติม 1 (ม.4)	2	1	CORE	2026-10-09 12:01:57.986+07	2026-10-09 12:01:57.986+07	\N	\N	\N
+55ae17a2-edef-4e9e-92a9-65ffba3f6d96	7569727d-7d55-4623-92e2-c34884127588	ว31101	ฟิสิกส์ 1 (ม.4)	2	1	CORE	2026-10-09 12:01:57.991+07	2026-10-09 12:01:57.991+07	\N	\N	\N
+5672f0fc-cb74-41d3-a754-f0f86372992b	c8692e29-4a5a-436d-b663-97d1b48dfbe1	ว21101	วิทยาศาสตร์และเทคโนโลยี 1 (ม.1)	1	1	CORE	2026-10-09 12:01:57.975+07	2026-10-09 16:29:43.969+07	e8d6991f-a7f2-44a4-b51e-d6d8f0f53eb8	นิโรจน์ วงศ์เมืองแก่น	กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี
 \.
 
 
@@ -1171,17 +1179,22 @@ COPY public.sample_items (id, tenant_id, title, description, status, created_at,
 -- Data for Name: students; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.students (id, tenant_id, student_code, title, first_name, last_name, class_room, seat_no, gender, status, created_at, updated_at) FROM stdin;
-99d6da80-3a97-409f-9264-6998723cad16	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-101	ด.ช.	กิตติศักดิ์	เจริญสุข	ม.1/1	1	ชาย	ACTIVE	2026-10-09 12:01:58.002+07	2026-10-09 12:01:58.002+07
-140a5cb5-79a3-4415-a167-f451ed101dba	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-102	ด.ช.	ชญานนท์	พงษ์พิสุทธิ์	ม.1/1	2	ชาย	ACTIVE	2026-10-09 12:01:58.013+07	2026-10-09 12:01:58.013+07
-31bfedfd-7d37-4966-8aef-15094675c01b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-103	ด.ญ.	ณิชากร	มงคลสวัสดิ์	ม.1/1	3	หญิง	ACTIVE	2026-10-09 12:01:58.017+07	2026-10-09 12:01:58.017+07
-4bc941bd-088e-45d2-b574-60c76764e1f0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-104	ด.ญ.	ทักษอร	วรรณรัตน์	ม.1/1	4	หญิง	ACTIVE	2026-10-09 12:01:58.021+07	2026-10-09 12:01:58.021+07
-9ce3e0d1-ecfb-4434-9088-62f8d673d937	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-105	ด.ช.	ปภังกร	รักษ์แดนไทย	ม.1/1	5	ชาย	ACTIVE	2026-10-09 12:01:58.026+07	2026-10-09 12:01:58.026+07
-dbdb2e53-070f-4612-b197-d075c58cc138	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-401	นาย	พงศกร	เมธาวัฒน์	ม.4/1	1	ชาย	ACTIVE	2026-10-09 12:01:58.03+07	2026-10-09 12:01:58.03+07
-565387f8-adba-45ab-9f39-19515556215c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-402	นาย	ภาณุวิชญ์	เลิศวิทยากุล	ม.4/1	2	ชาย	ACTIVE	2026-10-09 12:01:58.035+07	2026-10-09 12:01:58.035+07
-b7bb2c30-effa-4016-9ba3-3519d3eae188	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-403	น.ส.	วริศรา	เกียรติบำรุง	ม.4/1	3	หญิง	ACTIVE	2026-10-09 12:01:58.039+07	2026-10-09 12:01:58.039+07
-963fa502-7291-4568-bbd0-4c2a272173a0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-404	น.ส.	ศศิธร	ประเสริฐสิน	ม.4/1	4	หญิง	ACTIVE	2026-10-09 12:01:58.043+07	2026-10-09 12:01:58.043+07
-07d2cd46-ca01-40d7-b321-9702f46c34fa	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-405	นาย	อัครพล	ธนสารสมบูรณ์	ม.4/1	5	ชาย	ACTIVE	2026-10-09 12:01:58.048+07	2026-10-09 12:01:58.048+07
+COPY public.students (id, tenant_id, student_code, title, first_name, last_name, class_room, seat_no, gender, status, created_at, updated_at, academic_year, semester) FROM stdin;
+4bc941bd-088e-45d2-b574-60c76764e1f0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-104	ด.ญ.	ทักษอร	วรรณรัตน์	ม.1/1	4	หญิง	ACTIVE	2026-10-09 12:01:58.021+07	2026-10-09 12:01:58.021+07	2569	1
+9ce3e0d1-ecfb-4434-9088-62f8d673d937	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-105	ด.ช.	ปภังกร	รักษ์แดนไทย	ม.1/1	5	ชาย	ACTIVE	2026-10-09 12:01:58.026+07	2026-10-09 12:01:58.026+07	2569	1
+b7bb2c30-effa-4016-9ba3-3519d3eae188	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-403	น.ส.	วริศรา	เกียรติบำรุง	ม.4/1	3	หญิง	ACTIVE	2026-10-09 12:01:58.039+07	2026-10-09 12:01:58.039+07	2569	1
+963fa502-7291-4568-bbd0-4c2a272173a0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-404	น.ส.	ศศิธร	ประเสริฐสิน	ม.4/1	4	หญิง	ACTIVE	2026-10-09 12:01:58.043+07	2026-10-09 12:01:58.043+07	2569	1
+07d2cd46-ca01-40d7-b321-9702f46c34fa	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-405	นาย	อัครพล	ธนสารสมบูรณ์	ม.4/1	5	ชาย	ACTIVE	2026-10-09 12:01:58.048+07	2026-10-09 12:01:58.048+07	2569	1
+99d6da80-3a97-409f-9264-6998723cad16	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-101	ด.ช.	กิตติศักดิ์	รักเรียน	ม.1/1	1	ชาย	ACTIVE	2026-10-09 12:01:58.002+07	2026-10-09 15:54:00.568+07	2569	2
+140a5cb5-79a3-4415-a167-f451ed101dba	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-102	ด.ญ.	จินตนา	ปัญญาดี	ม.1/1	2	หญิง	ACTIVE	2026-10-09 12:01:58.013+07	2026-10-09 15:54:00.582+07	2569	2
+31bfedfd-7d37-4966-8aef-15094675c01b	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-103	ด.ช.	ณัฐดนัย	สุขเกษม	ม.1/1	3	ชาย	ACTIVE	2026-10-09 12:01:58.017+07	2026-10-09 15:54:00.594+07	2569	2
+dbdb2e53-070f-4612-b197-d075c58cc138	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-401	นาย	ธนพล	รุ่งเรือง	ม.4/1	1	ชาย	ACTIVE	2026-10-09 12:01:58.03+07	2026-10-09 15:54:00.603+07	2569	2
+565387f8-adba-45ab-9f39-19515556215c	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU69-402	น.ส.	พรทิพย์	วิไลวรรณ	ม.4/1	2	หญิง	ACTIVE	2026-10-09 12:01:58.035+07	2026-10-09 15:54:00.615+07	2569	2
+0698f9a5-3f3b-4033-9d3f-6b5da0d932ba	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU70-101	ด.ช.	กิตติศักดิ์	รักเรียน	ม.1/1	1	ชาย	ACTIVE	2026-10-09 15:58:48.339+07	2026-10-09 15:58:48.339+07	2570	1
+cb3fef95-e768-4db0-99da-dbd78974ebd0	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU70-102	ด.ญ.	จินตนา	ปัญญาดี	ม.1/1	2	หญิง	ACTIVE	2026-10-09 15:58:48.573+07	2026-10-09 15:58:48.573+07	2570	1
+65dc1df0-7c5f-4fcc-97c4-87f7ec7bd63f	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU70-103	ด.ช.	ณัฐดนัย	สุขเกษม	ม.1/1	3	ชาย	ACTIVE	2026-10-09 15:58:48.585+07	2026-10-09 15:58:48.585+07	2570	1
+7f262b09-224f-4a68-b421-aecfce9b5713	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU70-401	นาย	ธนพล	รุ่งเรือง	ม.1/1	4	ชาย	ACTIVE	2026-10-09 15:58:48.595+07	2026-10-09 15:58:48.595+07	2570	1
+64b57e5b-62af-46a1-a58d-d1368e09d0bf	f6a68b18-b6d5-4cb8-be30-07ee1b3f9a7d	STU70-402	น.ส.	พรทิพย์	วิไลวรรณ	ม.1/1	5	หญิง	ACTIVE	2026-10-09 15:58:48.604+07	2026-10-09 15:58:48.604+07	2570	1
 \.
 
 
@@ -1590,6 +1603,13 @@ CREATE UNIQUE INDEX courses_curriculum_id_course_code_key ON public.courses USIN
 
 
 --
+-- Name: courses_instructor_id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX courses_instructor_id_idx ON public.courses USING btree (instructor_id);
+
+
+--
 -- Name: curriculums_department_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1720,6 +1740,13 @@ CREATE UNIQUE INDEX roles_tenant_id_code_key ON public.roles USING btree (tenant
 --
 
 CREATE INDEX sample_items_tenant_id_idx ON public.sample_items USING btree (tenant_id);
+
+
+--
+-- Name: students_academic_year_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX students_academic_year_idx ON public.students USING btree (academic_year);
 
 
 --
@@ -1930,6 +1957,14 @@ ALTER TABLE ONLY public.courses
 
 
 --
+-- Name: courses courses_instructor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.courses
+    ADD CONSTRAINT courses_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.employees(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
 -- Name: curriculums curriculums_department_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2133,5 +2168,5 @@ ALTER TABLE ONLY public.user_tenants
 -- PostgreSQL database dump complete
 --
 
-\unrestrict aeG7O3muQ8z0ufRanOjQrwfmA5zCw1k9YDtO1C2hAggTjBLXuhWm8BgGTMpJN4h
+\unrestrict CTK3Xr2zYOwdcgeH56svyOyQR5TiZy6G9MNlqM8QyNToYq1Vd68x0fqqU5kw2R4
 

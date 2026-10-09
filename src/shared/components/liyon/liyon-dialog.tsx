@@ -79,9 +79,13 @@ export function LiyonDialogHeader({ title, description, titleId, className }: Li
       <DialogPrimitive.Title asChild {...(titleId ? { id: titleId } : {})}>
         <h2>{title}</h2>
       </DialogPrimitive.Title>
-      {description && (
+      {description ? (
         <DialogPrimitive.Description asChild>
           <p>{description}</p>
+        </DialogPrimitive.Description>
+      ) : (
+        <DialogPrimitive.Description className="sr-only">
+          {typeof title === "string" ? title : "รายละเอียดของกล่องข้อความ"}
         </DialogPrimitive.Description>
       )}
     </div>
