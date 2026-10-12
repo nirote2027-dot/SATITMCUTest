@@ -66,10 +66,17 @@ import {
 interface Props {
   initialStudents: StudentDto[];
   initialCourses: CourseDto[];
+  initialInstructors?: InstructorDto[];
   initialAttendanceSummaries: StudentAttendanceSummary[];
   initialGrades: GradeRecordDto[];
   initialGradingScheme: CourseGradingSchemeDto;
   canManage: boolean;
+  currentUser?: {
+    id: string;
+    name: string;
+    email: string;
+    isSuperAdmin: boolean;
+  };
 }
 
 function isCourseMatchingClassRoom(course: CourseDto, classRoom: string): boolean {
@@ -108,12 +115,23 @@ function isCourseMatchingClassRoom(course: CourseDto, classRoom: string): boolea
 export function RegistrationClient({
   initialStudents,
   initialCourses,
+  initialInstructors = [],
   initialAttendanceSummaries,
   initialGrades,
   initialGradingScheme,
   canManage,
+  currentUser,
 }: Props) {
   const [activeTab, setActiveTab] = useState<"students" | "courses" | "attendance" | "grading">("students");
+  // Attendance Feature Toggle (ปิดไว้ก่อนตามที่ต้องการ เมื่อต้องการใช้งานสามารถเปิดใช้ทีหลังได้)
+  const [enableAttendance, setEnableAttendance] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!enableAttendance && activeTab === "attendance") {
+      setActiveTab("grading");
+    }
+  }, [enableAttendance, activeTab]);
+
   const [students, setStudents] = useState<StudentDto[]>(initialStudents);
   const [courses, setCourses] = useState<CourseDto[]>(initialCourses);
   const [attendanceSummaries, setAttendanceSummaries] = useState<StudentAttendanceSummary[]>(initialAttendanceSummaries);
@@ -121,9 +139,12 @@ export function RegistrationClient({
   const [gradingScheme, setGradingScheme] = useState<CourseGradingSchemeDto>(initialGradingScheme);
   const [isPending, startTransition] = useTransition();
 
-  // Filters
+  // Filters (Tab 3 / Grading & Attendance)
   const [selectedClassRoom, setSelectedClassRoom] = useState<string>("ม.1/1");
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("2569");
+  const [selectedGradingSemester, setSelectedGradingSemester] = useState<number>(1);
+  const [filterGradingInstructor, setFilterGradingInstructor] = useState<string>("ALL");
+  const [activeGradingInstructor, setActiveGradingInstructor] = useState<string>("AUTO");
   const [searchStudent, setSearchStudent] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<string>(initialCourses[0]?.id || "");
 
@@ -177,7 +198,7 @@ export function RegistrationClient({
   const [filterCourseSemester, setFilterCourseSemester] = useState("ALL");
 
   // Instructors list
-  const [instructors, setInstructors] = useState<InstructorDto[]>([]);
+  const [instructors, setInstructors] = useState<InstructorDto[]>(initialInstructors);
 
   // Attendance Check State
   const [attendanceDate, setAttendanceDate] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -192,14 +213,14 @@ export function RegistrationClient({
   const [schemeFinal, setSchemeFinal] = useState<number>(initialGradingScheme?.maxFinal ?? 30);
   const [schemeMinAttendance, setSchemeMinAttendance] = useState<number>(initialGradingScheme?.minAttendancePercent ?? 80);
 
-  // Load grades, attendance, and scheme when classroom or course changes
+  // Load grades, attendance, and scheme when academicYear, semester, classroom, or course changes
   useEffect(() => {
     if (!selectedCourseId) return;
     startTransition(async () => {
       try {
         const [schemeRes, gradesRes, attRes] = await Promise.all([
-          getGradingSchemeAction(selectedCourseId, selectedClassRoom),
-          getGradesAction(selectedClassRoom, selectedCourseId),
+          getGradingSchemeAction(selectedCourseId, selectedClassRoom, selectedAcademicYear, selectedGradingSemester),
+          getGradesAction(selectedClassRoom, selectedCourseId, selectedAcademicYear, selectedGradingSemester),
           getAttendanceSummariesAction(selectedClassRoom, selectedCourseId),
         ]);
         if (schemeRes.ok && schemeRes.data) {
@@ -208,7 +229,14 @@ export function RegistrationClient({
         if (gradesRes.ok && gradesRes.data) {
           setGrades((prev) => {
             const others = prev.filter(
-              (g) => !(g.classRoom === selectedClassRoom && g.courseId === selectedCourseId),
+              (g) =>
+                !(
+                  (g.classRoom === selectedClassRoom ||
+                    (/^ม\.[1-6]$/.test(selectedClassRoom) && g.classRoom.startsWith(selectedClassRoom))) &&
+                  g.courseId === selectedCourseId &&
+                  (g.academicYear || "2569") === selectedAcademicYear &&
+                  (g.semester ?? 1) === selectedGradingSemester
+                ),
             );
             return [...others, ...gradesRes.data];
           });
@@ -223,13 +251,65 @@ export function RegistrationClient({
         console.error("Failed to load registration data:", err);
       }
     });
-  }, [selectedCourseId, selectedClassRoom]);
+  }, [selectedCourseId, selectedClassRoom, selectedAcademicYear, selectedGradingSemester]);
 
-  // Courses filtered according to selected classroom's grade level
+  // Unique Classrooms linked to selectedAcademicYear & selectedGradingSemester for Grading tab
+  const gradingClassRooms = useMemo(() => {
+    const yearSemStudents = students.filter(
+      (s) =>
+        (s.academicYear || "2569") === selectedAcademicYear &&
+        (s.semester ?? 1) === selectedGradingSemester,
+    );
+    const set = new Set(yearSemStudents.map((s) => s.classRoom));
+    if (set.size === 0) {
+      for (const s of students) {
+        if (s.classRoom) set.add(s.classRoom);
+      }
+      set.add("ม.1/1");
+      set.add("ม.4/1");
+    }
+    return Array.from(set).sort();
+  }, [students, selectedAcademicYear, selectedGradingSemester]);
+
+  // When selectedAcademicYear or selectedGradingSemester changes, ensure selectedClassRoom is valid
+  useEffect(() => {
+    if (/^ม\.[1-6]$/.test(selectedClassRoom)) return;
+    const yearSemRooms = Array.from(
+      new Set(
+        students
+          .filter(
+            (s) =>
+              (s.academicYear || "2569") === selectedAcademicYear &&
+              (s.semester ?? 1) === selectedGradingSemester,
+          )
+          .map((s) => s.classRoom),
+      ),
+    ).sort();
+
+    if (yearSemRooms.length > 0 && !yearSemRooms.includes(selectedClassRoom)) {
+      setSelectedClassRoom(yearSemRooms[0]);
+    } else if (gradingClassRooms.length > 0 && !gradingClassRooms.includes(selectedClassRoom)) {
+      setSelectedClassRoom(gradingClassRooms[0]);
+    }
+  }, [gradingClassRooms, selectedClassRoom, students, selectedAcademicYear, selectedGradingSemester]);
+
+  // Courses filtered according to selected classroom's grade level, semester, and instructor filter
   const availableCourses = useMemo(() => {
-    const matched = courses.filter((c) => isCourseMatchingClassRoom(c, selectedClassRoom));
-    return matched.length > 0 ? matched : courses;
-  }, [courses, selectedClassRoom]);
+    const byClass = courses.filter((c) => isCourseMatchingClassRoom(c, selectedClassRoom));
+    const baseList = byClass.length > 0 ? byClass : courses;
+
+    const bySemester = baseList.filter((c) => !c.semester || c.semester === selectedGradingSemester);
+    const semList = bySemester.length > 0 ? bySemester : baseList;
+
+    if (filterGradingInstructor !== "ALL") {
+      const byInst = semList.filter(
+        (c) => c.instructorName === filterGradingInstructor || c.instructorId === filterGradingInstructor,
+      );
+      if (byInst.length > 0) return byInst;
+    }
+
+    return semList;
+  }, [courses, selectedClassRoom, selectedGradingSemester, filterGradingInstructor]);
 
   // If selectedCourseId is not in availableCourses, auto-select the first one
   useEffect(() => {
@@ -241,8 +321,67 @@ export function RegistrationClient({
     }
   }, [availableCourses, selectedCourseId]);
 
+  // Selected course object & Instructor information
+  const selectedCourse = useMemo(() => {
+    return courses.find((c) => c.id === selectedCourseId) || availableCourses[0] || null;
+  }, [courses, selectedCourseId, availableCourses]);
+
+  const currentCourseInstructorName = useMemo(() => {
+    if (selectedCourse?.instructorName && selectedCourse.instructorName.trim() !== "") {
+      return selectedCourse.instructorName;
+    }
+    if (instructors.length > 0) {
+      return instructors[0].fullName;
+    }
+    return "อาจารย์ประจำวิชา";
+  }, [selectedCourse, instructors]);
+
+  // Instructor permission check:
+  // อาจารย์ที่เป็นผู้สอนวิชา หรือ ชั้น นั้น มีสิทธิ์เข้ามากรอกเกรดและบันทึกส่งได้
+  const canGradeCurrentCourse = useMemo(() => {
+    if (activeGradingInstructor === "AUTO" || activeGradingInstructor === "ADMIN") {
+      return true;
+    }
+    if (!selectedCourse) return true;
+    return (
+      selectedCourse.instructorName === activeGradingInstructor ||
+      selectedCourse.instructorId === activeGradingInstructor
+    );
+  }, [activeGradingInstructor, selectedCourse]);
+
+  // Assign / update instructor for the currently selected course directly from Grading tab
+  const handleAssignInstructorToCourse = (instructorIdOrName: string) => {
+    if (!selectedCourse) return;
+    const found = instructors.find((i) => i.id === instructorIdOrName || i.fullName === instructorIdOrName);
+    const instructorId = found ? found.id : undefined;
+    const instructorName = found ? found.fullName : instructorIdOrName;
+
+    startTransition(async () => {
+      try {
+        const res = await updateCourseAction(selectedCourse.id, {
+          courseCode: selectedCourse.courseCode,
+          name: selectedCourse.name,
+          credits: selectedCourse.credits,
+          semester: selectedCourse.semester ?? undefined,
+          subjectGroup: selectedCourse.subjectGroup ?? undefined,
+          instructorId,
+          instructorName,
+        });
+        if (res.ok && res.data) {
+          setCourses((prev) => prev.map((c) => (c.id === selectedCourse.id ? res.data : c)));
+          toast.success(`กำหนดอาจารย์ผู้สอนวิชา ${selectedCourse.courseCode} เป็น ${instructorName} เรียบร้อยแล้ว`);
+        } else if (!res.ok) {
+          toast.error(res.error.message || "ไม่สามารถอัปเดตอาจารย์ผู้สอนได้");
+        }
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการอัปเดตอาจารย์ผู้สอน");
+      }
+    });
+  };
+
   // Load Instructors for Course Management
   useEffect(() => {
+    if (initialInstructors.length > 0) return;
     startTransition(async () => {
       try {
         const res = await getInstructorsAction();
@@ -253,7 +392,7 @@ export function RegistrationClient({
         console.error("Failed to load instructors:", err);
       }
     });
-  }, []);
+  }, [initialInstructors]);
 
   // Filtered Courses (Tab 2)
   const filteredCoursesList = useMemo(() => {
@@ -276,7 +415,7 @@ export function RegistrationClient({
     });
   }, [courses, filterCourseSemester, filterSubjectGroup, searchCourse]);
 
-  // Tab 1: Academic Years List
+  // Tab 1 & Grading: Academic Years List
   const academicYearsList = useMemo(() => {
     const set = new Set(students.map((s) => s.academicYear).filter(Boolean));
     set.add("2569");
@@ -298,11 +437,11 @@ export function RegistrationClient({
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
       // Academic year filter
-      if (studentFilterYear !== "ALL" && s.academicYear && s.academicYear !== studentFilterYear) {
+      if (studentFilterYear !== "ALL" && (s.academicYear || "2569") !== studentFilterYear) {
         return false;
       }
       // Semester filter
-      if (studentFilterSemester !== "ALL" && s.semester !== undefined && s.semester !== Number(studentFilterSemester)) {
+      if (studentFilterSemester !== "ALL" && (s.semester ?? 1) !== Number(studentFilterSemester)) {
         return false;
       }
       // Classroom / Grade filter (e.g. "ม.4" matches all "ม.4/*")
@@ -324,10 +463,19 @@ export function RegistrationClient({
     });
   }, [students, studentFilterYear, studentFilterSemester, studentFilterClass, searchStudent]);
 
-  // Current classroom students for attendance & grading
+  // Current classroom students for attendance & grading (strictly linked to selectedAcademicYear, selectedGradingSemester & selectedClassRoom, matching Tab 1)
   const currentClassStudents = useMemo(() => {
-    return students.filter((s) => s.classRoom === selectedClassRoom);
-  }, [students, selectedClassRoom]);
+    return students.filter((s) => {
+      const sYear = s.academicYear || "2569";
+      if (sYear !== selectedAcademicYear) return false;
+      const sSem = s.semester ?? 1;
+      if (sSem !== selectedGradingSemester) return false;
+      if (/^ม\.[1-6]$/.test(selectedClassRoom)) {
+        return s.classRoom.startsWith(selectedClassRoom);
+      }
+      return s.classRoom === selectedClassRoom;
+    });
+  }, [students, selectedClassRoom, selectedAcademicYear, selectedGradingSemester]);
 
   // Load attendance records for current class, date, period, and course
   useEffect(() => {
@@ -357,10 +505,15 @@ export function RegistrationClient({
     });
   }, [selectedClassRoom, selectedCourseId, attendanceDate, attendancePeriod, currentClassStudents]);
 
-  // Current classroom grades
+  // Current classroom grades (strictly linked to selectedAcademicYear, selectedGradingSemester, selectedClassRoom, selectedCourseId)
   const currentClassGrades = useMemo(() => {
     const list = grades.filter(
-      (g) => g.classRoom === selectedClassRoom && (!selectedCourseId || g.courseId === selectedCourseId),
+      (g) =>
+        (g.classRoom === selectedClassRoom ||
+          (/^ม\.[1-6]$/.test(selectedClassRoom) && g.classRoom.startsWith(selectedClassRoom))) &&
+        (!selectedCourseId || g.courseId === selectedCourseId) &&
+        (g.academicYear || "2569") === selectedAcademicYear &&
+        (g.semester ?? 1) === selectedGradingSemester,
     );
     const minAtt = gradingScheme.minAttendancePercent ?? 80;
     return currentClassStudents.map((s) => {
@@ -379,18 +532,30 @@ export function RegistrationClient({
         courseCode: courses.find((c) => c.id === selectedCourseId)?.courseCode || "",
         courseName: courses.find((c) => c.id === selectedCourseId)?.name || "",
         academicYear: selectedAcademicYear,
-        semester: 1,
+        semester: selectedGradingSemester,
         assignmentScore: 0,
         midtermScore: 0,
         behaviorScore: 0,
         finalScore: 0,
         totalScore: 0,
-        grade: attPercent < minAtt ? "มส" : "0",
+        grade: enableAttendance && attPercent < minAtt ? "มส" : "0",
         isPassing: false,
+        remarks: "",
         attendancePercent: attPercent,
       };
     });
-  }, [grades, selectedClassRoom, selectedCourseId, currentClassStudents, attendanceSummaries, courses, gradingScheme]);
+  }, [
+    grades,
+    selectedClassRoom,
+    selectedCourseId,
+    selectedAcademicYear,
+    selectedGradingSemester,
+    currentClassStudents,
+    attendanceSummaries,
+    courses,
+    gradingScheme,
+    enableAttendance,
+  ]);
 
   const openSchemeModal = () => {
     setSchemeAssignment(gradingScheme.maxAssignment);
@@ -427,6 +592,8 @@ export function RegistrationClient({
         const res = await saveGradingSchemeAction({
           courseId: selectedCourseId,
           classRoom: selectedClassRoom,
+          academicYear: selectedAcademicYear,
+          semester: selectedGradingSemester,
           maxAssignment: schemeAssignment,
           maxMidterm: schemeMidterm,
           maxBehavior: schemeBehavior,
@@ -446,7 +613,11 @@ export function RegistrationClient({
         // Re-calculate all grades for this classroom & course based on new cutoff
         setGrades((prev) => {
           return prev.map((g) => {
-            if (g.classRoom !== selectedClassRoom || g.courseId !== selectedCourseId) {
+            if (
+              g.classRoom !== selectedClassRoom ||
+              g.courseId !== selectedCourseId ||
+              (g.academicYear && g.academicYear !== selectedAcademicYear)
+            ) {
               return g;
             }
             const attPercent = g.attendancePercent ?? 100;
@@ -454,10 +625,15 @@ export function RegistrationClient({
               100,
               Math.round((g.assignmentScore + g.midtermScore + g.behaviorScore + g.finalScore) * 10) / 10,
             );
+            const explicit = (g.remarks || "").trim();
             let grade = "0";
-            if (g.grade === "ร") {
+            if (explicit === "ร" || g.grade === "ร") {
               grade = "ร";
-            } else if (attPercent < newScheme.minAttendancePercent) {
+            } else if (explicit === "มส") {
+              grade = "มส";
+            } else if (explicit === "0") {
+              grade = "0";
+            } else if (enableAttendance && attPercent < newScheme.minAttendancePercent) {
               grade = "มส";
             } else if (tScore >= 80) grade = "4";
             else if (tScore >= 75) grade = "3.5";
@@ -477,7 +653,7 @@ export function RegistrationClient({
           });
         });
 
-        toast.success(`บันทึกเกณฑ์คะแนนสำหรับห้อง ${selectedClassRoom} เรียบร้อยแล้ว`);
+        toast.success(`บันทึกเกณฑ์คะแนนสำหรับห้อง ${selectedClassRoom} (ปีการศึกษา ${selectedAcademicYear}) เรียบร้อยแล้ว`);
       } catch (err: any) {
         toast.error(err.message || "เกิดข้อผิดพลาดในการบันทึกเกณฑ์คะแนน");
       }
@@ -905,15 +1081,31 @@ export function RegistrationClient({
     field: "assignmentScore" | "midtermScore" | "behaviorScore" | "finalScore",
     val: string,
   ) => {
+    if (!canGradeCurrentCourse) {
+      toast.error(`เฉพาะอาจารย์ผู้สอนประจำวิชา (${currentCourseInstructorName}) หรือผู้ดูแลระบบเท่านั้นที่มีสิทธิ์กรอกเกรด`);
+      return;
+    }
     const num = Math.max(0, parseFloat(val) || 0);
     const minAtt = gradingScheme.minAttendancePercent ?? 80;
     setGrades((prev) => {
-      const idx = prev.findIndex((g) => g.studentId === studentId && g.courseId === selectedCourseId);
+      const idx = prev.findIndex(
+        (g) =>
+          g.studentId === studentId &&
+          g.courseId === selectedCourseId &&
+          (!g.academicYear || g.academicYear === selectedAcademicYear),
+      );
       if (idx >= 0) {
-        const updated = { ...prev[idx], [field]: num };
+        const updated = { ...prev[idx], [field]: num, academicYear: selectedAcademicYear, semester: selectedGradingSemester };
         const total = Math.min(100, Math.round((updated.assignmentScore + updated.midtermScore + updated.behaviorScore + updated.finalScore) * 10) / 10);
+        const explicit = (updated.remarks || "").trim();
         let grade = "0";
-        if (updated.attendancePercent !== undefined && updated.attendancePercent < minAtt) {
+        if (explicit === "ร") {
+          grade = "ร";
+        } else if (explicit === "มส") {
+          grade = "มส";
+        } else if (explicit === "0") {
+          grade = "0";
+        } else if (enableAttendance && updated.attendancePercent !== undefined && updated.attendancePercent < minAtt) {
           grade = "มส";
         } else if (total >= 80) grade = "4";
         else if (total >= 75) grade = "3.5";
@@ -926,7 +1118,7 @@ export function RegistrationClient({
 
         updated.totalScore = total;
         updated.grade = grade;
-        updated.isPassing = grade !== "0" && grade !== "มส";
+        updated.isPassing = grade !== "0" && grade !== "มส" && grade !== "ร";
         return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
       } else {
         const s = students.find((item) => item.id === studentId);
@@ -943,14 +1135,100 @@ export function RegistrationClient({
           courseCode: courses.find((c) => c.id === selectedCourseId)?.courseCode || "",
           courseName: courses.find((c) => c.id === selectedCourseId)?.name || "",
           academicYear: selectedAcademicYear,
-          semester: 1,
+          semester: selectedGradingSemester,
           assignmentScore: field === "assignmentScore" ? num : 0,
           midtermScore: field === "midtermScore" ? num : 0,
           behaviorScore: field === "behaviorScore" ? num : 0,
           finalScore: field === "finalScore" ? num : 0,
           totalScore: num,
-          grade: attPercent < minAtt ? "มส" : num >= 50 ? "1" : "0",
+          grade: enableAttendance && attPercent < minAtt ? "มส" : num >= 50 ? "1" : "0",
           isPassing: num >= 50,
+          remarks: "",
+          attendancePercent: attPercent,
+        };
+        return [...prev, newRecord];
+      }
+    });
+  };
+
+  // Remarks / Note Edit (รองรับการกรอก 0, ร, มส หรือข้อความสั้นอื่นๆ)
+  const handleRemarksChange = (studentId: string, val: string) => {
+    if (!canGradeCurrentCourse) {
+      toast.error(`เฉพาะอาจารย์ผู้สอนประจำวิชา (${currentCourseInstructorName}) หรือผู้ดูแลระบบเท่านั้นที่มีสิทธิ์กรอกเกรด`);
+      return;
+    }
+    const minAtt = gradingScheme.minAttendancePercent ?? 80;
+    setGrades((prev) => {
+      const idx = prev.findIndex(
+        (g) =>
+          g.studentId === studentId &&
+          g.courseId === selectedCourseId &&
+          (!g.academicYear || g.academicYear === selectedAcademicYear),
+      );
+      if (idx >= 0) {
+        const current = prev[idx];
+        const trimmed = val.trim();
+        let grade = current.grade;
+        const total = current.totalScore;
+
+        if (trimmed === "ร") {
+          grade = "ร";
+        } else if (trimmed === "มส") {
+          grade = "มส";
+        } else if (trimmed === "0") {
+          grade = "0";
+        } else if (enableAttendance && current.attendancePercent !== undefined && current.attendancePercent < minAtt) {
+          grade = "มส";
+        } else {
+          if (total >= 80) grade = "4";
+          else if (total >= 75) grade = "3.5";
+          else if (total >= 70) grade = "3";
+          else if (total >= 65) grade = "2.5";
+          else if (total >= 60) grade = "2";
+          else if (total >= 55) grade = "1.5";
+          else if (total >= 50) grade = "1";
+          else grade = "0";
+        }
+
+        const updated = {
+          ...current,
+          academicYear: selectedAcademicYear,
+          semester: selectedGradingSemester,
+          remarks: val,
+          grade,
+          isPassing: grade !== "0" && grade !== "มส" && grade !== "ร",
+        };
+        return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
+      } else {
+        const s = students.find((item) => item.id === studentId);
+        const att = attendanceSummaries.find((a) => a.studentId === studentId);
+        const attPercent = att?.attendancePercent ?? 100;
+        const trimmed = val.trim();
+        let grade = "0";
+        if (trimmed === "ร") grade = "ร";
+        else if (trimmed === "มส") grade = "มส";
+        else if (trimmed === "0") grade = "0";
+
+        const newRecord: GradeRecordDto = {
+          id: "",
+          studentId,
+          studentCode: s?.studentCode || "",
+          studentName: s?.fullName || "",
+          classRoom: s?.classRoom || selectedClassRoom,
+          seatNo: s?.seatNo || 1,
+          courseId: selectedCourseId,
+          courseCode: courses.find((c) => c.id === selectedCourseId)?.courseCode || "",
+          courseName: courses.find((c) => c.id === selectedCourseId)?.name || "",
+          academicYear: selectedAcademicYear,
+          semester: selectedGradingSemester,
+          assignmentScore: 0,
+          midtermScore: 0,
+          behaviorScore: 0,
+          finalScore: 0,
+          totalScore: 0,
+          grade,
+          isPassing: false,
+          remarks: val,
           attendancePercent: attPercent,
         };
         return [...prev, newRecord];
@@ -959,21 +1237,37 @@ export function RegistrationClient({
   };
 
   const handleSaveAllGrades = () => {
-    const listToSave = currentClassGrades.map((g) => ({
-      studentId: g.studentId,
-      courseId: g.courseId || selectedCourseId,
-      assignmentScore: g.assignmentScore,
-      midtermScore: g.midtermScore,
-      behaviorScore: g.behaviorScore,
-      finalScore: g.finalScore,
-      remarks: g.remarks || undefined,
-    }));
+    if (!canGradeCurrentCourse) {
+      toast.error(`คุณไม่มีสิทธิ์บันทึกเกรดในวิชานี้ (อาจารย์ผู้สอน: ${currentCourseInstructorName})`);
+      return;
+    }
+    const listToSave = currentClassGrades.map((g) => {
+      const trimmedRemarks = (g.remarks || "").trim();
+      const explicitStatus = ["ร", "มส", "0"].includes(trimmedRemarks)
+        ? trimmedRemarks
+        : (g.grade === "ร" || g.grade === "มส" || g.grade === "0" ? g.grade : undefined);
+
+      return {
+        studentId: g.studentId,
+        courseId: g.courseId || selectedCourseId,
+        academicYear: selectedAcademicYear,
+        semester: selectedGradingSemester,
+        assignmentScore: g.assignmentScore,
+        midtermScore: g.midtermScore,
+        behaviorScore: g.behaviorScore,
+        finalScore: g.finalScore,
+        remarks: g.remarks || "",
+        explicitStatus,
+      };
+    });
 
     startTransition(async () => {
       try {
         const res = await saveBatchGradesAction(listToSave);
         if (res.ok) {
-          toast.success("บันทึกคะแนนและตัดเกรดเรียบร้อยแล้ว");
+          toast.success(
+            `บันทึกและส่งผลการเรียนวิชา ${selectedCourse?.courseCode || ""} ห้อง ${selectedClassRoom} (โดย ${currentCourseInstructorName}) เรียบร้อยแล้ว`,
+          );
         } else {
           toast.error(res.error.message || "บันทึกคะแนนไม่สำเร็จ");
         }
@@ -998,10 +1292,14 @@ export function RegistrationClient({
       const course = courses.find((c) => c.id === selectedCourseId);
       const totalWeight =
         gradingScheme.maxAssignment + gradingScheme.maxMidterm + gradingScheme.maxBehavior + gradingScheme.maxFinal;
-      filename = `Grading_${selectedClassRoom}_${course?.courseCode || "course"}_${selectedAcademicYear}.csv`;
-      csvContent += `เลขที่,รหัสนักเรียน,ชื่อ-สกุล,ชั้น/ห้อง,รหัสวิชา,ชื่อวิชา,เวลาเรียน(%),คะแนนเก็บ(${gradingScheme.maxAssignment}),กลางภาค(${gradingScheme.maxMidterm}),จิตพิสัย(${gradingScheme.maxBehavior}),ปลายภาค(${gradingScheme.maxFinal}),รวม(${totalWeight}),เกรด,หมายเหตุ\n`;
+      filename = `Grading_${selectedClassRoom}_${course?.courseCode || "course"}_${selectedAcademicYear}_Sem${selectedGradingSemester}.csv`;
+      csvContent += enableAttendance
+        ? `ปีการศึกษา,ภาคเรียน,เลขที่,รหัสนักเรียน,ชื่อ-สกุล,ชั้น/ห้อง,รหัสวิชา,ชื่อวิชา,อาจารย์ผู้สอน,เวลาเรียน(%),คะแนนเก็บ(${gradingScheme.maxAssignment}),กลางภาค(${gradingScheme.maxMidterm}),จิตพิสัย(${gradingScheme.maxBehavior}),ปลายภาค(${gradingScheme.maxFinal}),รวม(${totalWeight}),เกรด,หมายเหตุ\n`
+        : `ปีการศึกษา,ภาคเรียน,เลขที่,รหัสนักเรียน,ชื่อ-สกุล,ชั้น/ห้อง,รหัสวิชา,ชื่อวิชา,อาจารย์ผู้สอน,คะแนนเก็บ(${gradingScheme.maxAssignment}),กลางภาค(${gradingScheme.maxMidterm}),จิตพิสัย(${gradingScheme.maxBehavior}),ปลายภาค(${gradingScheme.maxFinal}),รวม(${totalWeight}),เกรด,หมายเหตุ\n`;
       for (const g of currentClassGrades) {
-        csvContent += `"${g.seatNo}","${g.studentCode}","${g.studentName}","${g.classRoom}","${g.courseCode}","${g.courseName}","${g.attendancePercent ?? 100}%","${g.assignmentScore}","${g.midtermScore}","${g.behaviorScore}","${g.finalScore}","${g.totalScore}","${g.grade}","${g.remarks || ""}"\n`;
+        csvContent += enableAttendance
+          ? `"${selectedAcademicYear}","${selectedGradingSemester}","${g.seatNo}","${g.studentCode}","${g.studentName}","${g.classRoom}","${g.courseCode}","${g.courseName}","${currentCourseInstructorName}","${g.attendancePercent ?? 100}%","${g.assignmentScore}","${g.midtermScore}","${g.behaviorScore}","${g.finalScore}","${g.totalScore}","${g.grade}","${g.remarks || ""}"\n`
+          : `"${selectedAcademicYear}","${selectedGradingSemester}","${g.seatNo}","${g.studentCode}","${g.studentName}","${g.classRoom}","${g.courseCode}","${g.courseName}","${currentCourseInstructorName}","${g.assignmentScore}","${g.midtermScore}","${g.behaviorScore}","${g.finalScore}","${g.totalScore}","${g.grade}","${g.remarks || ""}"\n`;
       }
     } else if (type === "attendance") {
       const course = courses.find((c) => c.id === selectedCourseId);
@@ -1062,7 +1360,7 @@ export function RegistrationClient({
         {/* Global Export & Action Cluster */}
         <div className="flex flex-wrap items-center gap-2.5">
           <Button
-            onClick={() => handleExportCSV(activeTab === "grading" ? "grades" : activeTab === "attendance" ? "attendance" : "students")}
+            onClick={() => handleExportCSV(activeTab === "grading" ? "grades" : (activeTab === "attendance" && enableAttendance) ? "attendance" : "students")}
             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-semibold"
           >
             <FileSpreadsheet className="w-4 h-4" />
@@ -1095,7 +1393,7 @@ export function RegistrationClient({
         </div>
       </div>
 
-      {/* ═══ 4 Tab Navigation ═══ */}
+      {/* ═══ Tab Navigation ═══ */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
         <button
           type="button"
@@ -1123,18 +1421,20 @@ export function RegistrationClient({
           2. รายวิชาที่สอน ({courses.length})
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("attendance")}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
-            activeTab === "attendance"
-              ? "bg-blue-700 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
-        >
-          <CalendarCheck className="w-4 h-4" />
-          3. เช็คชื่อเข้าเรียน (Attendance)
-        </button>
+        {enableAttendance && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("attendance")}
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === "attendance"
+                ? "bg-blue-700 text-white shadow-sm"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            <CalendarCheck className="w-4 h-4" />
+            3. เช็คชื่อเข้าเรียน (Attendance)
+          </button>
+        )}
 
         <button
           type="button"
@@ -1146,8 +1446,21 @@ export function RegistrationClient({
           }`}
         >
           <Award className="w-4 h-4" />
-          4. บันทึกคะแนนและตัดเกรด (Grading)
+          {enableAttendance ? "4. บันทึกคะแนนและตัดเกรด (Grading)" : "3. บันทึกคะแนนและตัดเกรด (Grading)"}
         </button>
+
+        {/* ปุ่มสลับเปิด/ปิดแท็บเช็คชื่อเข้าเรียน (เมื่อต้องการเรียกใช้ทีหลัง) */}
+        <div className="ml-auto flex items-center">
+          <button
+            type="button"
+            onClick={() => setEnableAttendance(!enableAttendance)}
+            className="text-xs text-slate-500 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/50 transition-colors"
+            title={enableAttendance ? "คลิกเพื่อปิด/ซ่อนระบบเช็คชื่อเข้าเรียน" : "คลิกเพื่อเปิดระบบเช็คชื่อเข้าเรียน (Attendance)"}
+          >
+            <CalendarCheck className="w-3.5 h-3.5 text-blue-600" />
+            <span>{enableAttendance ? "ซ่อนแท็บเช็คชื่อ" : "เปิดใช้งานเช็คชื่อ (Attendance)"}</span>
+          </button>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -1560,9 +1873,9 @@ export function RegistrationClient({
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          TAB 3: ATTENDANCE CHECKING
+          TAB 3: ATTENDANCE CHECKING (เปิด/ปิด ได้ตามต้องการ)
       ═══════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "attendance" && (
+      {enableAttendance && activeTab === "attendance" && (
         <div className="space-y-4">
           {/* Attendance Controls Bar */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
@@ -1574,10 +1887,11 @@ export function RegistrationClient({
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedAcademicYear(e.target.value)}
                   className="w-full text-sm border border-slate-200 rounded-lg p-2 font-medium bg-slate-50/50"
                 >
-                  <option value="2569">2569 (ปัจจุบัน)</option>
-                  <option value="2568">2568</option>
-                  <option value="2567">2567</option>
-                  <option value="2570">2570</option>
+                  {academicYearsList.map((yr) => (
+                    <option key={yr} value={yr}>
+                      ปี {yr}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1787,100 +2101,247 @@ export function RegistrationClient({
       {activeTab === "grading" && (
         <div className="space-y-4">
           {/* Grading Controls Bar */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ปีการศึกษา:</label>
-                <select
-                  value={selectedAcademicYear}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedAcademicYear(e.target.value)}
-                  className="text-sm border border-slate-200 rounded-lg p-2 font-medium bg-slate-50/50 min-w-[120px]"
-                >
-                  <option value="2569">2569 (ปัจจุบัน)</option>
-                  <option value="2568">2568</option>
-                  <option value="2567">2567</option>
-                  <option value="2570">2570</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ระดับชั้น/ห้อง:</label>
-                <select
-                  value={selectedClassRoom}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedClassRoom(e.target.value)}
-                  className="text-sm border border-slate-200 rounded-lg p-2 font-medium min-w-[140px]"
-                >
-                  {classRooms.filter((c) => c !== "ALL").map((cr) => (
-                    <option key={cr} value={cr}>
-                      {cr}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  รายวิชาที่ตัดเกรด ({selectedClassRoom}):
-                </label>
-                <select
-                  value={selectedCourseId}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCourseId(e.target.value)}
-                  className="text-sm border border-slate-200 rounded-lg p-2 font-medium min-w-[220px]"
-                >
-                  {availableCourses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.courseCode} {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-3 bg-blue-50/70 border border-blue-200/80 rounded-xl px-3.5 py-2">
-                <div className="text-xs">
-                  <div className="text-slate-500 font-medium">สัดส่วนคะแนน ({selectedClassRoom}):</div>
-                  <div className="font-bold text-blue-900 flex items-center gap-1.5 flex-wrap">
-                    <span>เก็บ {gradingScheme.maxAssignment}%</span>
-                    <span>•</span>
-                    <span>กลางภาค {gradingScheme.maxMidterm}%</span>
-                    <span>•</span>
-                    <span>จิตพิสัย {gradingScheme.maxBehavior}%</span>
-                    <span>•</span>
-                    <span>ปลายภาค {gradingScheme.maxFinal}%</span>
-                    <span className="text-blue-700 font-black">
-                      (= {gradingScheme.maxAssignment + gradingScheme.maxMidterm + gradingScheme.maxBehavior + gradingScheme.maxFinal}%)
-                    </span>
-                    <span className="text-slate-400">|</span>
-                    <span className="text-xs font-normal text-slate-600">
-                      เวลาเรียนขั้นต่ำ {gradingScheme.minAttendancePercent ?? 80}%
-                    </span>
-                  </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+              <div className="flex flex-wrap items-end gap-3.5">
+                {/* 1. ปีการศึกษา */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ปีการศึกษา:</label>
+                  <select
+                    value={selectedAcademicYear}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedAcademicYear(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg p-2 font-semibold bg-slate-50/70 min-w-[120px] text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  >
+                    {academicYearsList.map((yr) => (
+                      <option key={yr} value={yr}>
+                        ปี {yr}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
+                {/* 2. ภาคเรียน */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">เทอม:</label>
+                  <select
+                    value={String(selectedGradingSemester)}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedGradingSemester(Number(e.target.value))}
+                    className="text-sm border border-slate-200 rounded-lg p-2 font-semibold bg-slate-50/70 min-w-[110px] text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  >
+                    <option value="1">เทอม 1</option>
+                    <option value="2">เทอม 2</option>
+                  </select>
+                </div>
+
+                {/* 3. ระดับชั้น/ห้อง (เชื่อมโยงตรงกับ 1. รายชื่อนักเรียน ตามปีการศึกษาและเทอม) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    ระดับชั้น/ห้อง (ปี {selectedAcademicYear} เทอม {selectedGradingSemester}):
+                  </label>
+                  <select
+                    value={selectedClassRoom}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedClassRoom(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg p-2 font-semibold min-w-[180px] text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  >
+                    <optgroup label="ห้องเรียนเฉพาะ">
+                      {gradingClassRooms.map((cr) => {
+                        const count = students.filter(
+                          (s) =>
+                            s.classRoom === cr &&
+                            (s.academicYear || "2569") === selectedAcademicYear &&
+                            (s.semester ?? 1) === selectedGradingSemester,
+                        ).length;
+                        return (
+                          <option key={cr} value={cr}>
+                            ห้อง {cr} ({count} คน)
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                    <optgroup label="ระดับชั้น (แสดงทุกห้อง)">
+                      {["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"].map((lv) => {
+                        const lvCount = students.filter(
+                          (s) =>
+                            s.classRoom.startsWith(lv) &&
+                            (s.academicYear || "2569") === selectedAcademicYear &&
+                            (s.semester ?? 1) === selectedGradingSemester,
+                        ).length;
+                        return (
+                          <option key={lv} value={lv}>
+                            ชั้น {lv} ทั้งหมด ({lvCount} คน)
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                  </select>
+                </div>
+
+                {/* 4. รายวิชาที่ตัดเกรด (เชื่อมโยงตามระดับชั้น/ห้อง และเทอม) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    รายวิชาที่ตัดเกรด ({selectedClassRoom}):
+                  </label>
+                  <select
+                    value={selectedCourseId}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCourseId(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg p-2 font-semibold min-w-[260px] text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  >
+                    {availableCourses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.courseCode} {c.name} {c.instructorName ? `— อ.${c.instructorName}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 5. อาจารย์ผู้สอนประจำวิชา (แสดงชื่อและเลือก/เปลี่ยนอาจารย์ผู้สอนได้) */}
+                <div>
+                  <label className="block text-xs font-bold text-emerald-800 mb-1 flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    อาจารย์ผู้สอนประจำวิชา ({selectedClassRoom}):
+                  </label>
+                  <select
+                    value={selectedCourse?.instructorId || selectedCourse?.instructorName || currentCourseInstructorName}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => handleAssignInstructorToCourse(e.target.value)}
+                    disabled={isPending}
+                    className="text-sm border border-emerald-300 bg-emerald-50/60 text-emerald-950 rounded-lg p-2 font-bold min-w-[210px] focus:border-emerald-600 focus:outline-hidden"
+                    title="ชื่ออาจารย์ผู้สอนประจำวิชานี้ (สามารถเลือกเพื่อกำหนดอาจารย์ผู้สอนได้)"
+                  >
+                    {selectedCourse?.instructorName &&
+                      !instructors.some(
+                        (inst) =>
+                          inst.fullName === selectedCourse.instructorName || inst.id === selectedCourse.instructorId,
+                      ) && (
+                        <option value={selectedCourse.instructorName}>
+                          {selectedCourse.instructorName} (อาจารย์ผู้สอน)
+                        </option>
+                      )}
+                    {instructors.map((inst) => (
+                      <option key={inst.id} value={inst.id}>
+                        {inst.fullName} {inst.position ? `(${inst.position})` : ""}
+                      </option>
+                    ))}
+                    {instructors.length === 0 && !selectedCourse?.instructorName && (
+                      <option value={currentCourseInstructorName}>{currentCourseInstructorName}</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button
-                  size="sm"
+                  onClick={() => handleExportCSV("grades")}
                   variant="outline"
-                  onClick={openSchemeModal}
-                  className="h-8 gap-1.5 text-xs bg-white text-blue-700 border-blue-300 hover:bg-blue-100 font-semibold shadow-2xs"
+                  disabled={currentClassGrades.length === 0}
+                  className="gap-2 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5" /> กำหนดเกณฑ์คะแนน
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> ส่งออก ปพ.5 (CSV)
+                </Button>
+                <Button
+                  onClick={handleSaveAllGrades}
+                  disabled={isPending || !canGradeCurrentCourse || currentClassGrades.length === 0}
+                  className="gap-2 bg-blue-700 hover:bg-blue-800 text-white disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" /> บันทึกและส่งผลการเรียน
                 </Button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => handleExportCSV("grades")}
-                variant="outline"
-                className="gap-2 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> ส่งออก ปพ.5 (CSV)
-              </Button>
-              <Button
-                onClick={handleSaveAllGrades}
-                disabled={isPending}
-                className="gap-2 bg-blue-700 hover:bg-blue-800 text-white"
-              >
-                <Save className="w-4 h-4" /> บันทึกผลการเรียนทั้งหมด
-              </Button>
+            {/* Linked Info & Instructor Permission Bar */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              {/* Left: Linked Summary & Instructor Badge */}
+              <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 font-bold">
+                  📅 ปีการศึกษา {selectedAcademicYear} / เทอม {selectedGradingSemester}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-900 border border-indigo-200/80 font-bold">
+                  🏫 {selectedClassRoom.length === 3 ? `ชั้น ${selectedClassRoom}` : `ห้อง ${selectedClassRoom}`} (พบนักเรียน {currentClassStudents.length} คน)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-900 border border-blue-200/80 font-bold">
+                  📘 {selectedCourse?.courseCode} {selectedCourse?.name} ({selectedCourse?.credits ?? 1.0} หน่วยกิต)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200 font-bold">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  อาจารย์ผู้สอน: <span className="underline decoration-emerald-400">{currentCourseInstructorName}</span>
+                </span>
+
+                {/* Grading Scheme Pill */}
+                <div className="inline-flex items-center gap-2 bg-blue-50/70 border border-blue-200/80 rounded-lg px-3 py-1">
+                  <span className="text-slate-600 font-medium">สัดส่วนคะแนน:</span>
+                  <span className="font-bold text-blue-900">
+                    เก็บ {gradingScheme.maxAssignment}% • กลางภาค {gradingScheme.maxMidterm}% • จิตพิสัย{" "}
+                    {gradingScheme.maxBehavior}% • ปลายภาค {gradingScheme.maxFinal}% (=
+                    {gradingScheme.maxAssignment +
+                      gradingScheme.maxMidterm +
+                      gradingScheme.maxBehavior +
+                      gradingScheme.maxFinal}
+                    %)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={openSchemeModal}
+                    disabled={!canGradeCurrentCourse}
+                    className="ml-1 inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 underline disabled:opacity-50"
+                  >
+                    <SlidersHorizontal className="w-3 h-3" /> ตั้งค่าเกณฑ์
+                  </button>
+                </div>
+              </div>
+
+              {/* Right: Instructor Permission Status & Course Filter by Instructor */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-slate-500 font-medium">กรองวิชาตามผู้สอน:</span>
+                  <select
+                    value={filterGradingInstructor}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterGradingInstructor(e.target.value)}
+                    className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white font-semibold text-slate-700"
+                  >
+                    <option value="ALL">แสดงทุกวิชาของชั้น {selectedClassRoom}</option>
+                    {Array.from(
+                      new Set(
+                        courses
+                          .map((c) => c.instructorName)
+                          .filter((name): name is string => Boolean(name && name.trim() !== "")),
+                      ),
+                    ).map((instName) => (
+                      <option key={instName} value={instName}>
+                        เฉพาะวิชาของ {instName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-slate-500 font-medium">สิทธิ์ผู้ใช้งานขณะนี้:</span>
+                  <select
+                    value={activeGradingInstructor}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setActiveGradingInstructor(e.target.value)}
+                    className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white font-semibold text-slate-700"
+                    title="จำลองหรือเลือกสิทธิ์อาจารย์ผู้สอนในการกรอกเกรด"
+                  >
+                    <option value="AUTO">
+                      อาจารย์ผู้สอนประจำวิชา ({currentCourseInstructorName}) / ผู้ดูแลระบบ
+                    </option>
+                    {instructors.map((inst) => (
+                      <option key={inst.id} value={inst.fullName}>
+                        เข้าใช้งานในชื่อ: {inst.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {canGradeCurrentCourse ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <Check className="w-3.5 h-3.5" /> มีสิทธิ์กรอกเกรดและบันทึกส่ง ({currentCourseInstructorName})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                    <AlertCircle className="w-3.5 h-3.5" /> เฉพาะอาจารย์ผู้สอน ({currentCourseInstructorName}) เท่านั้นที่มีสิทธิ์แก้ไข
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1893,7 +2354,11 @@ export function RegistrationClient({
                     <th className="py-3 px-3 w-12 text-center">เลขที่</th>
                     <th className="py-3 px-3 w-28">รหัสนักเรียน</th>
                     <th className="py-3 px-3 min-w-[160px]">ชื่อ - นามสกุล</th>
-                    <th className="py-3 px-2 text-center w-24">เวลาเรียน</th>
+                    <th className="py-3 px-2 w-24 text-center">ชั้น/ห้อง</th>
+                    <th className="py-3 px-2 min-w-[140px]">อาจารย์ผู้สอน</th>
+                    {enableAttendance && (
+                      <th className="py-3 px-2 text-center w-24">เวลาเรียน</th>
+                    )}
                     <th className="py-3 px-2 text-center w-24">คะแนนเก็บ ({gradingScheme.maxAssignment})</th>
                     <th className="py-3 px-2 text-center w-24">กลางภาค ({gradingScheme.maxMidterm})</th>
                     <th className="py-3 px-2 text-center w-24">จิตพิสัย ({gradingScheme.maxBehavior})</th>
@@ -1902,94 +2367,127 @@ export function RegistrationClient({
                       รวม ({gradingScheme.maxAssignment + gradingScheme.maxMidterm + gradingScheme.maxBehavior + gradingScheme.maxFinal})
                     </th>
                     <th className="py-3 px-3 text-center w-24 font-black">เกรด</th>
-                    <th className="py-3 px-3 w-32">หมายเหตุ</th>
+                    <th className="py-3 px-3 w-36 text-center">หมายเหตุ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {currentClassGrades.map((g) => {
-                    const attPercent = g.attendancePercent ?? 100;
-                    const minAtt = gradingScheme.minAttendancePercent ?? 80;
-                    const isMS = attPercent < minAtt;
+                  {currentClassGrades.length === 0 ? (
+                    <tr>
+                      <td colSpan={enableAttendance ? 13 : 12} className="text-center py-10 text-slate-400">
+                        ไม่พบข้อมูลนักเรียนที่ตรงกับเงื่อนไขที่เลือก (ปีการศึกษา {selectedAcademicYear} เทอม {selectedGradingSemester}{" "}
+                        {selectedClassRoom.length === 3 ? `ชั้น ${selectedClassRoom}` : `ห้อง ${selectedClassRoom}`})
+                      </td>
+                    </tr>
+                  ) : (
+                    currentClassGrades.map((g) => {
+                      const attPercent = g.attendancePercent ?? 100;
+                      const minAtt = gradingScheme.minAttendancePercent ?? 80;
+                      const isMS = enableAttendance ? attPercent < minAtt : (g.grade === "มส" || g.remarks === "มส");
 
-                    const getGradeBadge = (grade: string) => {
-                      if (grade === "มส") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-red-100 text-red-700 border border-red-300">มส</span>;
-                      if (grade === "ร") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">ร</span>;
-                      if (grade === "4" || grade === "3.5") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">{grade}</span>;
-                      if (grade === "3" || grade === "2.5") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-blue-100 text-blue-800 border border-blue-300">{grade}</span>;
-                      if (grade === "2" || grade === "1.5" || grade === "1") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-amber-50 text-amber-800 border border-amber-200">{grade}</span>;
-                      return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-slate-100 text-slate-700 border border-slate-300">0</span>;
-                    };
+                      const getGradeBadge = (grade: string) => {
+                        if (grade === "มส") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-red-100 text-red-700 border border-red-300">มส</span>;
+                        if (grade === "ร") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">ร</span>;
+                        if (grade === "4" || grade === "3.5") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">{grade}</span>;
+                        if (grade === "3" || grade === "2.5") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-blue-100 text-blue-800 border border-blue-300">{grade}</span>;
+                        if (grade === "2" || grade === "1.5" || grade === "1") return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-amber-50 text-amber-800 border border-amber-200">{grade}</span>;
+                        return <span className="px-2.5 py-1 rounded-md text-xs font-black bg-slate-100 text-slate-700 border border-slate-300">0</span>;
+                      };
 
-                    return (
-                      <tr key={g.studentId} className={`hover:bg-slate-50/80 transition-colors ${isMS ? "bg-red-50/30" : ""}`}>
-                        <td className="py-2.5 px-3 text-center font-bold text-slate-700">{g.seatNo}</td>
-                        <td className="py-2.5 px-3 font-mono text-xs font-semibold text-blue-700">{g.studentCode}</td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-900">{g.studentName}</td>
-                        <td className="py-2.5 px-2 text-center">
-                          <span className={`text-xs font-bold ${isMS ? "text-red-600" : "text-emerald-700"}`}>
-                            {attPercent}%
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-2 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            max={gradingScheme.maxAssignment}
-                            step="0.5"
-                            value={g.assignmentScore || ""}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleScoreChange(g.studentId, "assignmentScore", e.target.value)}
-                            className="w-16 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden"
-                            placeholder="0"
-                          />
-                        </td>
-                        <td className="py-2.5 px-2 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            max={gradingScheme.maxMidterm}
-                            step="0.5"
-                            value={g.midtermScore || ""}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleScoreChange(g.studentId, "midtermScore", e.target.value)}
-                            className="w-16 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden"
-                            placeholder="0"
-                          />
-                        </td>
-                        <td className="py-2.5 px-2 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            max={gradingScheme.maxBehavior}
-                            step="0.5"
-                            value={g.behaviorScore || ""}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleScoreChange(g.studentId, "behaviorScore", e.target.value)}
-                            className="w-16 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden"
-                            placeholder="0"
-                          />
-                        </td>
-                        <td className="py-2.5 px-2 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            max={gradingScheme.maxFinal}
-                            step="0.5"
-                            value={g.finalScore || ""}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleScoreChange(g.studentId, "finalScore", e.target.value)}
-                            className="w-16 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden"
-                            placeholder="0"
-                          />
-                        </td>
-                        <td className="py-2.5 px-2 text-center">
-                          <span className="font-mono text-sm font-black text-slate-900">{g.totalScore}</span>
-                        </td>
-                        <td className="py-2.5 px-3 text-center">{getGradeBadge(g.grade)}</td>
-                        <td className="py-2.5 px-3">
-                          <span className="text-xs text-slate-500 truncate block max-w-[120px]">
-                            {isMS ? `เวลาเรียนไม่ถึง ${minAtt}%` : g.remarks || "-"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                      return (
+                        <tr key={g.studentId} className={`hover:bg-slate-50/80 transition-colors ${isMS ? "bg-red-50/30" : ""}`}>
+                          <td className="py-2.5 px-3 text-center font-bold text-slate-700">{g.seatNo}</td>
+                          <td className="py-2.5 px-3 font-mono text-xs font-semibold text-blue-700">{g.studentCode}</td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">{g.studentName}</td>
+                          <td className="py-2.5 px-2 text-center">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              {g.classRoom}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2 text-xs font-medium text-emerald-800">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/70">
+                              <UserCheck className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span className="truncate max-w-[140px]">{currentCourseInstructorName}</span>
+                            </span>
+                          </td>
+                          {enableAttendance && (
+                            <td className="py-2.5 px-2 text-center">
+                              <span className={`text-xs font-bold ${isMS ? "text-red-600" : "text-emerald-700"}`}>
+                                {attPercent}%
+                              </span>
+                            </td>
+                          )}
+                          <td className="py-2.5 px-2 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max={gradingScheme.maxAssignment}
+                              step="0.5"
+                              disabled={!canGradeCurrentCourse}
+                              value={g.assignmentScore || ""}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => handleScoreChange(g.studentId, "assignmentScore", e.target.value)}
+                              className="w-16 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                              placeholder="0"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max={gradingScheme.maxMidterm}
+                              step="0.5"
+                              disabled={!canGradeCurrentCourse}
+                              value={g.midtermScore || ""}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => handleScoreChange(g.studentId, "midtermScore", e.target.value)}
+                              className="w-16 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                              placeholder="0"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max={gradingScheme.maxBehavior}
+                              step="0.5"
+                              disabled={!canGradeCurrentCourse}
+                              value={g.behaviorScore || ""}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => handleScoreChange(g.studentId, "behaviorScore", e.target.value)}
+                              className="w-16 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                              placeholder="0"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max={gradingScheme.maxFinal}
+                              step="0.5"
+                              disabled={!canGradeCurrentCourse}
+                              value={g.finalScore || ""}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => handleScoreChange(g.studentId, "finalScore", e.target.value)}
+                              className="w-16 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                              placeholder="0"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2 text-center">
+                            <span className="font-mono text-sm font-black text-slate-900">{g.totalScore}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">{getGradeBadge(g.grade)}</td>
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="text"
+                              disabled={!canGradeCurrentCourse}
+                              value={g.remarks || ""}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => handleRemarksChange(g.studentId, e.target.value)}
+                              placeholder="0, ร, มส, ..."
+                              className="w-28 text-center text-xs p-1.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-hidden bg-white shadow-2xs font-semibold disabled:bg-slate-100 disabled:text-slate-400"
+                              maxLength={50}
+                              title="กรอกหมายเหตุ เช่น 0, ร, มส หรือข้อความอื่นๆ"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

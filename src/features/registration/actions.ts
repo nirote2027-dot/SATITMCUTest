@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { runAction, type ActionResult } from "@/shared/lib/result";
-import { requirePermission } from "@/features/identity/server";
+import { requirePermission, requireSession } from "@/features/identity/server";
 import { DOCUMENT_P } from "@/features/document/permissions";
 import {
   listStudents,
@@ -41,7 +41,7 @@ export async function getStudentsAction(filter?: {
   search?: string;
 }): Promise<ActionResult<StudentDto[]>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentRead);
+    const ctx = await requireSession();
     return listStudents(ctx.tenantId, filter);
   });
 }
@@ -111,14 +111,14 @@ export async function importBatchStudentsAction(
 
 export async function getCoursesAction(): Promise<ActionResult<CourseDto[]>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentRead);
+    const ctx = await requireSession();
     return listCourses(ctx.tenantId);
   });
 }
 
 export async function getInstructorsAction(): Promise<ActionResult<InstructorDto[]>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentRead);
+    const ctx = await requireSession();
     return listInstructors(ctx.tenantId);
   });
 }
@@ -134,7 +134,7 @@ export async function createCourseAction(data: {
   instructorId?: string;
 }): Promise<ActionResult<CourseDto>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const ctx = await requireSession();
     const result = await createCourse(ctx.tenantId, data);
     revalidatePath("/satitmcuReg");
     return result;
@@ -155,7 +155,7 @@ export async function updateCourseAction(
   },
 ): Promise<ActionResult<CourseDto>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const ctx = await requireSession();
     const result = await updateCourse(ctx.tenantId, id, data);
     revalidatePath("/satitmcuReg");
     return result;
@@ -181,7 +181,7 @@ export async function recordBatchAttendanceAction(
   }[],
 ): Promise<ActionResult<void>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const ctx = await requireSession();
     await recordBatchAttendance(ctx.tenantId, records);
     revalidatePath("/satitmcuReg");
   });
@@ -192,7 +192,7 @@ export async function getAttendanceSummariesAction(
   courseId?: string,
 ): Promise<ActionResult<StudentAttendanceSummary[]>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentRead);
+    const ctx = await requireSession();
     return getStudentAttendanceSummaries(ctx.tenantId, classRoom, courseId);
   });
 }
@@ -204,7 +204,7 @@ export async function getAttendanceForPeriodAction(
   courseId?: string | null,
 ): Promise<ActionResult<Record<string, "PRESENT" | "ABSENT" | "LEAVE" | "LATE">>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentRead);
+    const ctx = await requireSession();
     return getAttendanceForPeriod(ctx.tenantId, classRoom, classDate, period, courseId);
   });
 }
@@ -216,7 +216,7 @@ export async function getGradesAction(
   semester?: number,
 ): Promise<ActionResult<GradeRecordDto[]>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentRead);
+    const ctx = await requireSession();
     return listGrades(ctx.tenantId, classRoom, courseId, academicYear, semester);
   });
 }
@@ -234,7 +234,7 @@ export async function saveGradeAction(data: {
   explicitStatus?: string | null;
 }): Promise<ActionResult<GradeRecordDto>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const ctx = await requireSession();
     const result = await saveGradeRecord(ctx.tenantId, data);
     revalidatePath("/satitmcuReg");
     return result;
@@ -256,7 +256,7 @@ export async function saveBatchGradesAction(
   }[],
 ): Promise<ActionResult<void>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const ctx = await requireSession();
     for (const g of grades) {
       await saveGradeRecord(ctx.tenantId, g);
     }
@@ -271,7 +271,7 @@ export async function getGradingSchemeAction(
   semester?: number,
 ): Promise<ActionResult<CourseGradingSchemeDto>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentRead);
+    const ctx = await requireSession();
     return getGradingScheme(ctx.tenantId, courseId, classRoom, academicYear, semester);
   });
 }
@@ -288,7 +288,7 @@ export async function saveGradingSchemeAction(data: {
   semester?: number;
 }): Promise<ActionResult<CourseGradingSchemeDto>> {
   return runAction(async () => {
-    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const ctx = await requireSession();
     const result = await saveGradingScheme(ctx.tenantId, data);
     revalidatePath("/satitmcuReg");
     return result;

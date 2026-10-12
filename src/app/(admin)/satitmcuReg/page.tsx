@@ -1,8 +1,9 @@
-import { requirePermission, hasPermission } from "@/features/identity/server";
+import { requireSession, hasPermission } from "@/features/identity/server";
 import { DOCUMENT_P } from "@/features/document/permissions";
 import {
   listStudents,
   listCourses,
+  listInstructors,
   getStudentAttendanceSummaries,
   listGrades,
   getGradingScheme,
@@ -10,10 +11,11 @@ import {
 import { RegistrationClient } from "./_components/registration-client";
 
 export default async function SatitmcuRegPage() {
-  const ctx = await requirePermission(DOCUMENT_P.documentRead);
-  const [students, courses] = await Promise.all([
+  const ctx = await requireSession();
+  const [students, courses, instructors] = await Promise.all([
     listStudents(ctx.tenantId),
     listCourses(ctx.tenantId),
+    listInstructors(ctx.tenantId),
   ]);
 
   const defaultCourse = courses[0];
@@ -40,10 +42,17 @@ export default async function SatitmcuRegPage() {
     <RegistrationClient
       initialStudents={students}
       initialCourses={courses}
+      initialInstructors={instructors}
       initialAttendanceSummaries={attendanceSummaries}
       initialGrades={grades}
       initialGradingScheme={gradingScheme}
-      canManage={hasPermission(ctx, DOCUMENT_P.documentManage)}
+      canManage={ctx.isSuperAdmin || hasPermission(ctx, DOCUMENT_P.documentManage)}
+      currentUser={{
+        id: ctx.userId,
+        name: ctx.userName,
+        email: ctx.email,
+        isSuperAdmin: ctx.isSuperAdmin,
+      }}
     />
   );
 }
