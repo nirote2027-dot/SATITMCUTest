@@ -23,6 +23,7 @@ import {
   Upload,
   GraduationCap,
   UserCheck,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ import {
   getAttendanceSummariesAction,
   getAttendanceForPeriodAction,
 } from "@/features/registration";
+import { PP6ReportClient } from "./pp6-report-client";
 
 interface Props {
   initialStudents: StudentDto[];
@@ -122,7 +124,7 @@ export function RegistrationClient({
   canManage,
   currentUser,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"students" | "courses" | "attendance" | "grading">("students");
+  const [activeTab, setActiveTab] = useState<"students" | "courses" | "attendance" | "grading" | "pp6">("students");
   // Attendance Feature Toggle (ปิดไว้ก่อนตามที่ต้องการ เมื่อต้องการใช้งานสามารถเปิดใช้ทีหลังได้)
   const [enableAttendance, setEnableAttendance] = useState<boolean>(false);
 
@@ -444,10 +446,15 @@ export function RegistrationClient({
       if (studentFilterSemester !== "ALL" && (s.semester ?? 1) !== Number(studentFilterSemester)) {
         return false;
       }
-      // Classroom / Grade filter (e.g. "ม.4" matches all "ม.4/*")
+      // Classroom / Grade filter (e.g. "ม.4" matches all "ม.4/*", "4/*", "4")
       if (studentFilterClass !== "ALL") {
         if (/^ม\.[1-6]$/.test(studentFilterClass)) {
-          if (!s.classRoom.startsWith(studentFilterClass)) return false;
+          const gradeNum = studentFilterClass.replace("ม.", "");
+          const matchesGrade =
+            s.classRoom.startsWith(studentFilterClass) ||
+            s.classRoom.startsWith(`${gradeNum}/`) ||
+            s.classRoom === gradeNum;
+          if (!matchesGrade) return false;
         } else if (s.classRoom !== studentFilterClass) {
           return false;
         }
@@ -706,8 +713,8 @@ export function RegistrationClient({
 
   // Save Student
   const handleSaveStudent = () => {
-    if (!formStudentCode || !formFirstName || !formLastName) {
-      toast.error("กรุณากรอกข้อมูลนักเรียนให้ครบถ้วน");
+    if (!formStudentCode || !formFirstName || !formLastName || !formClassRoom.trim()) {
+      toast.error("กรุณากรอกข้อมูลนักเรียนและระดับชั้น/ห้องให้ครบถ้วน");
       return;
     }
 
@@ -715,14 +722,14 @@ export function RegistrationClient({
       try {
         if (editingStudent) {
           const res = await updateStudentAction(editingStudent.id, {
-            studentCode: formStudentCode,
+            studentCode: formStudentCode.trim(),
             title: formTitle,
-            firstName: formFirstName,
-            lastName: formLastName,
-            classRoom: formClassRoom,
+            firstName: formFirstName.trim(),
+            lastName: formLastName.trim(),
+            classRoom: formClassRoom.trim(),
             seatNo: Number(formSeatNo),
             gender: formGender,
-            academicYear: formAcademicYear,
+            academicYear: formAcademicYear.trim(),
             semester: Number(formSemester),
             status: formStatus,
           });
@@ -735,14 +742,14 @@ export function RegistrationClient({
           setStudentModalOpen(false);
         } else {
           const res = await createStudentAction({
-            studentCode: formStudentCode,
+            studentCode: formStudentCode.trim(),
             title: formTitle,
-            firstName: formFirstName,
-            lastName: formLastName,
-            classRoom: formClassRoom,
+            firstName: formFirstName.trim(),
+            lastName: formLastName.trim(),
+            classRoom: formClassRoom.trim(),
             seatNo: Number(formSeatNo),
             gender: formGender,
-            academicYear: formAcademicYear,
+            academicYear: formAcademicYear.trim(),
             semester: Number(formSemester),
             status: formStatus,
           });
@@ -1342,9 +1349,9 @@ export function RegistrationClient({
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 print:p-0 print:space-y-0 print:m-0">
       {/* ═══ Top Header & Stats ═══ */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs print:hidden">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold mb-2">
             <Award className="w-3.5 h-3.5" /> ทะเบียนและวัดผล สำหรับบุคลากร (Registration & Evaluation)
@@ -1394,7 +1401,7 @@ export function RegistrationClient({
       </div>
 
       {/* ═══ Tab Navigation ═══ */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3 print:hidden">
         <button
           type="button"
           onClick={() => setActiveTab("students")}
@@ -1447,6 +1454,19 @@ export function RegistrationClient({
         >
           <Award className="w-4 h-4" />
           {enableAttendance ? "4. บันทึกคะแนนและตัดเกรด (Grading)" : "3. บันทึกคะแนนและตัดเกรด (Grading)"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("pp6")}
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+            activeTab === "pp6"
+              ? "bg-blue-700 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          {enableAttendance ? "5. แบบ ปพ. 6 (รายงานผลการเรียนรายบุคคล)" : "4. แบบ ปพ. 6 (รายงานผลการเรียนรายบุคคล)"}
         </button>
 
         {/* ปุ่มสลับเปิด/ปิดแท็บเช็คชื่อเข้าเรียน (เมื่อต้องการเรียกใช้ทีหลัง) */}
@@ -2495,6 +2515,15 @@ export function RegistrationClient({
         </div>
       )}
 
+      {/* ═══ Tab 5: แบบ ปพ. 6 (รายงานผลการเรียนรายบุคคล) ═══ */}
+      {activeTab === "pp6" && (
+        <PP6ReportClient
+          students={students}
+          courses={courses}
+          initialGrades={grades}
+        />
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════════════
           MODAL: CREATE / EDIT STUDENT
       ═══════════════════════════════════════════════════════════════════════ */}
@@ -2530,24 +2559,13 @@ export function RegistrationClient({
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">ระดับชั้น/ห้อง *</label>
-                <select
+                <input
+                  type="text"
                   value={formClassRoom}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormClassRoom(e.target.value)}
-                  className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white font-medium"
-                >
-                  <option value="ม.1/1">ม.1/1</option>
-                  <option value="ม.1/2">ม.1/2</option>
-                  <option value="ม.2/1">ม.2/1</option>
-                  <option value="ม.2/2">ม.2/2</option>
-                  <option value="ม.3/1">ม.3/1</option>
-                  <option value="ม.3/2">ม.3/2</option>
-                  <option value="ม.4/1">ม.4/1</option>
-                  <option value="ม.4/2">ม.4/2</option>
-                  <option value="ม.5/1">ม.5/1</option>
-                  <option value="ม.5/2">ม.5/2</option>
-                  <option value="ม.6/1">ม.6/1</option>
-                  <option value="ม.6/2">ม.6/2</option>
-                </select>
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClassRoom(e.target.value)}
+                  placeholder="เช่น 4/1, ม.4/1 หรือ 4"
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white font-medium focus:border-blue-500 focus:outline-hidden"
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">สถานะนักเรียน *</label>
@@ -3118,20 +3136,15 @@ export function RegistrationClient({
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">ระดับชั้น/ห้องเริ่มต้น:</label>
-                <select
+                <input
+                  type="text"
                   value={importDefaultClassRoom}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => handleReapplyDefaults(importDefaultYear, importDefaultSemester, e.target.value)}
-                  className="w-full text-xs border border-slate-200 rounded-lg p-1.5 bg-white font-medium"
-                >
-                  <option value="ม.1/1">ม.1/1</option>
-                  <option value="ม.1/2">ม.1/2</option>
-                  <option value="ม.2/1">ม.2/1</option>
-                  <option value="ม.3/1">ม.3/1</option>
-                  <option value="ม.4/1">ม.4/1</option>
-                  <option value="ม.4/2">ม.4/2</option>
-                  <option value="ม.5/1">ม.5/1</option>
-                  <option value="ม.6/1">ม.6/1</option>
-                </select>
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    handleReapplyDefaults(importDefaultYear, importDefaultSemester, e.target.value)
+                  }
+                  placeholder="เช่น 4/1, ม.4/1 หรือ 4"
+                  className="w-full text-xs border border-slate-200 rounded-lg p-1.5 bg-white font-medium focus:border-blue-500 focus:outline-hidden"
+                />
               </div>
             </div>
 

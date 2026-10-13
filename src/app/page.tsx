@@ -4,6 +4,7 @@ import { prisma } from "@/shared/lib/infra/prisma";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { Hero3DCoinScene } from "@/components/home/hero-3d-coin-scene";
+import { CurriculumSection } from "@/components/home/curriculum-section";
 import {
   GraduationCap,
   Newspaper,
@@ -180,7 +181,7 @@ export default async function HomePage() {
               href="#news"
               className="px-7 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm border border-white/20 backdrop-blur-md shadow-lg transition-all hover:scale-105"
             >
-              ข่าวสารและกิจกรรมล่าสุด
+              ข่าวประชาสัมพันธ์
             </Link>
 
             {session?.user && (
@@ -233,7 +234,7 @@ export default async function HomePage() {
             <div className="inline-flex items-center gap-1.5 text-blue-700 font-bold text-xs uppercase tracking-wider mb-2">
               <Newspaper className="w-4 h-4" /> ประชาสัมพันธ์และกิจกรรม
             </div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">ข่าวสารล่าสุดของคณะ</h2>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">ข่าวสารล่าสุด</h2>
           </div>
           <Link
             href="/news"
@@ -286,132 +287,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ═══ 4. SECTION: จัดการหลักสูตร (Curriculum Management) ═══ */}
-      <section id="curriculum" className="py-20 bg-slate-100/70 border-y border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-1.5 text-blue-700 font-bold text-xs uppercase tracking-wider mb-2">
-              <BookOpen className="w-4 h-4" /> แผนการศึกษาและวิชาการ
-            </div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-3">หลักสูตรที่เปิดสอน</h2>
-            <p className="text-slate-600 text-sm">มุ่งเสริมสร้างความรู้และทักษะแห่งอนาคต ด้วยหลักสูตรที่ได้รับการรับรองตามมาตรฐานสากล</p>
-          </div>
-
-          {displayCurricula.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {displayCurricula.map((curr: any) => (
-                <div
-                  key={curr.id}
-                  className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition-all flex flex-col justify-between"
-                >
-                  {curr.imageUrl && (
-                    <div className="h-44 bg-slate-100 overflow-hidden relative">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={curr.imageUrl} alt={curr.name} className="w-full h-full object-cover" />
-                      {curr.curriculumYear && (
-                        <span className="absolute top-3 right-3 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-900/80 text-white backdrop-blur-md shadow-xs">
-                          หลักสูตร พ.ศ. {curr.curriculumYear}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <div className="p-6 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <span className="text-xs font-bold text-blue-700 px-3 py-1 rounded-full bg-blue-50 border border-blue-200">
-                        {curr.degreeLevel}
-                      </span>
-                      <span className="text-xs text-slate-500 font-mono font-medium">รหัส: {curr.code}</span>
-                    </div>
-
-                    {curr.department && (
-                      <div className="mb-2">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                          <Network className="w-3 h-3 text-blue-600" />
-                          {curr.department.name}
-                        </span>
-                      </div>
-                    )}
-
-                    <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-snug mb-1">{curr.name}</h3>
-                    {curr.nameEn && (
-                      <p className="text-xs text-slate-500 italic font-medium mb-2">{curr.nameEn}</p>
-                    )}
-
-                    {curr.degreeNameTh && (
-                      <div className="text-xs text-blue-800 bg-blue-50/50 p-2 rounded-lg border border-blue-100 mb-3 flex items-center gap-1.5 font-medium">
-                        <GraduationCap className="w-3.5 h-3.5 flex-shrink-0 text-blue-600" />
-                        <span className="line-clamp-1">{curr.degreeNameTh}</span>
-                      </div>
-                    )}
-
-                    {curr.description && (
-                      <p className="text-slate-600 text-xs leading-relaxed mb-4 line-clamp-2">{curr.description}</p>
-                    )}
-
-                    {/* Credit distribution pill */}
-                    <div className="mt-auto pt-3 border-t border-slate-100">
-                      <div className="flex items-center justify-between text-xs text-slate-600 mb-1.5">
-                        <span className="font-semibold text-slate-900">โครงสร้างหน่วยกิต:</span>
-                        <span className="font-bold text-blue-700">{curr.totalCredits} นก.</span>
-                      </div>
-                      {(curr.geCredits || curr.majorCredits || curr.electiveCredits) && (
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono">
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200" title="ศึกษาทั่วไป">
-                            GE: {curr.geCredits ?? 0}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200" title="วิชาเฉพาะ/เอก">
-                            เอก: {curr.majorCredits ?? 0}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200" title="เลือกเสรี">
-                            เลือก: {curr.electiveCredits ?? 0}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Card Action Footer */}
-                  <div className="px-6 pb-5 pt-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-2">
-                    {curr.pdfUrl ? (
-                      <a
-                        href={curr.pdfUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-200 transition-colors"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>ดาวน์โหลดเอกสารหลักสูตร (PDF)</span>
-                      </a>
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">พร้อมเปิดรับสมัคร</span>
-                    )}
-                    <Link
-                      href="/curriculum"
-                      className="text-xs font-bold text-blue-700 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      สารบบ <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="max-w-xl mx-auto text-center py-12 px-6 bg-white rounded-2xl border border-dashed border-slate-300 shadow-xs">
-              <BookOpen className="w-12 h-12 text-blue-500/70 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-slate-800 mb-1">ยังไม่มีข้อมูลหลักสูตรในระบบ</h3>
-              <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-                ข้อมูลหลักสูตรเดิมถูกล้างเรียบร้อยแล้ว ท่านสามารถเริ่มออกแบบและเพิ่มหลักสูตรใหม่ได้ที่หน้าจัดการหลักสูตร
-              </p>
-              <Link
-                href="/curriculum"
-                className="inline-flex items-center gap-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-xl shadow-xs transition-colors"
-              >
-                ไปที่หน้าเพิ่มหลักสูตร <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* ═══ 4. SECTION: หลักสูตรสถานศึกษา (Curriculum Section) ═══ */}
+      <CurriculumSection curricula={displayCurricula as any} />
 
       {/* ═══ 5. SECTION: ทำเนียบบุคลากร (Personnel Management) ═══ */}
       <section id="personnel" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">

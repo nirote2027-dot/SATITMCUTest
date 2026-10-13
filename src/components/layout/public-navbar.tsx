@@ -59,7 +59,7 @@ export function PublicNavbar({ user, logoUrl, nameTh, nameEn }: PublicNavbarProp
 
   const navLinks = [
     { href: "#home", label: t("nav.home") || "หน้าแรก", icon: null },
-    { href: "#news", label: t("roles.module.news") || "ข่าวสาร", icon: Newspaper },
+    { href: "#news", label: locale === "en" ? "News & PR" : "ข่าวประชาสัมพันธ์", icon: Newspaper },
     { href: "#personnel", label: t("roles.module.personnel") || "บุคลากร", icon: Users },
     { href: "#curriculum", label: t("roles.module.curriculum") || "หลักสูตร", icon: BookOpen },
     { href: "#services", label: t("nav.services") || "สารสนเทศ", icon: FileText },

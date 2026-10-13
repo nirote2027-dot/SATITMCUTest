@@ -78,7 +78,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
 
   const handleSave = () => {
     if (!formName.trim()) {
-      toast.error("กรุณากรอกชื่อภาควิชาหรือส่วนงาน");
+      toast.error("กรุณากรอกชื่อกลุ่มสาระการเรียนรู้");
       return;
     }
 
@@ -93,7 +93,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
         });
 
         if (res.ok) {
-          toast.success("บันทึกการแก้ไขข้อมูลภาควิชาเรียบร้อย");
+          toast.success("บันทึกการแก้ไขข้อมูลกลุ่มสาระการเรียนรู้เรียบร้อย");
           setModalOpen(false);
           await refreshItems();
         } else {
@@ -108,7 +108,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
         });
 
         if (res.ok) {
-          toast.success("สร้างภาควิชา/ส่วนงานใหม่เรียบร้อย");
+          toast.success("สร้างกลุ่มสาระการเรียนรู้ใหม่เรียบร้อย");
           setModalOpen(false);
           await refreshItems();
         } else {
@@ -124,7 +124,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
     startTransition(async () => {
       const res = await deleteDepartmentAction(deleteConfirmItem.id);
       if (res.ok) {
-        toast.success("ลบภาควิชา/ส่วนงานเรียบร้อย");
+        toast.success("ลบกลุ่มสาระการเรียนรู้เรียบร้อย");
         setDeleteConfirmItem(null);
         await refreshItems();
       } else {
@@ -163,7 +163,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
     },
     {
       key: "name",
-      header: "ชื่อภาควิชา / ส่วนงาน",
+      header: "ชื่อกลุ่มสาระการเรียนรู้",
       render: (row: DepartmentListItemDto) => (
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
@@ -184,16 +184,16 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
     },
     {
       key: "parent",
-      header: "สังกัดส่วนงานหลัก",
+      header: "สังกัดกลุ่มสาระหลัก",
       render: (row: DepartmentListItemDto) => (
         <span className="text-xs text-muted-foreground">
-          {row.parent ? row.parent.name : "— (ส่วนงานหลัก)"}
+          {row.parent ? row.parent.name : "— (กลุ่มสาระหลัก)"}
         </span>
       ),
     },
     {
       key: "curriculums",
-      header: "หลักสูตรในสังกัด",
+      header: "รายวิชา/หลักสูตรในสังกัด",
       className: "nowrap",
       render: (row: DepartmentListItemDto) => (
         <Link
@@ -201,13 +201,13 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
           className="inline-flex items-center gap-1.5 group text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
         >
           <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-          <span>{row._count.curriculums} หลักสูตร</span>
+          <span>{row._count.curriculums} รายวิชา/หลักสูตร</span>
         </Link>
       ),
     },
     {
       key: "employees",
-      header: "บุคลากร",
+      header: "ครูและบุคลากร",
       className: "nowrap",
       render: (row: DepartmentListItemDto) => (
         <div className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
@@ -251,7 +251,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
           {canManage && (
             <Button onClick={openCreateDialog} size="sm" className="gap-2">
               <Plus className="w-4 h-4" />
-              เพิ่มภาควิชา/ส่วนงาน
+              เพิ่มกลุ่มสาระการเรียนรู้
             </Button>
           )}
         </div>
@@ -262,7 +262,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
         <LiyonCard className="p-4 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent border-blue-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">ภาควิชาและส่วนงานทั้งหมด</p>
+              <p className="text-xs font-medium text-muted-foreground">กลุ่มสาระการเรียนรู้ทั้งหมด</p>
               <h3 className="text-2xl font-bold text-foreground mt-1">{items.length}</h3>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -274,7 +274,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
         <LiyonCard className="p-4 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent border-emerald-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">หลักสูตรที่จัดเก็บในภาควิชา</p>
+              <p className="text-xs font-medium text-muted-foreground">หลักสูตรในกลุ่มสาระ</p>
               <h3 className="text-2xl font-bold text-foreground mt-1">
                 {items.reduce((acc, curr) => acc + curr._count.curriculums, 0)}
               </h3>
@@ -288,7 +288,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
         <LiyonCard className="p-4 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent border-amber-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">บุคลากรที่สังกัด</p>
+              <p className="text-xs font-medium text-muted-foreground">ครูและบุคลากรในกลุ่มสาระ</p>
               <h3 className="text-2xl font-bold text-foreground mt-1">
                 {items.reduce((acc, curr) => acc + curr._count.employees, 0)}
               </h3>
@@ -307,7 +307,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
           <div className="flex flex-1 w-full sm:w-auto gap-3">
             <input
               type="text"
-              placeholder="ค้นหาชื่อหรือรหัสภาควิชา..."
+              placeholder="ค้นหาชื่อหรือรหัสกลุ่มสาระการเรียนรู้..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-full max-w-sm"
@@ -317,8 +317,8 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
               onChange={(e) => setParentFilter(e.target.value)}
               className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
-              <option value="ALL">ทุกลำดับส่วนงาน</option>
-              <option value="NONE">เฉพาะส่วนงานหลัก (ไม่มีแม่)</option>
+              <option value="ALL">ทุกกลุ่มสาระการเรียนรู้</option>
+              <option value="NONE">เฉพาะกลุ่มสาระหลัก (ไม่มีกลุ่มแม่)</option>
               {items
                 .filter((i) => !i.parentId)
                 .map((parent) => (
@@ -335,7 +335,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
 
         {/* DataTable */}
         <DataTable<DepartmentListItemDto>
-          headHeading="รายการภาควิชาและส่วนงาน"
+          headHeading="รายการกลุ่มสาระการเรียนรู้ (Learning Areas)"
           state={filteredItems.length === 0 ? "empty" : "data"}
           rows={filteredItems}
           columns={columns}
@@ -355,7 +355,7 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
                       danger
                       onSelect={() => setDeleteConfirmItem(row)}
                     >
-                      ลบภาควิชา
+                      ลบกลุ่มสาระการเรียนรู้
                     </RowMenuItem>
                   </>
                 )
@@ -363,8 +363,8 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
           }
           empty={{
             icon: <Layers className="h-10 w-10 text-muted-foreground/50" />,
-            title: "ยังไม่มีข้อมูลภาควิชาหรือส่วนงาน",
-            description: "กดปุ่ม 'เพิ่มภาควิชา/ส่วนงาน' เพื่อสร้างภาควิชาแรก",
+            title: "ยังไม่มีข้อมูลกลุ่มสาระการเรียนรู้",
+            description: "กดปุ่ม 'เพิ่มกลุ่มสาระการเรียนรู้' เพื่อสร้างกลุ่มสาระแรก",
           }}
           error={{
             icon: <AlertCircle className="h-10 w-10 text-destructive" />,
@@ -376,18 +376,18 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
       {/* Create / Edit Dialog */}
       <LiyonDialog open={modalOpen} onOpenChange={setModalOpen}>
         <LiyonDialogHeader
-          title={editingItem ? "แก้ไขข้อมูลภาควิชา/ส่วนงาน" : "เพิ่มภาควิชา/ส่วนงานใหม่"}
-          description="กรอกข้อมูลภาควิชาเพื่อจัดเก็บและจัดกลุ่มหลักสูตรหรือบุคลากรในสังกัด"
+          title={editingItem ? "แก้ไขข้อมูลกลุ่มสาระการเรียนรู้" : "เพิ่มกลุ่มสาระการเรียนรู้ใหม่"}
+          description="กรอกข้อมูลกลุ่มสาระการเรียนรู้ 8 กลุ่มสาระและกิจกรรมพัฒนาผู้เรียน เพื่อจัดกลุ่มรายวิชาและครูผู้สอน"
         />
         <LiyonDialogBody className="space-y-4 py-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                รหัสส่วนงาน (Code)
+                รหัสกลุ่มสาระ (Code)
               </label>
               <input
                 type="text"
-                placeholder="เช่น SCI, THAI"
+                placeholder="เช่น THAI, MATH, SCI-TECH"
                 value={formCode}
                 onChange={(e) => setFormCode(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -395,11 +395,11 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
             </div>
             <div className="sm:col-span-2">
               <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                ชื่อภาควิชา / ส่วนงาน <span className="text-destructive">*</span>
+                ชื่อกลุ่มสาระการเรียนรู้ <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
-                placeholder="เช่น ภาควิชาวิทยาศาสตร์และเทคโนโลยี"
+                placeholder="เช่น กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -410,14 +410,14 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
 
           <div>
             <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-              สังกัดส่วนงานหลัก (Parent Department)
+              สังกัดกลุ่มสาระหลัก (Parent Learning Area)
             </label>
             <select
               value={formParentId}
               onChange={(e) => setFormParentId(e.target.value)}
               className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
-              <option value="">— ไม่มี (เป็นส่วนงานระดับบนสุด) —</option>
+              <option value="">— ไม่มี (เป็นกลุ่มสาระหลัก) —</option>
               {items
                 .filter((d) => !editingItem || d.id !== editingItem.id)
                 .map((d) => (
@@ -430,11 +430,11 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
 
           <div>
             <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-              รายละเอียด / หน้าที่รับผิดชอบ
+              รายละเอียด / ขอบเขตกลุ่มสาระการเรียนรู้
             </label>
             <textarea
               rows={3}
-              placeholder="ระบุคำอธิบายหรือขอบเขตงานของภาควิชา/ส่วนงาน..."
+              placeholder="ระบุคำอธิบายหรือขอบเขตงานของกลุ่มสาระการเรียนรู้..."
               value={formDescription}
               onChange={(e) => setFormDescription(e.target.value)}
               className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -454,12 +454,12 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
       {/* Delete Confirmation Dialog */}
       <LiyonDialog open={!!deleteConfirmItem} onOpenChange={(open) => !open && setDeleteConfirmItem(null)}>
         <LiyonDialogHeader
-          title="ยืนยันการลบภาควิชา/ส่วนงาน"
+          title="ยืนยันการลบกลุ่มสาระการเรียนรู้"
           description="การกระทำนี้ไม่สามารถย้อนกลับได้ โปรดตรวจสอบความปลอดภัยก่อนลบ"
         />
         <LiyonDialogBody className="space-y-3 py-4">
           <p className="text-sm text-foreground">
-            คุณแน่ใจหรือไม่ว่าต้องการลบภาควิชา{" "}
+            คุณแน่ใจหรือไม่ว่าต้องการลบกลุ่มสาระการเรียนรู้{" "}
             <strong className="text-destructive font-semibold">
               &quot;{deleteConfirmItem?.name}&quot;
             </strong>
@@ -470,9 +470,9 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
             <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div>
-                <strong>คำเตือน:</strong> มีหลักสูตรผูกกับภาควิชานี้จำนวน{" "}
-                {deleteConfirmItem._count.curriculums} หลักสูตร
-                หากลบภาควิชา หลักสูตรเหล่านั้นจะกลายเป็นหลักสูตรที่ไม่ได้ระบุภาควิชา
+                <strong>คำเตือน:</strong> มีหลักสูตร/รายวิชาผูกกับกลุ่มสาระนี้จำนวน{" "}
+                {deleteConfirmItem._count.curriculums} รายการ
+                หากลบกลุ่มสาระการเรียนรู้ รายการเหล่านั้นจะกลายเป็นรายการที่ไม่ได้ระบุกลุ่มสาระ
               </div>
             </div>
           )}
@@ -481,8 +481,8 @@ export function DepartmentClient({ initialItems, canManage }: Props) {
             <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div>
-                <strong>ไม่สามารถลบได้:</strong> ภาควิชานี้มีส่วนงานย่อยในสังกัดจำนวน{" "}
-                {deleteConfirmItem._count.children} ส่วนงาน โปรดย้ายหรือลบส่วนงานย่อยออกก่อน
+                <strong>ไม่สามารถลบได้:</strong> กลุ่มสาระนี้มีกลุ่มสาระย่อยในสังกัดจำนวน{" "}
+                {deleteConfirmItem._count.children} กลุ่มสาระ โปรดย้ายหรือลบกลุ่มสาระย่อยออกก่อน
               </div>
             </div>
           )}

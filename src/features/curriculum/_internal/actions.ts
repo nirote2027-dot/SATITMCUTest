@@ -37,6 +37,7 @@ export async function createCurriculumAction(input: CreateCurriculumInput) {
   try {
     const data = await createCurriculum(ctx.tenantId, parsed.data);
     revalidatePath("/curriculum");
+    revalidatePath("/");
     return { ok: true, data };
   } catch (error) {
     return { ok: false, error: "Failed to create curriculum" };
@@ -53,6 +54,7 @@ export async function updateCurriculumAction(input: UpdateCurriculumInput) {
   try {
     const data = await updateCurriculum(ctx.tenantId, parsed.data);
     revalidatePath("/curriculum");
+    revalidatePath("/");
     return { ok: true, data };
   } catch (error) {
     return { ok: false, error: "Failed to update curriculum" };
@@ -64,6 +66,7 @@ export async function deleteCurriculumAction(id: string) {
   try {
     await deleteCurriculum(id, ctx.tenantId);
     revalidatePath("/curriculum");
+    revalidatePath("/");
     return { ok: true };
   } catch (error) {
     return { ok: false, error: "Failed to delete curriculum" };

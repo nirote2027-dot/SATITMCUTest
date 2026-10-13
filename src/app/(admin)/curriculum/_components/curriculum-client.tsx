@@ -42,6 +42,7 @@ import {
 } from "@/shared/components/liyon";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { PdfViewerModal } from "@/components/ui/pdf-viewer-modal";
 import {
   createCurriculumAction,
   updateCurriculumAction,
@@ -112,6 +113,17 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<CurriculumDto | null>(null);
   const [editingItem, setEditingItem] = useState<CurriculumDto | null>(null);
   const [viewingItem, setViewingItem] = useState<CurriculumDto | null>(null);
+
+  // PDF Viewer Modal state
+  const [pdfReaderOpen, setPdfReaderOpen] = useState(false);
+  const [pdfReaderUrl, setPdfReaderUrl] = useState("");
+  const [pdfReaderTitle, setPdfReaderTitle] = useState("");
+
+  const openPdfReader = (url: string, title: string) => {
+    setPdfReaderUrl(url);
+    setPdfReaderTitle(title);
+    setPdfReaderOpen(true);
+  };
 
   // Form states - Tab 1: ข้อมูลทั่วไป
   const [formCode, setFormCode] = useState("");
@@ -509,7 +521,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
     },
     {
       key: "department",
-      header: "ภาควิชา / ส่วนงาน",
+      header: "กลุ่มสาระการเรียนรู้",
       render: (row) =>
         row.department ? (
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
@@ -539,20 +551,29 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
     },
     {
       key: "pdfUrl",
-      header: "เอกสารหลักสูตร",
+      header: "เอกสารหลักสูตร (PDF)",
       className: "nowrap text-center",
       render: (row) =>
         row.pdfUrl ? (
-          <a
-            href={row.pdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900 hover:bg-red-100 transition-colors"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>เอกสารหลักสูตร</span>
-            <ExternalLink className="w-3 h-3 opacity-60" />
-          </a>
+          <div className="flex items-center justify-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => openPdfReader(row.pdfUrl!, row.name)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900 transition-colors shadow-2xs cursor-pointer"
+              title="เปิดอ่านเอกสารหลักสูตร PDF"
+            >
+              <FileText className="w-3.5 h-3.5 text-red-600" />
+              <span>เปิดอ่าน PDF</span>
+            </button>
+            <a
+              href={row.pdfUrl}
+              download
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="ดาวน์โหลดไฟล์ PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </a>
+          </div>
         ) : (
           <span className="text-[11px] text-muted-foreground/60 italic">—</span>
         ),
@@ -586,7 +607,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
           <Link href="/department">
             <Button variant="outline" size="sm" className="gap-2">
               <Network className="w-4 h-4 text-primary" />
-              จัดการภาควิชา/ส่วนงาน
+              จัดการกลุ่มสาระการเรียนรู้
             </Button>
           </Link>
           {canManage && (
@@ -604,7 +625,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
           <div className="flex flex-1 w-full sm:w-auto gap-3 items-center">
             <input
               type="text"
-              placeholder="ค้นหาชื่อไทย, English, รหัส หรือภาควิชา..."
+              placeholder="ค้นหาชื่อไทย, English, รหัส หรือกลุ่มสาระการเรียนรู้..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-full max-w-sm"
@@ -616,9 +637,9 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                 onChange={(e) => setSelectedDeptFilter(e.target.value)}
                 className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option value="ALL">ทุกภาควิชา / ส่วนงาน ({items.length})</option>
+                <option value="ALL">ทุกกลุ่มสาระการเรียนรู้ ({items.length})</option>
                 <option value="NONE">
-                  ยังไม่ระบุภาควิชา ({items.filter((i) => !i.departmentId && !i.department).length})
+                  ยังไม่ระบุกลุ่มสาระฯ ({items.filter((i) => !i.departmentId && !i.department).length})
                 </option>
                 {departments.map((dept) => {
                   const count = items.filter(
@@ -649,6 +670,14 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
               <RowMenuItem onSelect={() => setViewingItem(row)} icon={<Eye className="h-4 w-4" />}>
                 ดูรายละเอียดหลักสูตร
               </RowMenuItem>
+              {row.pdfUrl && (
+                <RowMenuItem
+                  onSelect={() => openPdfReader(row.pdfUrl!, row.name)}
+                  icon={<FileText className="h-4 w-4 text-red-600" />}
+                >
+                  เปิดอ่านเอกสาร PDF
+                </RowMenuItem>
+              )}
               {canManage && (
                 <>
                   <RowMenuItem onSelect={() => openEditDialog(row)} icon={<Edit2 className="h-4 w-4" />}>
@@ -849,14 +878,14 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
 
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                    ภาควิชา / ส่วนงานที่สังกัด (Department)
+                    กลุ่มสาระการเรียนรู้ที่สังกัด (Learning Area)
                   </label>
                   <select
                     value={formDepartmentId}
                     onChange={(e) => setFormDepartmentId(e.target.value)}
                     className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
-                    <option value="">— ไม่ระบุ / เป็นหลักสูตรกลางของสถาบัน —</option>
+                    <option value="">— ไม่ระบุ / เป็นหลักสูตรแกนกลางของโรงเรียนสาธิต —</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name} {dept.code ? `(${dept.code})` : ""}
@@ -1101,62 +1130,116 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
                 />
 
                 {/* PDF Upload */}
-                <div className="border border-border/70 rounded-xl p-4 bg-muted/10 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="text-xs font-bold text-foreground block">
-                        ไฟล์เล่มหลักสูตรสถานศึกษา (PDF)
-                      </label>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        แนบไฟล์ PDF เพื่อให้นักเรียน ผู้ปกครอง บุคลากร และประชาชนสามารถดาวน์โหลดอ่านได้
-                      </p>
-                    </div>
-                    {formPdfUrl && (
-                      <a
-                        href={formPdfUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        เปิดดูไฟล์ปัจจุบัน
-                      </a>
-                    )}
+                <div className="border border-border/70 rounded-2xl p-4.5 bg-muted/10 space-y-3.5">
+                  <div>
+                    <label className="text-xs font-bold text-foreground block">
+                      ไฟล์เล่มหลักสูตรสถานศึกษา (PDF)
+                    </label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      แนบไฟล์ PDF เพื่อให้นักเรียน ผู้ปกครอง บุคลากร และประชาชนสามารถเปิดอ่านและดาวน์โหลดได้
+                    </p>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-3">
-                    <input
-                      ref={pdfInputRef}
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      onChange={handlePdfUpload}
-                      className="hidden"
-                      id="pdf-upload-input"
-                    />
-                    <label htmlFor="pdf-upload-input" className="w-full sm:w-auto">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isUploadingPdf}
-                        className="w-full sm:w-auto gap-2 cursor-pointer"
-                        asChild
-                      >
-                        <span>
-                          <UploadCloud className="w-4 h-4 text-primary" />
-                          {isUploadingPdf ? "กำลังอัปโหลด..." : "เลือกไฟล์ PDF เพื่ออัปโหลด"}
-                        </span>
-                      </Button>
-                    </label>
+                  {formPdfUrl ? (
+                    <div className="p-3.5 rounded-xl border border-red-200 dark:border-red-900 bg-red-50/60 dark:bg-red-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-600 flex items-center justify-center shrink-0">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                            เอกสารหลักสูตร PDF ปัจจุบัน
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate max-w-xs sm:max-w-md">
+                            {formPdfUrl}
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="flex-1 w-full">
-                      <input
-                        value={formPdfUrl}
-                        onChange={(e) => setFormPdfUrl(e.target.value)}
-                        placeholder="หรือระบุ URL ไฟล์ PDF เช่น /uploads/tqf2.pdf"
-                        className="w-full text-xs px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => openPdfReader(formPdfUrl, formName || "ตัวอย่างเอกสารหลักสูตร")}
+                          className="flex-1 sm:flex-none gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs cursor-pointer shadow-2xs"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          <span>ทดสอบเปิดอ่าน PDF</span>
+                        </Button>
+                        <input
+                          ref={pdfInputRef}
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          onChange={handlePdfUpload}
+                          className="hidden"
+                          id="pdf-upload-replace-input"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => pdfInputRef.current?.click()}
+                          disabled={isUploadingPdf}
+                          className="text-xs gap-1"
+                        >
+                          <UploadCloud className="w-3.5 h-3.5" />
+                          {isUploadingPdf ? "กำลังอัปโหลด..." : "เปลี่ยนไฟล์"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormPdfUrl("")}
+                          className="text-xs text-red-600 hover:text-red-700 hover:bg-red-100"
+                        >
+                          ลบไฟล์
+                        </Button>
+                      </div>
                     </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-5 text-center transition-colors bg-background">
+                      <input
+                        ref={pdfInputRef}
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        onChange={handlePdfUpload}
+                        className="hidden"
+                        id="pdf-upload-input"
+                      />
+                      {isUploadingPdf ? (
+                        <div className="py-2 text-xs text-muted-foreground flex items-center justify-center gap-2">
+                          <UploadCloud className="w-4 h-4 animate-bounce text-primary" />
+                          กำลังอัปโหลดไฟล์ PDF...
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <label
+                              htmlFor="pdf-upload-input"
+                              className="font-bold text-primary hover:underline cursor-pointer mr-1"
+                            >
+                              คลิกเพื่อเลือกไฟล์ PDF
+                            </label>
+                            หรือเลือกไฟล์เพื่ออัปโหลด (สูงสุด 10MB)
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="pt-1">
+                    <label className="text-[11px] text-muted-foreground block mb-1">
+                      หรือระบุ URL / Path ไฟล์ PDF ด้วยตนเอง:
+                    </label>
+                    <input
+                      value={formPdfUrl}
+                      onChange={(e) => setFormPdfUrl(e.target.value)}
+                      placeholder="เช่น /uploads/curriculum-m1-3.pdf หรือ https://example.com/file.pdf"
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
                   </div>
                 </div>
 
@@ -1310,33 +1393,45 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
 
               {/* PDF Banner */}
               {viewingItem.pdfUrl ? (
-                <div className="p-4 rounded-xl bg-red-50/70 dark:bg-red-950/20 border border-red-200 dark:border-red-900 flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 border border-red-200 dark:border-red-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600">
-                      <FileText className="w-5 h-5" />
+                    <div className="w-11 h-11 rounded-xl bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600 shrink-0 shadow-2xs">
+                      <FileText className="w-6 h-6" />
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-red-950 dark:text-red-200">
-                        เอกสารหลักสูตรฉบับสมบูรณ์
+                      <div className="text-sm font-bold text-red-950 dark:text-red-200 flex items-center gap-2">
+                        <span>เอกสารหลักสูตรฉบับสมบูรณ์ (PDF)</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] bg-red-600 text-white font-semibold">
+                          พร้อมอ่าน
+                        </span>
                       </div>
-                      <div className="text-[11px] text-red-700 dark:text-red-400">
-                        พร้อมให้เปิดอ่านหรือดาวน์โหลดในรูปแบบ PDF
+                      <div className="text-xs text-red-700 dark:text-red-400 mt-0.5">
+                        สามารถเปิดอ่านเอกสารฉบับเต็มได้ทันที หรือดาวน์โหลดเก็บไว้
                       </div>
                     </div>
                   </div>
-                  <a
-                    href={viewingItem.pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors"
-                  >
-                    <span>ดาวน์โหลด PDF</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => openPdfReader(viewingItem.pdfUrl!, viewingItem.name)}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      <span>เปิดอ่านไฟล์ PDF</span>
+                    </button>
+                    <a
+                      href={viewingItem.pdfUrl}
+                      download
+                      className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 shadow-2xs transition-colors"
+                      title="ดาวน์โหลดไฟล์ PDF"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
+                  </div>
                 </div>
               ) : (
-                <div className="text-center py-2 text-xs text-muted-foreground italic">
-                  ยังไม่ได้แนบไฟล์เอกสารหลักสูตร (PDF)
+                <div className="text-center py-3 text-xs text-muted-foreground italic rounded-xl border border-dashed border-border/70 p-4">
+                  ยังไม่ได้แนบไฟล์เอกสารหลักสูตร (PDF) — สามารถแก้ไขหลักสูตรเพื่ออัปโหลดไฟล์ PDF ได้
                 </div>
               )}
             </div>
@@ -1387,6 +1482,15 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
           </Button>
         </LiyonDialogFooter>
       </LiyonDialog>
+
+      {/* PDF Reader Modal */}
+      <PdfViewerModal
+        open={pdfReaderOpen}
+        onOpenChange={setPdfReaderOpen}
+        pdfUrl={pdfReaderUrl}
+        title={pdfReaderTitle}
+        subtitle="โรงเรียนสาธิตมหาวิทยาลัยมหาจุฬาลงกรณราชวิทยาลัย"
+      />
     </div>
   );
 }

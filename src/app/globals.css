@@ -69,3 +69,51 @@
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground; }
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 6mm 8mm 6mm 8mm;
+  }
+
+  html, html:has(.adm), body, body:has(.adm) {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .adm-head,
+  .adm-side,
+  .side,
+  header,
+  aside,
+  nav,
+  .crumbs,
+  .backdrop,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .adm,
+  .adm-body,
+  .adm-main,
+  .adm-main > .in,
+  main {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
