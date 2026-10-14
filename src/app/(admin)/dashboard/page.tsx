@@ -27,11 +27,12 @@ export default async function DashboardPage() {
       </div>
 
       <section style={{ marginTop: "2rem" }}>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem" }}>ระบบงานคณะ (Faculty Platform)</h2>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem" }}>ระบบโรงเรียน</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1rem" }}>
           {[
-            { title: "ระบบจัดการข่าวสารประชาสัมพันธ์", href: "/news", desc: "เผยแพร่ข่าวสาร ประกาศ กิจกรรมของคณะ" },
-            { title: "ระบบจัดการบุคลากร", href: "/personnel", desc: "ข้อมูลอาจารย์และเจ้าหน้าที่ ทำเนียบบุคลากร" },
+            { title: "ระบบจัดการข่าวสารประชาสัมพันธ์", href: "/news", desc: "เผยแพร่ข่าวสาร ประกาศ กิจกรรมของโรงเรียน" },
+            { title: "เกี่ยวกับโรงเรียน", href: "/school/info", desc: "ข้อมูลทั่วไป คณะผู้บริหาร และครู/บุคลากร" },
+            { title: "ส่วนท้ายเว็บ & ธีมสี", href: "/school/footer", desc: "ปรับแต่งระบบงานบริการ ข้อมูลติดต่อ และสีธีมของระบบ" },
             { title: "ระบบจัดการหลักสูตร", href: "/curriculum", desc: "โครงสร้างหลักสูตร แผนการเรียน และรายวิชา" },
             { title: "ทะเบียนและวัดผล สำหรับบุคลากร", href: "/satitmcuReg", desc: "ระบบงานทะเบียน บันทึกคะแนน และบริการเอกสาร" },
             { title: "ศูนย์ดาวน์โหลด (Downloads)", href: "/download", desc: "จัดการและดาวน์โหลดแบบฟอร์มคำร้องและเอกสาร" },

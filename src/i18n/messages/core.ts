@@ -40,7 +40,7 @@ export const MESSAGES: Dictionary = {
   "nav.group.overview": { th: "ภาพรวม", en: "Overview" },
   "nav.group.sample": { th: "โมดูลตัวอย่าง", en: "Sample Feature" },
   "nav.group.users": { th: "ผู้ใช้งาน", en: "Users" },
-  "nav.group.faculty": { th: "ระบบงานคณะ", en: "Faculty Systems" },
+  "nav.group.faculty": { th: "ระบบโรงเรียน", en: "School Systems" },
   "nav.group.settings": { th: "ตั้งค่า", en: "Settings" },
   "nav.dashboard": { th: "แดชบอร์ด", en: "Dashboard" },
   "nav.academic": { th: "วิชาการและหลักสูตร", en: "Academics & Curricula" },

@@ -11,7 +11,21 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      {
+        // Apply strict security headers including X-Frame-Options to all routes except uploads
+        source: "/((?!uploads/).*)",
+        headers: securityHeaders,
+      },
+      {
+        // Allow uploads (like PDF documents) to be embedded in iframes/objects without X-Frame-Options blocking Chrome PDF viewer
+        source: "/uploads/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ];
   },
   async redirects() {
     return [

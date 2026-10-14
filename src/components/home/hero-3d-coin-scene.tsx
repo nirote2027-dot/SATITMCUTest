@@ -5,9 +5,17 @@ import * as THREE from "three";
 
 interface Hero3DCoinSceneProps {
   logoUrl?: string | null;
+  showCoins?: boolean;
+  showParticles?: boolean;
+  speedMultiplier?: number;
 }
 
-export function Hero3DCoinScene({ logoUrl }: Hero3DCoinSceneProps) {
+export function Hero3DCoinScene({
+  logoUrl,
+  showCoins = true,
+  showParticles = true,
+  speedMultiplier = 1.0,
+}: Hero3DCoinSceneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -345,7 +353,15 @@ export function Hero3DCoinScene({ logoUrl }: Hero3DCoinSceneProps) {
     });
 
     const particles = new THREE.Points(particleGeo, particleMat);
+    if (!showParticles) particles.visible = false;
     scene.add(particles);
+
+    if (!showCoins) {
+      coins.forEach((c) => (c.group.visible = false));
+      trackRings.forEach((r) => (r.visible = false));
+      railLeft.visible = false;
+      railRight.visible = false;
+    }
 
     // ═══ 7. INTERACTIVE MOUSE PARALLAX & ANIMATION LOOP ═══
     let mouseX = 0;
@@ -398,33 +414,36 @@ export function Hero3DCoinScene({ logoUrl }: Hero3DCoinSceneProps) {
       if (!isVisible) return;
 
       const elapsedTime = (performance.now() - startTime) * 0.001;
-      const runSpeed = 0.032; // Speed of coins traveling along the loop
+      const runSpeed = 0.032 * (speedMultiplier || 1.0);
 
       // Update Coins Position & Rotation along Spline
-      coins.forEach((coin) => {
-        const u = (elapsedTime * runSpeed + coin.tOffset) % 1.0;
-        const pos = splineCurve.getPointAt(u);
-        const tangent = splineCurve.getTangentAt(u).normalize();
+      if (showCoins) {
+        coins.forEach((coin) => {
+          const u = (elapsedTime * runSpeed + coin.tOffset) % 1.0;
+          const pos = splineCurve.getPointAt(u);
+          const tangent = splineCurve.getTangentAt(u).normalize();
 
-        coin.group.position.copy(pos);
+          coin.group.position.copy(pos);
 
-        // Bank/Orient along track tangent
-        const up = new THREE.Vector3(0, 1, 0);
-        coin.group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+          // Bank/Orient along track tangent
+          coin.group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
 
-        // Spin coin continuously on its disk axis
-        coin.mesh.rotation.z += coin.spinSpeed;
-      });
+          // Spin coin continuously on its disk axis
+          coin.mesh.rotation.z += coin.spinSpeed * (speedMultiplier || 1.0);
+        });
 
-      // Pulse track rings
-      trackRings.forEach((ring, idx) => {
-        const scale = 1 + Math.sin(elapsedTime * 3 + idx * 0.4) * 0.06;
-        ring.scale.set(scale, scale, scale);
-      });
+        // Pulse track rings
+        trackRings.forEach((ring, idx) => {
+          const scale = 1 + Math.sin(elapsedTime * 3 + idx * 0.4) * 0.06;
+          ring.scale.set(scale, scale, scale);
+        });
+      }
 
       // Slowly rotate particle dust field
-      particles.rotation.y = elapsedTime * 0.015;
-      particles.rotation.x = Math.sin(elapsedTime * 0.01) * 0.08;
+      if (showParticles) {
+        particles.rotation.y = elapsedTime * 0.015;
+        particles.rotation.x = Math.sin(elapsedTime * 0.01) * 0.08;
+      }
 
       // Mouse Parallax Damping
       targetCameraX += (mouseX - targetCameraX) * 0.04;

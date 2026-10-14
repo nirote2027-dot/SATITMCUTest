@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Search,
 } from "lucide-react";
-import { PdfViewerModal } from "@/components/ui/pdf-viewer-modal";
+import { PdfViewerModal, resolvePdfUrl } from "@/components/ui/pdf-viewer-modal";
+import { type ThemeColorKey, THEME_CONFIGS } from "@/features/school/types";
 
 export interface HomeCurriculumItem {
   id: string;
@@ -47,6 +48,7 @@ export interface HomeCurriculumItem {
 
 interface CurriculumSectionProps {
   curricula: HomeCurriculumItem[];
+  themeColor?: ThemeColorKey;
 }
 
 // Fallback high quality curricula inspired by satit.tu.ac.th/course/
@@ -159,9 +161,10 @@ const DEFAULT_SATIT_CURRICULA: HomeCurriculumItem[] = [
 
 type LevelTab = "ALL" | "JUNIOR" | "SENIOR";
 
-export function CurriculumSection({ curricula }: CurriculumSectionProps) {
+export function CurriculumSection({ curricula, themeColor }: CurriculumSectionProps) {
   const [selectedTab, setSelectedTab] = useState<LevelTab>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const theme = THEME_CONFIGS[themeColor || "blue"] || THEME_CONFIGS.blue;
 
   // Modal PDF reader state
   const [pdfReaderOpen, setPdfReaderOpen] = useState(false);
@@ -212,8 +215,15 @@ export function CurriculumSection({ curricula }: CurriculumSectionProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header - Styled like Satit Thammasat Course page */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs uppercase tracking-wider mb-3.5 shadow-2xs">
-            <BookOpen className="w-4 h-4 text-blue-600" />
+          <div
+            style={{
+              backgroundColor: `${theme.hex}14`,
+              color: theme.hex,
+              borderColor: `${theme.hex}30`,
+            }}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border font-bold text-xs uppercase tracking-wider mb-3.5 shadow-2xs"
+          >
+            <BookOpen className="w-4 h-4" style={{ color: theme.hex }} />
             <span>หลักสูตรสถานศึกษา • COURSE & CURRICULUM</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-3.5">
@@ -231,9 +241,10 @@ export function CurriculumSection({ curricula }: CurriculumSectionProps) {
             <button
               type="button"
               onClick={() => setSelectedTab("ALL")}
+              style={selectedTab === "ALL" ? { color: theme.hex, borderColor: `${theme.hex}30` } : undefined}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedTab === "ALL"
-                  ? "bg-white text-blue-700 shadow-sm border border-slate-200/80"
+                  ? "bg-white shadow-sm border"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -242,9 +253,10 @@ export function CurriculumSection({ curricula }: CurriculumSectionProps) {
             <button
               type="button"
               onClick={() => setSelectedTab("JUNIOR")}
+              style={selectedTab === "JUNIOR" ? { color: theme.hex, borderColor: `${theme.hex}30` } : undefined}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedTab === "JUNIOR"
-                  ? "bg-white text-blue-700 shadow-sm border border-slate-200/80"
+                  ? "bg-white shadow-sm border"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -253,9 +265,10 @@ export function CurriculumSection({ curricula }: CurriculumSectionProps) {
             <button
               type="button"
               onClick={() => setSelectedTab("SENIOR")}
+              style={selectedTab === "SENIOR" ? { color: theme.hex, borderColor: `${theme.hex}30` } : undefined}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedTab === "SENIOR"
-                  ? "bg-white text-blue-700 shadow-sm border border-slate-200/80"
+                  ? "bg-white shadow-sm border"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -379,10 +392,10 @@ export function CurriculumSection({ curricula }: CurriculumSectionProps) {
                     <div className="mt-auto pt-4 border-t border-slate-100">
                       <div className="flex items-center justify-between text-xs mb-2">
                         <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                          <Layers className="w-3.5 h-3.5 text-blue-600" />
+                          <Layers className="w-3.5 h-3.5" style={{ color: theme.hex }} />
                           โครงสร้างหน่วยกิตตลอดหลักสูตร
                         </span>
-                        <span className="text-sm font-extrabold text-blue-700">
+                        <span className="text-sm font-extrabold" style={{ color: theme.hex }}>
                           {curr.totalCredits} หน่วยกิต
                         </span>
                       </div>
@@ -415,14 +428,21 @@ export function CurriculumSection({ curricula }: CurriculumSectionProps) {
                           <FileText className="w-3.5 h-3.5" />
                           <span>อ่านหลักสูตรฉบับเต็ม (PDF)</span>
                         </button>
-                        <a
-                          href={curr.pdfUrl}
-                          download
-                          className="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 transition-colors shadow-2xs"
-                          title="ดาวน์โหลดไฟล์ PDF"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </a>
+                        {(() => {
+                          const { downloadUrl, isGoogleDrive } = resolvePdfUrl(curr.pdfUrl);
+                          return (
+                            <a
+                              href={downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download={!isGoogleDrive}
+                              className="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 transition-colors shadow-2xs"
+                              title="ดาวน์โหลดไฟล์ PDF"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <span className="text-xs text-slate-400 italic">พร้อมเปิดสอนตามแผนการเรียน</span>
@@ -430,7 +450,8 @@ export function CurriculumSection({ curricula }: CurriculumSectionProps) {
 
                     <Link
                       href="/curriculum"
-                      className="text-xs font-bold text-blue-700 hover:text-blue-800 flex items-center gap-1 group/btn ml-auto"
+                      style={{ color: theme.hex }}
+                      className="text-xs font-bold hover:underline flex items-center gap-1 group/btn ml-auto"
                     >
                       <span>รายละเอียดเพิ่มเติม</span>
                       <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />

@@ -298,7 +298,7 @@ model Article {
   titleEn     String?       @map("title_en") @db.VarChar(255)
   content     String?       @db.Text
   contentEn   String?       @map("content_en") @db.Text
-  coverImage  String?       @map("cover_image") @db.VarChar(500)
+  coverImage  String?       @map("cover_image") @db.Text
   status      ArticleStatus @default(DRAFT)
   publishedAt DateTime?     @map("published_at") @db.Timestamptz()
   createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz()

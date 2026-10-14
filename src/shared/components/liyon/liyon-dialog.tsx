@@ -24,14 +24,25 @@ export interface LiyonDialogProps {
   danger?: boolean;
   /** `.dlg.wide` — max-width กว้างขึ้นสำหรับฟอร์มยาว */
   wide?: boolean;
+  /** เมื่อ false จะไม่บล็อก focus/pointer events นอก dialog เช่น TinyMCE popups */
+  modal?: boolean;
   className?: string;
   contentClassName?: string;
   children: React.ReactNode;
 }
 
-export function LiyonDialog({ open, onOpenChange, danger, wide, className, contentClassName, children }: LiyonDialogProps) {
+export function LiyonDialog({
+  open,
+  onOpenChange,
+  danger,
+  wide,
+  modal = true,
+  className,
+  contentClassName,
+  children,
+}: LiyonDialogProps) {
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal={modal}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[3px]" />
         <DialogPrimitive.Content
@@ -41,6 +52,24 @@ export function LiyonDialog({ open, onOpenChange, danger, wide, className, conte
             wide && "wide",
             className,
           )}
+          onFocusOutside={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (target?.closest?.(".tox") || target?.closest?.(".tox-tinymce-aux")) {
+              e.preventDefault();
+            }
+          }}
+          onPointerDownOutside={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (target?.closest?.(".tox") || target?.closest?.(".tox-tinymce-aux")) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (target?.closest?.(".tox") || target?.closest?.(".tox-tinymce-aux")) {
+              e.preventDefault();
+            }
+          }}
         >
           <div className={cn("box flex flex-col max-h-[calc(100dvh-2rem)] overflow-hidden", contentClassName)}>
             {children}

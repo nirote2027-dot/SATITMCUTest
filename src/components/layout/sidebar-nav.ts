@@ -37,8 +37,25 @@ export const sidebarGroups: NavGroup[] = [
   {
     label: "nav.group.faculty",
     items: [
-      { title: "news.title", href: "/news", icon: Newspaper, permission: NEWS_P.read },
-      { title: "personnel.title", href: "/personnel", icon: UserCheck, permission: PERSONNEL_P.read },
+      {
+        title: "news.title",
+        href: "/news",
+        icon: Newspaper,
+        permission: NEWS_P.read,
+      },
+      {
+        title: "school.title",
+        href: "/school/info",
+        icon: Building2,
+        permission: PERSONNEL_P.read,
+        children: [
+          { title: "school.info", href: "/school/info", permission: PERSONNEL_P.read },
+          { title: "school.hero", href: "/school/hero", permission: PERSONNEL_P.read },
+          { title: "school.executives", href: "/school/executives", permission: PERSONNEL_P.read },
+          { title: "school.personnel", href: "/school/personnel", permission: PERSONNEL_P.read },
+          { title: "school.footer", href: "/school/footer", permission: PERSONNEL_P.read },
+        ],
+      },
       {
         title: "nav.academic",
         href: "/curriculum",

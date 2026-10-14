@@ -1,5 +1,5 @@
 export const MESSAGES = {
-  "news.title": { th: "ระบบข่าวสาร", en: "News & PR" },
+  "news.title": { th: "ระบบจัดการข่าวสารประชาสัมพันธ์", en: "News & PR Management" },
   "news.article.list": { th: "รายการข่าว", en: "News List" },
   "news.article.create": { th: "สร้างข่าวใหม่", en: "Create News" },
   "news.article.edit": { th: "แก้ไขข่าว", en: "Edit News" },

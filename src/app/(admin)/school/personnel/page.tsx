@@ -1,0 +1,16 @@
+import { requirePermission, hasPermission } from "@/features/identity/server";
+import { PERSONNEL_P } from "@/features/personnel/permissions";
+import { listEmployees } from "@/features/personnel/server";
+import { PersonnelClient } from "@/app/(admin)/personnel/_components/personnel-client";
+
+export default async function SchoolPersonnelPage() {
+  const ctx = await requirePermission(PERSONNEL_P.read);
+  const initialItems = await listEmployees(ctx.tenantId);
+
+  return (
+    <PersonnelClient
+      initialItems={initialItems}
+      canManage={hasPermission(ctx, PERSONNEL_P.manage)}
+    />
+  );
+}

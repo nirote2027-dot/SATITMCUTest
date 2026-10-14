@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { TinyEditor } from "@/components/ui/tiny-editor";
-import type { ArticleDto } from "@/features/news/server";
+import { parseCoverImage, type ArticleDto } from "@/features/news";
 import {
   createArticleAction,
   updateArticleAction,
@@ -52,6 +52,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
   const [formContent, setFormContent] = useState("");
   const [formContentEn, setFormContentEn] = useState("");
   const [formCoverImage, setFormCoverImage] = useState("");
+  const [formCoverPosition, setFormCoverPosition] = useState<"top" | "center" | "bottom">("center");
   const [formStatus, setFormStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
 
   const openCreateDialog = () => {
@@ -62,6 +63,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
     setFormContent("");
     setFormContentEn("");
     setFormCoverImage("");
+    setFormCoverPosition("center");
     setFormStatus("DRAFT");
     setModalOpen(true);
   };
@@ -73,9 +75,13 @@ export function NewsClient({ initialItems, canManage }: Props) {
     setFormTitleEn(item.titleEn || "");
     setFormContent(item.content || "");
     setFormContentEn(item.contentEn || "");
-    setFormCoverImage(item.coverImage || "");
+    const { url, position } = parseCoverImage(item.coverImage);
+    setFormCoverImage(url);
+    setFormCoverPosition(position);
     setFormStatus(item.status as "DRAFT" | "PUBLISHED");
-    setModalOpen(true);
+    setTimeout(() => {
+      setModalOpen(true);
+    }, 50);
   };
 
   const refreshItems = async () => {
@@ -122,6 +128,12 @@ export function NewsClient({ initialItems, canManage }: Props) {
     }
 
     startTransition(async () => {
+      const finalCoverImage = formCoverImage.trim()
+        ? (formCoverPosition && formCoverPosition !== "center"
+            ? `${formCoverImage.trim().split("#")[0]}#${formCoverPosition}`
+            : formCoverImage.trim().split("#")[0])
+        : null;
+
       if (editingItem) {
         const res = await updateArticleAction({
           id: editingItem.id,
@@ -129,7 +141,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
           titleEn: formTitleEn.trim() || null,
           content: formContent.trim() || null,
           contentEn: formContentEn.trim() || null,
-          coverImage: formCoverImage.trim() || null,
+          coverImage: finalCoverImage,
           status: formStatus,
         });
         if (res.ok) {
@@ -137,7 +149,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
           setModalOpen(false);
           await refreshItems();
         } else {
-          toast.error("ไม่สามารถบันทึกข้อมูลได้");
+          toast.error(res.error?.message || "ไม่สามารถบันทึกข้อมูลได้");
         }
       } else {
         const res = await createArticleAction({
@@ -145,7 +157,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
           titleEn: formTitleEn.trim() || null,
           content: formContent.trim() || null,
           contentEn: formContentEn.trim() || null,
-          coverImage: formCoverImage.trim() || null,
+          coverImage: finalCoverImage,
           status: formStatus,
         });
         if (res.ok) {
@@ -153,7 +165,7 @@ export function NewsClient({ initialItems, canManage }: Props) {
           setModalOpen(false);
           await refreshItems();
         } else {
-          toast.error("ไม่สามารถสร้างข่าวได้");
+          toast.error(res.error?.message || "ไม่สามารถสร้างข่าวได้");
         }
       }
     });
@@ -177,15 +189,23 @@ export function NewsClient({ initialItems, canManage }: Props) {
       key: "coverImage",
       header: "รูปภาพหน้าปก",
       className: "w-20 text-center",
-      render: (row) =>
-        row.coverImage ? (
+      render: (row) => {
+        const { url, position } = parseCoverImage(row.coverImage);
+        return url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={row.coverImage} alt={row.title} className="w-14 h-10 object-cover rounded-lg border border-slate-200 shadow-xs inline-block" />
+          <img
+            src={url}
+            alt={row.title}
+            referrerPolicy="no-referrer"
+            style={{ objectPosition: position }}
+            className="w-14 h-10 object-cover rounded-lg border border-slate-200 shadow-xs inline-block"
+          />
         ) : (
           <div className="w-14 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 inline-block">
             <ImageIcon className="w-4 h-4" />
           </div>
-        ),
+        );
+      },
     },
     {
       key: "title",
@@ -225,6 +245,23 @@ export function NewsClient({ initialItems, canManage }: Props) {
       className: "nowrap text-muted-foreground text-xs",
       render: (row) => <span>{formatDate(new Date(row.createdAt), locale)}</span>,
     },
+    {
+      key: "actions",
+      header: "การจัดการ",
+      className: "w-24 text-center",
+      render: (row) =>
+        canManage ? (
+          <button
+            type="button"
+            onClick={() => openEditDialog(row)}
+            className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors inline-flex items-center gap-1 text-xs font-semibold cursor-pointer shadow-2xs"
+            title="แก้ไขข่าวสารนี้"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            <span>แก้ไข</span>
+          </button>
+        ) : null,
+    },
   ];
 
   return (
@@ -257,10 +294,17 @@ export function NewsClient({ initialItems, canManage }: Props) {
             canManage
               ? (row) => (
                   <>
-                    <RowMenuItem onSelect={() => openEditDialog(row)} icon={<Edit2 className="h-4 w-4" />}>
+                    <RowMenuItem
+                      icon={<Edit2 className="h-4 w-4" />}
+                      onSelect={() => openEditDialog(row)}
+                    >
                       แก้ไขข้อมูล
                     </RowMenuItem>
-                    <RowMenuItem onSelect={() => setDeleteConfirmItem(row)} danger icon={<Trash2 className="h-4 w-4" />}>
+                    <RowMenuItem
+                      danger
+                      icon={<Trash2 className="h-4 w-4" />}
+                      onSelect={() => setDeleteConfirmItem(row)}
+                    >
                       ลบข่าวนี้
                     </RowMenuItem>
                   </>
@@ -419,6 +463,8 @@ export function NewsClient({ initialItems, canManage }: Props) {
               <ImageUpload
                 value={formCoverImage}
                 onChange={(url) => setFormCoverImage(url)}
+                position={formCoverPosition}
+                onPositionChange={setFormCoverPosition}
                 label="รูปภาพหน้าปกข่าว (Cover Image)"
               />
 

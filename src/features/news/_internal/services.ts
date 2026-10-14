@@ -35,6 +35,28 @@ export async function listArticles(tenantId: string): Promise<ArticleDto[]> {
   }));
 }
 
+export async function getArticleById(id: string): Promise<(ArticleDto & { authorName?: string | null }) | null> {
+  const item = await prisma.article.findUnique({
+    where: { id },
+    include: { author: { select: { name: true } } },
+  });
+  if (!item) return null;
+  return {
+    id: item.id,
+    tenantId: item.tenantId,
+    title: item.title,
+    titleEn: item.titleEn,
+    content: item.content,
+    contentEn: item.contentEn,
+    coverImage: item.coverImage,
+    status: item.status,
+    publishedAt: item.publishedAt ? item.publishedAt.toISOString() : null,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    authorName: item.author?.name ?? null,
+  };
+}
+
 export async function createArticle(tenantId: string, authorId: string, input: CreateArticleInput): Promise<ArticleDto> {
   const created = await prisma.article.create({
     data: {

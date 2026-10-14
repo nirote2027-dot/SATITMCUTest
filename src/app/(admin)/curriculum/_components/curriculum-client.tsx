@@ -42,7 +42,7 @@ import {
 } from "@/shared/components/liyon";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { PdfViewerModal } from "@/components/ui/pdf-viewer-modal";
+import { PdfViewerModal, resolvePdfUrl } from "@/components/ui/pdf-viewer-modal";
 import {
   createCurriculumAction,
   updateCurriculumAction,
@@ -565,14 +565,21 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
               <FileText className="w-3.5 h-3.5 text-red-600" />
               <span>เปิดอ่าน PDF</span>
             </button>
-            <a
-              href={row.pdfUrl}
-              download
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title="ดาวน์โหลดไฟล์ PDF"
-            >
-              <Download className="w-3.5 h-3.5" />
-            </a>
+            {(() => {
+              const { downloadUrl, isGoogleDrive } = resolvePdfUrl(row.pdfUrl);
+              return (
+                <a
+                  href={downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={!isGoogleDrive}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="ดาวน์โหลดไฟล์ PDF"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </a>
+              );
+            })()}
           </div>
         ) : (
           <span className="text-[11px] text-muted-foreground/60 italic">—</span>
@@ -1232,14 +1239,17 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
 
                   <div className="pt-1">
                     <label className="text-[11px] text-muted-foreground block mb-1">
-                      หรือระบุ URL / Path ไฟล์ PDF ด้วยตนเอง:
+                      หรือระบุ URL / Path ไฟล์ PDF หรือ Google Drive ด้วยตนเอง:
                     </label>
                     <input
                       value={formPdfUrl}
                       onChange={(e) => setFormPdfUrl(e.target.value)}
-                      placeholder="เช่น /uploads/curriculum-m1-3.pdf หรือ https://example.com/file.pdf"
+                      placeholder="เช่น /uploads/sample.pdf หรือ https://drive.google.com/file/d/.../view?usp=sharing"
                       className="w-full text-xs px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
+                    <p className="text-[11px] text-muted-foreground/80 mt-1">
+                      💡 รองรับไฟล์ในระบบ, ลิงก์ตรง (.pdf) และลิงก์ Google Drive สาธารณะ (ระบบจะแปลงเข้าโหมดแสดงตัวอย่าง Preview ให้โดยอัตโนมัติ)
+                    </p>
                   </div>
                 </div>
 

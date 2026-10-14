@@ -218,10 +218,15 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
     <div className="space-y-6 p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" /> ระบบจัดการบุคลากร (Personnel Management)
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+              เกี่ยวกับโรงเรียน
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Users className="w-6 h-6 text-blue-600" /> ทำเนียบครูและบุคลากร (Teachers & Personnel)
           </h1>
-          <p className="text-sm text-muted-foreground">จัดการข้อมูลอาจารย์ เจ้าหน้าที่ แนบรูปถ่าย และกำหนดตำแหน่ง</p>
+          <p className="text-sm text-muted-foreground">จัดการข้อมูลครูผู้สอน เจ้าหน้าที่ แนบรูปถ่าย กำหนดกลุ่มสาระ และข้อมูลติดต่อ</p>
         </div>
         {canManage && (
           <Button onClick={openCreateDialog} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white">

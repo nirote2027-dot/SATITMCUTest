@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, X, Image as ImageIcon, Loader2, Link as LinkIcon } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Loader2, Link as LinkIcon, AlertTriangle, RefreshCw, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface ImageUploadProps {
@@ -10,12 +10,23 @@ interface ImageUploadProps {
   label?: string;
   placeholder?: string;
   aspect?: "cover" | "contain";
+  position?: "top" | "center" | "bottom" | string; // e.g. "center", "top", "bottom"
+  onPositionChange?: (position: "top" | "center" | "bottom") => void;
 }
 
-export function ImageUpload({ value, onChange, label = "รูปภาพประกอบ / แนบไฟล์รูป", placeholder = "อัปโหลดรูปภาพ หรือระบุ URL", aspect = "cover" }: ImageUploadProps) {
+export function ImageUpload({
+  value,
+  onChange,
+  label = "รูปภาพประกอบ / แนบไฟล์รูป",
+  placeholder = "อัปโหลดรูปภาพ หรือระบุ URL",
+  aspect = "cover",
+  position = "center",
+  onPositionChange,
+}: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState("");
+  const [hasError, setHasError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,6 +40,7 @@ export function ImageUpload({ value, onChange, label = "รูปภาพปร
     }
 
     setIsUploading(true);
+    setHasError(false);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -41,6 +53,7 @@ export function ImageUpload({ value, onChange, label = "รูปภาพปร
       const data = await res.json();
       if (data.ok && data.url) {
         onChange(data.url);
+        setShowUrlInput(false);
         toast.success("อัปโหลดรูปภาพเรียบร้อยแล้ว");
       } else {
         toast.error(data.error || "เกิดข้อผิดพลาดในการอัปโหลด");
@@ -54,95 +67,217 @@ export function ImageUpload({ value, onChange, label = "รูปภาพปร
   };
 
   const handleApplyUrl = () => {
-    if (urlInputValue.trim()) {
-      onChange(urlInputValue.trim());
-      setUrlInputValue("");
-      setShowUrlInput(false);
+    const raw = urlInputValue.trim().replace(/^['"]|['"]$/g, "");
+    if (!raw) {
+      toast.error("กรุณาระบุ URL รูปภาพก่อนกดตกลง");
+      return;
     }
+
+    // Check if user accidentally pasted a Facebook post URL instead of image address
+    if (
+      raw.includes("facebook.com") &&
+      !raw.includes("fbcdn.net") &&
+      !raw.includes("fna.fbcdn") &&
+      !raw.match(/\.(jpg|jpeg|png|webp|gif)/i)
+    ) {
+      toast.warning(
+        "ข้อสังเกต: ลิงก์นี้อาจเป็นลิงก์หน้าโพสต์ Facebook กรุณาคลิกขวาที่รูปภาพ แล้วเลือก 'คัดลอกที่อยู่รูปภาพ' (Copy image address) เพื่อให้ดึงรูปมาแสดงได้ถูกต้องครับ",
+        { duration: 6000 }
+      );
+    }
+
+    setHasError(false);
+    onChange(raw);
+    toast.success("นำรูปภาพมาใช้เรียบร้อยแล้ว");
+    setUrlInputValue("");
+    setShowUrlInput(false);
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {label && <label className="text-xs font-semibold text-slate-700 block">{label}</label>}
 
       {value ? (
-        <div className="relative group rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center max-h-48">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={value}
-            alt="Preview"
-            className={aspect === "contain" ? "object-contain w-full h-36 max-h-48 p-2" : "object-cover w-full h-40 max-h-48"}
-          />
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-red-600 text-white hover:bg-red-700 shadow-md transition-all opacity-90 group-hover:opacity-100"
-            title="ลบรูปภาพ"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      ) : (
-        <div className="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-4 text-center transition-colors bg-slate-50/50">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-            disabled={isUploading}
-          />
+        <div className="space-y-2">
+          <div className="relative group rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center max-h-56">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt="Cover Preview"
+              referrerPolicy="no-referrer"
+              crossOrigin="anonymous"
+              onError={() => setHasError(true)}
+              style={{ objectPosition: position }}
+              className={
+                aspect === "contain"
+                  ? "object-contain w-full h-44 max-h-56 p-2"
+                  : "object-cover w-full h-48 max-h-56 transition-all"
+              }
+            />
 
-          {isUploading ? (
-            <div className="flex flex-col items-center justify-center py-4 gap-2 text-slate-500 text-sm">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-              <span>กำลังอัปโหลดรูปภาพ...</span>
+            {/* Error Overlay if image fails to load */}
+            {hasError && (
+              <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center text-white text-xs gap-1.5 z-10">
+                <AlertTriangle className="w-6 h-6 text-amber-400" />
+                <span className="font-semibold text-amber-200">ไม่สามารถโหลดรูปภาพจากลิงก์นี้ได้</span>
+                <span className="text-[11px] text-slate-300 max-w-sm">
+                  หากเป็นรูปจาก Facebook กรุณาคลิกขวาที่ตัวรูปภาพ แล้วเลือก &quot;คัดลอกที่อยู่รูปภาพ (Copy image address)&quot;
+                </span>
+              </div>
+            )}
+
+            {/* Action buttons on hover */}
+            <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity z-20">
+              <button
+                type="button"
+                onClick={() => {
+                  setUrlInputValue(value);
+                  setShowUrlInput(true);
+                }}
+                className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-900 text-white shadow-md text-xs inline-flex items-center gap-1 px-2.5 backdrop-blur-xs transition-colors"
+                title="เปลี่ยนรูปภาพหรือแก้ไขลิงก์"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>เปลี่ยนรูป</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  setHasError(false);
+                }}
+                className="p-1.5 rounded-lg bg-red-600/90 hover:bg-red-700 text-white shadow-md transition-colors"
+                title="ลบรูปภาพนี้"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-2 py-2">
-              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-                <ImageIcon className="w-5 h-5" />
-              </div>
-              <div className="text-xs text-slate-600">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="font-semibold text-blue-700 hover:underline inline-flex items-center gap-1 mr-1"
-                >
-                  <Upload className="w-3.5 h-3.5" /> คลิกเพื่อเลือกไฟล์
-                </button>
-                หรือลากไฟล์มาวาง (สูงสุด 5MB)
-              </div>
-              <div className="pt-2 border-t border-slate-200/60 w-full flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => setShowUrlInput(!showUrlInput)}
-                  className="text-xs text-slate-500 hover:text-blue-700 inline-flex items-center gap-1 font-medium"
-                >
-                  <LinkIcon className="w-3 h-3" /> หรือใส่ลิงก์รูปภาพ (Image URL)
-                </button>
+          </div>
+
+          {/* Focal Position Adjustment (Top / Center / Bottom) */}
+          {onPositionChange && (
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+              <span className="text-slate-700 font-semibold flex items-center gap-1.5">
+                <span>เลื่อนปรับจุดโฟกัสรูปหน้าปก:</span>
+              </span>
+              <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-2xs">
+                {(
+                  [
+                    { label: "บน", val: "top" },
+                    { label: "กึ่งกลาง", val: "center" },
+                    { label: "ล่าง", val: "bottom" },
+                  ] as const
+                ).map((pos) => (
+                  <button
+                    key={pos.val}
+                    type="button"
+                    onClick={() => onPositionChange(pos.val)}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                      position === pos.val
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    }`}
+                  >
+                    {pos.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
         </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Main Upload Box */}
+          <div className="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl p-5 text-center transition-colors bg-slate-50/50">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={isUploading}
+            />
+
+            {isUploading ? (
+              <div className="flex flex-col items-center justify-center py-4 gap-2 text-slate-500 text-sm">
+                <Loader2 className="w-7 h-7 animate-spin text-blue-600" />
+                <span className="font-medium text-xs">กำลังอัปโหลดรูปภาพเข้าสู่ระบบ...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-2xs">
+                  <ImageIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs text-slate-600 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 mr-1 cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" /> คลิกเพื่ออัปโหลดไฟล์รูปภาพ
+                    </button>
+                    <span>หรือลากไฟล์มาวางที่นี่</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    รองรับ JPG, PNG, WEBP ขนาดไม่เกิน 5MB
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/80 w-full flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInput(!showUrlInput)}
+                    className="text-xs text-slate-600 hover:text-blue-600 inline-flex items-center gap-1.5 font-semibold py-1 px-2.5 rounded-lg hover:bg-blue-50/60 transition-colors cursor-pointer"
+                  >
+                    <LinkIcon className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{showUrlInput ? "ซ่อนกล่องใส่ลิงก์ URL" : "หรือคลิกเพื่อใส่ลิงก์รูปภาพ (URL / Facebook)"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
-      {showUrlInput && !value && (
-        <div className="flex items-center gap-2 pt-1">
-          <input
-            type="url"
-            value={urlInputValue}
-            onChange={(e) => setUrlInputValue(e.target.value)}
-            placeholder="https://example.com/photo.jpg"
-            className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-          />
-          <button
-            type="button"
-            onClick={handleApplyUrl}
-            className="px-3 py-1.5 rounded-lg bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800"
-          >
-            ตกลง
-          </button>
+      {/* URL Input Box (Available both when empty or when user wants to change URL) */}
+      {showUrlInput && (
+        <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 space-y-2 animate-in fade-in-50 duration-200">
+          <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+            <LinkIcon className="w-3.5 h-3.5 text-blue-600" />
+            <span>ใส่ลิงก์ URL รูปภาพ (Direct Image Link / Facebook Image):</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="url"
+              value={urlInputValue}
+              onChange={(e) => setUrlInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleApplyUrl();
+                }
+              }}
+              placeholder="วางลิงก์รูปภาพ เช่น https://... หรือลิงก์รูปภาพจาก Facebook"
+              className="flex-1 text-xs px-3.5 py-2.5 rounded-xl border border-blue-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 shadow-2xs"
+            />
+            <button
+              type="button"
+              onClick={handleApplyUrl}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-xs shrink-0 inline-flex items-center gap-1 cursor-pointer"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>ใช้รูปนี้</span>
+            </button>
+          </div>
+          <div className="text-[11px] text-slate-500 leading-relaxed bg-white/80 p-2.5 rounded-lg border border-blue-100">
+            💡 <strong>วิธีคัดลอกรูปจาก Facebook มาใช้อย่างถูกต้อง:</strong>
+            <ol className="list-decimal list-inside mt-1 space-y-0.5 text-slate-600">
+              <li>ไปที่โพสต์ Facebook แล้วคลิกเปิดรูปภาพที่ต้องการ</li>
+              <li><strong>คลิกขวาที่ตัวรูปภาพ</strong> แล้วเลือกเมนู <strong>&quot;คัดลอกที่อยู่รูปภาพ&quot; (Copy image address)</strong></li>
+              <li>นำลิงก์ที่ได้มาวางในช่องด้านบน แล้วกดปุ่ม <strong>&quot;ใช้รูปนี้&quot;</strong> หรือกด Enter ได้ทันที</li>
+            </ol>
+          </div>
         </div>
       )}
     </div>
