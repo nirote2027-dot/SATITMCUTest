@@ -736,6 +736,92 @@ export async function getAttendanceForPeriod(
   return map;
 }
 
+export async function getCourseAttendanceMatrix(
+  tenantId: string,
+  classRoom: string,
+  courseId: string,
+): Promise<{
+  records: {
+    studentId: string;
+    period: number;
+    classDate: string;
+    status: "PRESENT" | "ABSENT" | "LEAVE" | "LATE";
+    remarks?: string;
+  }[];
+  periodDates: Record<number, string>;
+}> {
+  const attendances = await prisma.attendance.findMany({
+    where: {
+      tenantId,
+      courseId,
+      student: { classRoom },
+    },
+    orderBy: [{ period: "asc" }, { classDate: "asc" }],
+  });
+
+  const periodDates: Record<number, string> = {};
+  const records = attendances.map((a) => {
+    const dateStr = a.classDate ? a.classDate.toISOString().split("T")[0] : "";
+    if (dateStr && !periodDates[a.period]) {
+      periodDates[a.period] = dateStr;
+    }
+    return {
+      studentId: a.studentId,
+      period: a.period,
+      classDate: dateStr,
+      status: a.status as "PRESENT" | "ABSENT" | "LEAVE" | "LATE",
+      remarks: a.remarks || undefined,
+    };
+  });
+
+  return { records, periodDates };
+}
+
+export async function saveCourseAttendanceMatrix(
+  tenantId: string,
+  classRoom: string,
+  courseId: string,
+  records: {
+    studentId: string;
+    period: number;
+    classDate: string;
+    status: "PRESENT" | "ABSENT" | "LEAVE" | "LATE";
+    remarks?: string;
+  }[],
+): Promise<void> {
+  if (records.length === 0) return;
+
+  const studentIds = Array.from(new Set(records.map((r) => r.studentId)));
+  const periods = Array.from(new Set(records.map((r) => r.period)));
+
+  await prisma.$transaction(async (tx) => {
+    await tx.attendance.deleteMany({
+      where: {
+        tenantId,
+        courseId,
+        studentId: { in: studentIds },
+        period: { in: periods },
+      },
+    });
+
+    for (const rec of records) {
+      if (!rec.classDate) continue;
+      const d = new Date(rec.classDate);
+      await tx.attendance.create({
+        data: {
+          tenantId,
+          studentId: rec.studentId,
+          courseId,
+          period: rec.period,
+          classDate: d,
+          status: rec.status,
+          remarks: rec.remarks,
+        },
+      });
+    }
+  });
+}
+
 export async function getStudentAttendanceSummaries(
   tenantId: string,
   classRoom: string,

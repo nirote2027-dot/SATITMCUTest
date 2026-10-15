@@ -52,6 +52,19 @@ export interface AttendanceDto {
   remarks?: string | null;
 }
 
+export interface CourseAttendanceCell {
+  studentId: string;
+  period: number;
+  classDate: string;
+  status: "PRESENT" | "ABSENT" | "LEAVE" | "LATE";
+  remarks?: string;
+}
+
+export interface CourseAttendanceMatrixDto {
+  records: CourseAttendanceCell[];
+  periodDates: Record<number, string>;
+}
+
 export interface StudentAttendanceSummary {
   studentId: string;
   studentCode: string;

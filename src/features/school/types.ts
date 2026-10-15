@@ -15,6 +15,39 @@ export function extractEmbedUrl(input?: string): string {
   return match ? match[1] : trimmed;
 }
 
+export function buildFacebookEmbedUrl(params: {
+  urlOrEmbed?: string;
+  tabs?: string;
+  height?: number;
+  width?: number;
+  smallHeader?: boolean;
+  hideCover?: boolean;
+  showFacepile?: boolean;
+  adaptContainerWidth?: boolean;
+}): string {
+  const raw = (params.urlOrEmbed || "").trim();
+  if (!raw) return "";
+
+  const extracted = extractEmbedUrl(raw);
+
+  // If it's already a full plugins/page.php URL, return it directly
+  if (extracted.includes("facebook.com/plugins/page.php")) {
+    return extracted;
+  }
+
+  const tabs = params.tabs || "timeline";
+  const height = params.height || 500;
+  const width = params.width || 500;
+  const smallHeader = params.smallHeader ?? false;
+  const hideCover = params.hideCover ?? false;
+  const showFacepile = params.showFacepile ?? true;
+  const adapt = params.adaptContainerWidth ?? true;
+
+  return `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
+    extracted
+  )}&tabs=${encodeURIComponent(tabs)}&width=${width}&height=${height}&small_header=${smallHeader}&adapt_container_width=${adapt}&hide_cover=${hideCover}&show_facepile=${showFacepile}`;
+}
+
 export function getWidgetHeight(size?: string, custom?: number): number {
   if (size === "compact") return 350;
   if (size === "tall") return 550;
@@ -47,6 +80,11 @@ export interface SchoolInfoData {
   facebookDisplayHeight?: WidgetDisplayHeight;
   facebookCustomHeight?: number;
   showFacebookWidget?: boolean;
+  facebookTabs?: string;
+  facebookSmallHeader?: boolean;
+  facebookHideCover?: boolean;
+  facebookShowFacepile?: boolean;
+  facebookDisplayMode?: "plugin" | "card";
   line?: string;
   mapUrl?: string;
   mapEmbedUrl?: string;

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { runAction, type ActionResult } from "@/shared/lib/result";
-import { requirePermission, requireSession } from "@/features/identity/server";
+import { requirePermission, requireSession, hasPermission } from "@/features/identity/server";
+import { prisma } from "@/shared/lib/infra/prisma";
 import { DOCUMENT_P } from "@/features/document/permissions";
 import {
   listStudents,
@@ -18,6 +19,8 @@ import {
   recordBatchAttendance,
   getStudentAttendanceSummaries,
   getAttendanceForPeriod,
+  getCourseAttendanceMatrix,
+  saveCourseAttendanceMatrix,
   listGrades,
   saveGradeRecord,
   getGradingScheme,
@@ -32,6 +35,8 @@ import type {
   ImportStudentInput,
   ImportBatchStudentsResult,
   InstructorDto,
+  CourseAttendanceCell,
+  CourseAttendanceMatrixDto,
 } from "./types";
 
 export async function getStudentsAction(filter?: {
@@ -206,6 +211,50 @@ export async function getAttendanceForPeriodAction(
   return runAction(async () => {
     const ctx = await requireSession();
     return getAttendanceForPeriod(ctx.tenantId, classRoom, classDate, period, courseId);
+  });
+}
+
+export async function getCourseAttendanceMatrixAction(
+  classRoom: string,
+  courseId: string,
+): Promise<ActionResult<CourseAttendanceMatrixDto>> {
+  return runAction(async () => {
+    const ctx = await requireSession();
+    return getCourseAttendanceMatrix(ctx.tenantId, classRoom, courseId);
+  });
+}
+
+export async function saveCourseAttendanceMatrixAction(
+  classRoom: string,
+  courseId: string,
+  records: CourseAttendanceCell[],
+): Promise<ActionResult<void>> {
+  return runAction(async () => {
+    const ctx = await requireSession();
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: { instructor: true },
+    });
+    if (!course) throw new Error("ไม่พบข้อมูลรายวิชา");
+
+    const isSuper = ctx.isSuperAdmin;
+    const canManage = hasPermission(ctx, DOCUMENT_P.documentManage);
+    const isInstructor =
+      (course.instructorId && course.instructorId === ctx.userId) ||
+      (course.instructor?.id && course.instructor.id === ctx.userId) ||
+      (course.instructorName && ctx.userName && (
+        course.instructorName.includes(ctx.userName) ||
+        ctx.userName.includes(course.instructorName)
+      ));
+
+    if (!isSuper && !canManage && !isInstructor) {
+      throw new Error(
+        `สิทธิ์ไม่เพียงพอ: เฉพาะอาจารย์ผู้สอนประจำวิชา (${course.instructorName || "ไม่ระบุ"}) หรือผู้ดูแลระบบเท่านั้นที่มีสิทธิ์บันทึกการเช็คชื่อ`,
+      );
+    }
+
+    await saveCourseAttendanceMatrix(ctx.tenantId, classRoom, courseId, records);
+    revalidatePath("/satitmcuReg");
   });
 }
 

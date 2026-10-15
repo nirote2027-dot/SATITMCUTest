@@ -28,6 +28,7 @@ import {
   type ThemeColorKey,
   THEME_CONFIGS,
   extractEmbedUrl,
+  buildFacebookEmbedUrl,
   getWidgetHeight,
 } from "@/features/school/types";
 
@@ -165,46 +166,126 @@ export function AboutSchoolSection({
                 </a>
               </div>
 
-              {/* Facebook iframe embed container */}
-              <div
-                className="w-full bg-slate-50 dark:bg-slate-950 rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 flex justify-center items-center shadow-inner"
-                style={{
-                  height: `${getWidgetHeight(
-                    schoolInfo.facebookDisplayHeight,
-                    schoolInfo.facebookCustomHeight
-                  )}px`,
-                  minHeight: "380px",
-                }}
-              >
-                <iframe
-                  src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
-                    schoolInfo.facebookPageUrl || schoolInfo.facebook || "https://www.facebook.com/satitmcu"
-                  )}&tabs=timeline&width=500&height=${getWidgetHeight(
-                    schoolInfo.facebookDisplayHeight,
-                    schoolInfo.facebookCustomHeight
-                  )}&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`}
-                  width="100%"
-                  height="100%"
-                  style={{ border: "none", overflow: "hidden" }}
-                  scrolling="no"
-                  frameBorder="0"
-                  allowFullScreen={true}
-                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                  title="Facebook Fanpage Widget"
-                  className="w-full h-full max-w-[500px]"
-                />
-              </div>
+              {/* Facebook widget container (supports card or iframe plugin) */}
+              {schoolInfo.facebookDisplayMode === "card" ? (
+                /* Rich Showcase Card */
+                <div
+                  className="w-full bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-white/5 p-6 sm:p-7 flex flex-col justify-between shadow-inner relative overflow-hidden"
+                  style={{
+                    minHeight: "380px",
+                    height: `${getWidgetHeight(
+                      schoolInfo.facebookDisplayHeight,
+                      schoolInfo.facebookCustomHeight
+                    )}px`,
+                  }}
+                >
+                  <div className="flex flex-col justify-between h-full">
+                    <div>
+                      <div className="flex items-center gap-3.5 pb-4 border-b border-slate-200/80 dark:border-white/10">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-blue-500/20 shrink-0">
+                          f
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                              {schoolInfo.nameTh || "โรงเรียนสาธิตมหาวิทยาลัยมหาจุฬาลงกรณราชวิทยาลัย"}
+                            </h4>
+                            <CheckCircle2 className="w-4 h-4 text-blue-600 fill-blue-600 text-white shrink-0" />
+                          </div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            เพจทางการ • @SatitMahachula • ผู้ติดตาม 2,600+ คน
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="py-6 space-y-4">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                          ศูนย์รวมข่าวสารประชาสัมพันธ์ ประกาศการรับสมัครนักเรียน กิจกรรมส่งเสริมคุณธรรม และภาพบรรยากาศการเรียนรู้อย่างต่อเนื่องบน Facebook Fanpage
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+                          <div className="p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-white/5 flex items-center gap-2">
+                            <span className="text-blue-600 font-bold">📰</span>
+                            <span>ข่าวสาร & กิจกรรม</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-white/5 flex items-center gap-2">
+                            <span className="text-blue-600 font-bold">📸</span>
+                            <span>ภาพบรรยากาศ</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-white/5 flex items-center gap-2">
+                            <span className="text-blue-600 font-bold">💬</span>
+                            <span>แชท Messenger</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        เข้าถึงเนื้อหาและโพสต์ฉบับเต็มได้ทันที
+                      </span>
+                      <a
+                        href={schoolInfo.facebookPageUrl || schoolInfo.facebook || "https://www.facebook.com/SatitMahachula"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>เปิดดูโพสต์ทั้งหมดบน Facebook</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Facebook Page Plugin iframe with scroll support */
+                <div
+                  className="w-full bg-slate-50 dark:bg-slate-950 rounded-2xl overflow-auto border border-slate-100 dark:border-white/5 flex justify-center items-center shadow-inner"
+                  style={{
+                    height: `${getWidgetHeight(
+                      schoolInfo.facebookDisplayHeight,
+                      schoolInfo.facebookCustomHeight
+                    )}px`,
+                    minHeight: "380px",
+                  }}
+                >
+                  <iframe
+                    src={buildFacebookEmbedUrl({
+                      urlOrEmbed: schoolInfo.facebookPageUrl || schoolInfo.facebook || "https://www.facebook.com/SatitMahachula",
+                      tabs: schoolInfo.facebookTabs || "timeline",
+                      height: getWidgetHeight(
+                        schoolInfo.facebookDisplayHeight,
+                        schoolInfo.facebookCustomHeight
+                      ),
+                      smallHeader: schoolInfo.facebookSmallHeader,
+                      hideCover: schoolInfo.facebookHideCover,
+                      showFacepile: schoolInfo.facebookShowFacepile,
+                      adaptContainerWidth: true,
+                    })}
+                    width="100%"
+                    height="100%"
+                    style={{ border: "none" }}
+                    scrolling="yes"
+                    frameBorder="0"
+                    allowFullScreen={true}
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                    title="Facebook Fanpage Widget"
+                    className="w-full h-full max-w-[500px]"
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-slate-500">
+            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
               <span>กด Like & Follow เพื่ออัปเดตกิจกรรมโรงเรียน</span>
               <a
-                href={schoolInfo.facebookPageUrl || schoolInfo.facebook || "https://www.facebook.com"}
+                href={schoolInfo.facebookPageUrl || schoolInfo.facebook || "https://www.facebook.com/SatitMahachula"}
                 target="_blank"
                 rel="noreferrer"
-                className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
+                className="text-blue-600 dark:text-blue-400 font-bold hover:underline inline-flex items-center gap-1"
               >
-                ติดตามเพจ →
+                <span>ดูโพสต์และกิจกรรมทั้งหมดบน Facebook</span>
+                <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           </div>

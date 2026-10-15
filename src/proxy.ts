@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import { CURRENT_PATH_HEADER } from "@/shared/lib/security/callback-url";
 
 const PUBLIC_PREFIXES = [
+  "/news/",
   "/download/",
   "/downloads/",
   "/reset-password/",

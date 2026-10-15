@@ -24,6 +24,13 @@ import {
   GraduationCap,
   UserCheck,
   FileText,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ShieldCheck,
+  Lock,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -44,6 +51,8 @@ import type {
   CourseGradingSchemeDto,
   ImportStudentInput,
   ParsedCsvStudent,
+  CourseAttendanceCell,
+  CourseAttendanceMatrixDto,
 } from "@/features/registration";
 import {
   createStudentAction,
@@ -62,6 +71,8 @@ import {
   getGradesAction,
   getAttendanceSummariesAction,
   getAttendanceForPeriodAction,
+  getCourseAttendanceMatrixAction,
+  saveCourseAttendanceMatrixAction,
 } from "@/features/registration";
 import { PP6ReportClient } from "./pp6-report-client";
 
@@ -124,15 +135,9 @@ export function RegistrationClient({
   canManage,
   currentUser,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"students" | "courses" | "attendance" | "grading" | "pp6">("students");
-  // Attendance Feature Toggle (ปิดไว้ก่อนตามที่ต้องการ เมื่อต้องการใช้งานสามารถเปิดใช้ทีหลังได้)
-  const [enableAttendance, setEnableAttendance] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!enableAttendance && activeTab === "attendance") {
-      setActiveTab("grading");
-    }
-  }, [enableAttendance, activeTab]);
+  const [activeTab, setActiveTab] = useState<"students" | "courses" | "attendance" | "grading" | "pp6">("attendance");
+  // Attendance Feature: Enabled by default as requested
+  const [enableAttendance, setEnableAttendance] = useState<boolean>(true);
 
   const [students, setStudents] = useState<StudentDto[]>(initialStudents);
   const [courses, setCourses] = useState<CourseDto[]>(initialCourses);
@@ -202,10 +207,13 @@ export function RegistrationClient({
   // Instructors list
   const [instructors, setInstructors] = useState<InstructorDto[]>(initialInstructors);
 
-  // Attendance Check State
+  // Attendance Check State (25 Periods Grid Matrix)
   const [attendanceDate, setAttendanceDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [attendancePeriod, setAttendancePeriod] = useState<number>(1);
   const [attendanceMap, setAttendanceMap] = useState<Record<string, "PRESENT" | "ABSENT" | "LEAVE" | "LATE">>({});
+  const [periodDates, setPeriodDates] = useState<Record<number, string>>({});
+  const [attendanceGrid, setAttendanceGrid] = useState<Record<string, Record<number, "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "">>>({});
+  const [isSavingAttendance, setIsSavingAttendance] = useState<boolean>(false);
 
   // Grading Scheme Modal State
   const [schemeModalOpen, setSchemeModalOpen] = useState(false);
@@ -351,6 +359,31 @@ export function RegistrationClient({
     );
   }, [activeGradingInstructor, selectedCourse]);
 
+  // Attendance Permission Check: กำหนดสิทธิ์ อ.ผู้สอนเท่านั้น มีสิทธิ์ (รวม SuperAdmin / ผู้จัดการระบบ)
+  const isInstructorOfSelectedCourse = useMemo(() => {
+    if (!currentUser || !selectedCourse) return false;
+    if (currentUser.isSuperAdmin) return true;
+    if (selectedCourse.instructorId && selectedCourse.instructorId === currentUser.id) return true;
+    if (
+      currentCourseInstructorName &&
+      currentUser.name &&
+      (currentCourseInstructorName.includes(currentUser.name) ||
+        currentUser.name.includes(currentCourseInstructorName))
+    ) {
+      return true;
+    }
+    if (activeGradingInstructor === "ADMIN") return true;
+    if (activeGradingInstructor !== "ALL" && activeGradingInstructor !== "AUTO") {
+      return (
+        selectedCourse.instructorName === activeGradingInstructor ||
+        selectedCourse.instructorId === activeGradingInstructor
+      );
+    }
+    return false;
+  }, [currentUser, selectedCourse, currentCourseInstructorName, activeGradingInstructor]);
+
+  const canEditAttendance = currentUser?.isSuperAdmin || canManage || isInstructorOfSelectedCourse;
+
   // Assign / update instructor for the currently selected course directly from Grading tab
   const handleAssignInstructorToCourse = (instructorIdOrName: string) => {
     if (!selectedCourse) return;
@@ -483,6 +516,34 @@ export function RegistrationClient({
       return s.classRoom === selectedClassRoom;
     });
   }, [students, selectedClassRoom, selectedAcademicYear, selectedGradingSemester]);
+
+  // Load 25-period attendance matrix for current class and course
+  useEffect(() => {
+    if (!selectedClassRoom || !selectedCourseId) return;
+    startTransition(async () => {
+      try {
+        const res = await getCourseAttendanceMatrixAction(selectedClassRoom, selectedCourseId);
+        if (res.ok && res.data) {
+          const grid: Record<string, Record<number, "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "">> = {};
+          for (const s of currentClassStudents) {
+            grid[s.id] = {};
+            for (let p = 1; p <= 25; p++) {
+              grid[s.id][p] = "";
+            }
+          }
+          for (const r of res.data.records) {
+            if (grid[r.studentId]) {
+              grid[r.studentId][r.period] = r.status;
+            }
+          }
+          setAttendanceGrid(grid);
+          setPeriodDates(res.data.periodDates || {});
+        }
+      } catch (err) {
+        console.error("Failed to load 25-period attendance matrix:", err);
+      }
+    });
+  }, [selectedClassRoom, selectedCourseId, currentClassStudents]);
 
   // Load attendance records for current class, date, period, and course
   useEffect(() => {
@@ -1042,7 +1103,196 @@ export function RegistrationClient({
     });
   };
 
-  // Batch Attendance Check
+  // ═══ 25-Period Attendance Matrix Handlers ═══
+  const handleSetCellStatus = (
+    studentId: string,
+    period: number,
+    status: "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "",
+  ) => {
+    if (!canEditAttendance) {
+      toast.error(`คุณไม่มีสิทธิ์แก้ไขการเช็คชื่อ (เฉพาะอาจารย์ผู้สอน: ${currentCourseInstructorName} หรือผู้ดูแลระบบเท่านั้น)`);
+      return;
+    }
+    setAttendanceGrid((prev) => ({
+      ...prev,
+      [studentId]: {
+        ...(prev[studentId] || {}),
+        [period]: status,
+      },
+    }));
+    // If period has no date yet and a status is chosen, auto set to today's date
+    if (status && !periodDates[period]) {
+      const today = new Date().toISOString().split("T")[0];
+      setPeriodDates((prev) => ({ ...prev, [period]: today }));
+    }
+  };
+
+  const handleSetPeriodDate = (period: number, dateStr: string) => {
+    if (!canEditAttendance) {
+      toast.error("คุณไม่มีสิทธิ์แก้ไขวันที่เช็คชื่อ");
+      return;
+    }
+    setPeriodDates((prev) => ({ ...prev, [period]: dateStr }));
+  };
+
+  const handleSetPeriodAllStatus = (
+    period: number,
+    status: "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "",
+  ) => {
+    if (!canEditAttendance) {
+      toast.error(`คุณไม่มีสิทธิ์แก้ไขการเช็คชื่อ (เฉพาะอาจารย์ผู้สอน: ${currentCourseInstructorName} หรือผู้ดูแลระบบเท่านั้น)`);
+      return;
+    }
+    setAttendanceGrid((prev) => {
+      const next = { ...prev };
+      for (const s of currentClassStudents) {
+        next[s.id] = {
+          ...(next[s.id] || {}),
+          [period]: status,
+        };
+      }
+      return next;
+    });
+    if (status && !periodDates[period]) {
+      const today = new Date().toISOString().split("T")[0];
+      setPeriodDates((prev) => ({ ...prev, [period]: today }));
+    }
+    toast.success(`กำหนดคาบที่ ${period} เป็น "${status === "PRESENT" ? "มา" : status === "ABSENT" ? "ขาด" : status === "LEAVE" ? "ลา" : status === "LATE" ? "สาย" : "ว่าง"}" ทั้งห้องแล้ว`);
+  };
+
+  const handleSetAll25Periods = (status: "PRESENT" | "ABSENT") => {
+    if (!canEditAttendance) {
+      toast.error(`คุณไม่มีสิทธิ์แก้ไขการเช็คชื่อ (เฉพาะอาจารย์ผู้สอน: ${currentCourseInstructorName} หรือผู้ดูแลระบบเท่านั้น)`);
+      return;
+    }
+    setAttendanceGrid((prev) => {
+      const next = { ...prev };
+      for (const s of currentClassStudents) {
+        next[s.id] = { ...(next[s.id] || {}) };
+        for (let p = 1; p <= 25; p++) {
+          next[s.id][p] = status;
+        }
+      }
+      return next;
+    });
+    setPeriodDates((prev) => {
+      const nextDates = { ...prev };
+      const baseDate = new Date();
+      for (let p = 1; p <= 25; p++) {
+        if (!nextDates[p]) {
+          const d = new Date(baseDate);
+          d.setDate(baseDate.getDate() + (p - 1) * 7);
+          nextDates[p] = d.toISOString().split("T")[0];
+        }
+      }
+      return nextDates;
+    });
+    toast.success(`เช็ค "${status === "PRESENT" ? "มาทั้งหมด" : "ขาดทั้งหมด"}" ครบทั้ง 25 คาบ ทั้งห้องเรียบร้อย`);
+  };
+
+  const handleAutoFillWeeklyDates = () => {
+    if (!canEditAttendance) {
+      toast.error("คุณไม่มีสิทธิ์แก้ไขวันที่");
+      return;
+    }
+    const startDateStr = periodDates[1] || new Date().toISOString().split("T")[0];
+    const startDate = new Date(startDateStr);
+    const nextDates: Record<number, string> = {};
+    for (let p = 1; p <= 25; p++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + (p - 1) * 7);
+      nextDates[p] = d.toISOString().split("T")[0];
+    }
+    setPeriodDates(nextDates);
+    toast.success("กำหนดวันที่สอนอัตโนมัติ (สัปดาห์ละ 1 คาบ) ครบทั้ง 25 คาบเรียบร้อย");
+  };
+
+  const handleClearAttendanceGrid = () => {
+    if (!canEditAttendance) {
+      toast.error("คุณไม่มีสิทธิ์แก้ไขการเช็คชื่อ");
+      return;
+    }
+    const emptyGrid: Record<string, Record<number, "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "">> = {};
+    for (const s of currentClassStudents) {
+      emptyGrid[s.id] = {};
+      for (let p = 1; p <= 25; p++) {
+        emptyGrid[s.id][p] = "";
+      }
+    }
+    setAttendanceGrid(emptyGrid);
+    toast.info("ล้างข้อมูลการเช็คชื่อในตารางเรียบร้อย");
+  };
+
+  const handleSaveAllAttendanceMatrix = () => {
+    if (!canEditAttendance) {
+      toast.error(`คุณไม่มีสิทธิ์บันทึกข้อมูลการเช็คชื่อ (เฉพาะอาจารย์ผู้สอน: ${currentCourseInstructorName} หรือผู้ดูแลระบบเท่านั้น)`);
+      return;
+    }
+    if (!selectedCourseId) {
+      toast.error("กรุณาเลือกรายวิชา");
+      return;
+    }
+    if (currentClassStudents.length === 0) {
+      toast.error("ไม่พบนักเรียนในชั้นเรียนนี้");
+      return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const recordsToSave: CourseAttendanceCell[] = [];
+
+    for (const s of currentClassStudents) {
+      const studentPeriods = attendanceGrid[s.id] || {};
+      for (let p = 1; p <= 25; p++) {
+        const st = studentPeriods[p];
+        if (st) {
+          const classDate = periodDates[p] || today;
+          recordsToSave.push({
+            studentId: s.id,
+            period: p,
+            classDate,
+            status: st,
+          });
+        }
+      }
+    }
+
+    if (recordsToSave.length === 0) {
+      toast.info("ยังไม่มีข้อมูลการเช็คชื่อในตารางให้บันทึก (กรุณาเลือกสถานะ มา/ขาด/ลา/สาย อย่างน้อย 1 คาบ)");
+      return;
+    }
+
+    setIsSavingAttendance(true);
+    startTransition(async () => {
+      try {
+        const res = await saveCourseAttendanceMatrixAction(
+          selectedClassRoom,
+          selectedCourseId,
+          recordsToSave,
+        );
+        if (res.ok) {
+          toast.success(
+            `บันทึกข้อมูลการเช็คชื่อ 25 คาบ วิชา ${selectedCourse?.courseCode} (${recordsToSave.length} รายการ) สำเร็จเรียบร้อย`,
+          );
+          // Refresh summaries for grading & pp6
+          const attRes = await getAttendanceSummariesAction(selectedClassRoom, selectedCourseId);
+          if (attRes.ok && attRes.data) {
+            setAttendanceSummaries((prev) => {
+              const others = prev.filter((a) => a.classRoom !== selectedClassRoom);
+              return [...others, ...attRes.data];
+            });
+          }
+        } else {
+          toast.error(res.error.message || "ไม่สามารถบันทึกการเช็คชื่อได้");
+        }
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการบันทึก");
+      } finally {
+        setIsSavingAttendance(false);
+      }
+    });
+  };
+
+  // Legacy single period check
   const handleSetAllAttendance = (status: "PRESENT" | "ABSENT" | "LEAVE" | "LATE") => {
     const nextMap: Record<string, "PRESENT" | "ABSENT" | "LEAVE" | "LATE"> = {};
     for (const s of currentClassStudents) {
@@ -1309,30 +1559,53 @@ export function RegistrationClient({
           : `"${selectedAcademicYear}","${selectedGradingSemester}","${g.seatNo}","${g.studentCode}","${g.studentName}","${g.classRoom}","${g.courseCode}","${g.courseName}","${currentCourseInstructorName}","${g.assignmentScore}","${g.midtermScore}","${g.behaviorScore}","${g.finalScore}","${g.totalScore}","${g.grade}","${g.remarks || ""}"\n`;
       }
     } else if (type === "attendance") {
-      const course = courses.find((c) => c.id === selectedCourseId);
-      filename = `Attendance_Summary_${selectedClassRoom}_${course?.courseCode || "course"}_${attendanceDate}_Period${attendancePeriod}_${selectedAcademicYear}.csv`;
-      csvContent += "ปีการศึกษา,วันที่,คาบเรียน,เลขที่,รหัสนักเรียน,ชื่อ-สกุล,ระดับชั้น/ห้อง,รหัสวิชา,ชื่อวิชา,สถานะคาบนี้,จำนวนคาบสะสม,มา(คาบ),ขาด(คาบ),ลา(คาบ),สาย(คาบ),ร้อยละเวลาเรียน(%),สิทธิ์เข้าสอบ\n";
+      const course = courses.find((c) => c.id === selectedCourseId) || availableCourses[0];
+      filename = `Attendance_Matrix25_${selectedClassRoom}_${course?.courseCode || "course"}_${selectedAcademicYear}_Sem${selectedGradingSemester}.csv`;
+      
+      let headerPeriods = "";
+      for (let p = 1; p <= 25; p++) {
+        const d = periodDates[p] || `คาบที่ ${p}`;
+        headerPeriods += `คาบ ${p} (${d}),`;
+      }
+      csvContent += `ปีการศึกษา,ภาคเรียน,ระดับชั้น/ห้อง,รหัสวิชา,ชื่อวิชา,อาจารย์ผู้สอน,เลขที่,รหัสนักเรียน,ชื่อ-สกุล,${headerPeriods}รวมมา(คาบ),รวมขาด(คาบ),รวมลา(คาบ),รวมสาย(คาบ),รวมคาบที่บันทึก,ร้อยละเวลาเรียน(%),สิทธิ์เข้าสอบ\n`;
+
       for (const s of currentClassStudents) {
-        const a = attendanceSummaries.find((att) => att.studentId === s.id);
-        const currentStatus = attendanceMap[s.id] || "PRESENT";
-        const statusThai =
-          currentStatus === "PRESENT"
-            ? "มา"
-            : currentStatus === "ABSENT"
-            ? "ขาด"
-            : currentStatus === "LEAVE"
-            ? "ลา"
-            : "สาย";
+        const studentPeriods = attendanceGrid[s.id] || {};
+        let pCount = 0;
+        let aCount = 0;
+        let lCount = 0;
+        let tCount = 0;
+        let recCount = 0;
+        let periodCells = "";
 
-        const totalPeriods = a?.totalPeriods ?? 0;
-        const presentCount = a?.presentCount ?? 0;
-        const absentCount = a?.absentCount ?? 0;
-        const leaveCount = a?.leaveCount ?? 0;
-        const lateCount = a?.lateCount ?? 0;
-        const attPercent = a?.attendancePercent ?? 100;
-        const isEligible = a?.isEligibleForExam ?? true;
+        for (let p = 1; p <= 25; p++) {
+          const st = studentPeriods[p];
+          if (st === "PRESENT") {
+            pCount++;
+            recCount++;
+            periodCells += `"มา",`;
+          } else if (st === "ABSENT") {
+            aCount++;
+            recCount++;
+            periodCells += `"ขาด",`;
+          } else if (st === "LEAVE") {
+            lCount++;
+            recCount++;
+            periodCells += `"ลา",`;
+          } else if (st === "LATE") {
+            tCount++;
+            recCount++;
+            periodCells += `"สาย",`;
+          } else {
+            periodCells += `"-",`;
+          }
+        }
 
-        csvContent += `"${selectedAcademicYear}","${attendanceDate}","คาบที่ ${attendancePeriod}","${s.seatNo}","${s.studentCode}","${s.fullName}","${s.classRoom}","${course?.courseCode || ""}","${course?.name || ""}","${statusThai}","${totalPeriods}","${presentCount}","${absentCount}","${leaveCount}","${lateCount}","${attPercent}%","${isEligible ? "มีสิทธิ์สอบ" : "มส (หมดสิทธิ์สอบ)"}"\n`;
+        const eff = pCount + tCount * 0.5;
+        const pct = recCount > 0 ? Math.round((eff / recCount) * 100) : 100;
+        const elig = pct >= 80;
+
+        csvContent += `"${selectedAcademicYear}","${selectedGradingSemester}","${s.classRoom}","${course?.courseCode || ""}","${course?.name || ""}","${currentCourseInstructorName}","${s.seatNo}","${s.studentCode}","${s.fullName}",${periodCells}"${pCount}","${aCount}","${lCount}","${tCount}","${recCount}","${pct}%","${elig ? "มีสิทธิ์สอบ" : "มส (หมดสิทธิ์สอบ)"}"\n`;
       }
     }
 
@@ -1428,20 +1701,18 @@ export function RegistrationClient({
           2. รายวิชาที่สอน ({courses.length})
         </button>
 
-        {enableAttendance && (
-          <button
-            type="button"
-            onClick={() => setActiveTab("attendance")}
-            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
-              activeTab === "attendance"
-                ? "bg-blue-700 text-white shadow-sm"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            <CalendarCheck className="w-4 h-4" />
-            3. เช็คชื่อเข้าเรียน (Attendance)
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setActiveTab("attendance")}
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+            activeTab === "attendance"
+              ? "bg-blue-700 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <CalendarCheck className="w-4 h-4" />
+          3. เช็คชื่อเข้าเรียน (Attendance)
+        </button>
 
         <button
           type="button"
@@ -1453,7 +1724,7 @@ export function RegistrationClient({
           }`}
         >
           <Award className="w-4 h-4" />
-          {enableAttendance ? "4. บันทึกคะแนนและตัดเกรด (Grading)" : "3. บันทึกคะแนนและตัดเกรด (Grading)"}
+          4. บันทึกคะแนนและตัดเกรด (Grading)
         </button>
 
         <button
@@ -1466,21 +1737,8 @@ export function RegistrationClient({
           }`}
         >
           <FileText className="w-4 h-4" />
-          {enableAttendance ? "5. แบบ ปพ. 6 (รายงานผลการเรียนรายบุคคล)" : "4. แบบ ปพ. 6 (รายงานผลการเรียนรายบุคคล)"}
+          5. แบบ ปพ. 6 (รายงานผลการเรียนรายบุคคล)
         </button>
-
-        {/* ปุ่มสลับเปิด/ปิดแท็บเช็คชื่อเข้าเรียน (เมื่อต้องการเรียกใช้ทีหลัง) */}
-        <div className="ml-auto flex items-center">
-          <button
-            type="button"
-            onClick={() => setEnableAttendance(!enableAttendance)}
-            className="text-xs text-slate-500 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/50 transition-colors"
-            title={enableAttendance ? "คลิกเพื่อปิด/ซ่อนระบบเช็คชื่อเข้าเรียน" : "คลิกเพื่อเปิดระบบเช็คชื่อเข้าเรียน (Attendance)"}
-          >
-            <CalendarCheck className="w-3.5 h-3.5 text-blue-600" />
-            <span>{enableAttendance ? "ซ่อนแท็บเช็คชื่อ" : "เปิดใช้งานเช็คชื่อ (Attendance)"}</span>
-          </button>
-        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -1893,13 +2151,14 @@ export function RegistrationClient({
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          TAB 3: ATTENDANCE CHECKING (เปิด/ปิด ได้ตามต้องการ)
+          TAB 3: ATTENDANCE CHECKING (25 คาบเรียน พร้อมชื่อ อ.ผู้สอน และระบบสิทธิ์)
       ═══════════════════════════════════════════════════════════════════════ */}
       {enableAttendance && activeTab === "attendance" && (
         <div className="space-y-4">
           {/* Attendance Controls Bar */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {/* 1. ปีการศึกษา */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">ปีการศึกษา:</label>
                 <select
@@ -1915,8 +2174,9 @@ export function RegistrationClient({
                 </select>
               </div>
 
+              {/* 2. ระดับชั้น/ห้อง */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ระดับชั้น/ห้อง:</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">ระดับชั้น/ห้องเรียน:</label>
                 <select
                   value={selectedClassRoom}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedClassRoom(e.target.value)}
@@ -1930,68 +2190,102 @@ export function RegistrationClient({
                 </select>
               </div>
 
+              {/* 3. รายวิชา พร้อมชื่อ อ.ผู้สอน */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  รายวิชา ({selectedClassRoom}):
+                  รายวิชา ({selectedClassRoom}) • แสดงชื่อ อ.ผู้สอน:
                 </label>
                 <select
                   value={selectedCourseId}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCourseId(e.target.value)}
-                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-medium truncate"
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold text-blue-900 bg-blue-50/30 truncate"
                 >
                   {availableCourses.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.courseCode} {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">วันที่เช็คชื่อ:</label>
-                <input
-                  type="date"
-                  value={attendanceDate}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setAttendanceDate(e.target.value)}
-                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">คาบเรียนที่ (1-40):</label>
-                <select
-                  value={attendancePeriod}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setAttendancePeriod(Number(e.target.value))}
-                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold text-blue-900 bg-blue-50/30"
-                >
-                  {Array.from({ length: 40 }, (_, i) => i + 1).map((p) => (
-                    <option key={p} value={p}>
-                      คาบที่ {p}
+                      [{c.courseCode}] {c.name} {c.credits ? `(${c.credits} นก.)` : ""} • อ.ผู้สอน: {c.instructorName || "ไม่ระบุ"}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* Quick Actions & Save Button */}
+            {/* Course Summary & Instructor Permission Status Banner */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50/60 via-slate-50 to-indigo-50/40 border border-blue-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs font-black text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+                    {selectedCourse?.courseCode || "รหัสวิชา"}
+                  </span>
+                  <span className="font-bold text-sm text-slate-900">
+                    {selectedCourse?.name || "ชื่อวิชา"}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    ({Number(selectedCourse?.credits || 1.0).toFixed(1)} หน่วยกิต • {selectedCourse?.subjectGroup || "กลุ่มสาระทั่วไป"})
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600">
+                  <span className="inline-flex items-center gap-1.5 font-bold text-blue-900 bg-blue-100/70 px-2.5 py-0.5 rounded-md">
+                    <UserCheck className="w-3.5 h-3.5 text-blue-700" />
+                    อ.ผู้สอน: {currentCourseInstructorName}
+                  </span>
+                  <span>•</span>
+                  <span>ห้อง {selectedClassRoom} (นักเรียน {currentClassStudents.length} คน)</span>
+                  <span>•</span>
+                  <span>ภาคเรียนที่ {selectedGradingSemester}/{selectedAcademicYear}</span>
+                </div>
+              </div>
+
+              {/* Permission Badge */}
+              <div>
+                {canEditAttendance ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>มีสิทธิ์บันทึกข้อมูล (อ.ผู้สอนประจำวิชา / ผู้ดูแลระบบ)</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold shadow-2xs">
+                    <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>โหมดดูอย่างเดียว (เฉพาะ อ.ผู้สอน: {currentCourseInstructorName} เท่านั้นที่มีสิทธิ์แก้ไข)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Actions & Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-500">เช็คด่วนทั้งห้อง:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-500">จัดการข้อมูลเร็ว:</span>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleSetAllAttendance("PRESENT")}
-                  className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                  onClick={() => handleSetAll25Periods("PRESENT")}
+                  disabled={!canEditAttendance || currentClassStudents.length === 0}
+                  className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50 disabled:opacity-50"
+                  title="เช็คสถานะ มา ทั้งหมด 25 คาบ ให้กับนักเรียนทุกคน"
                 >
-                  มาทั้งหมด (Present)
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                  เช็คมาทั้ง 25 คาบ
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleSetAllAttendance("ABSENT")}
-                  className="text-xs text-red-700 border-red-200 hover:bg-red-50"
+                  onClick={handleAutoFillWeeklyDates}
+                  disabled={!canEditAttendance || currentClassStudents.length === 0}
+                  className="text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50 disabled:opacity-50"
+                  title="เติมวันที่เรียนอัตโนมัติ สัปดาห์ละ 1 คาบ จนครบ 25 คาบ"
                 >
-                  ขาดทั้งหมด
+                  <Calendar className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+                  เติมวันที่อัตโนมัติ (สัปดาห์ละคาบ)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleClearAttendanceGrid}
+                  disabled={!canEditAttendance || currentClassStudents.length === 0}
+                  className="text-xs text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                  ล้างตาราง
                 </Button>
               </div>
 
@@ -2000,116 +2294,282 @@ export function RegistrationClient({
                   onClick={() => handleExportCSV("attendance")}
                   variant="outline"
                   size="sm"
-                  className="gap-1.5 text-xs text-slate-700 hover:bg-slate-50 border-slate-300"
+                  disabled={currentClassStudents.length === 0}
+                  className="gap-1.5 text-xs text-slate-700 hover:bg-slate-50 border-slate-300 disabled:opacity-50"
                 >
-                  <Download className="w-3.5 h-3.5 text-slate-500" /> ส่งออกสรุปเวลาเรียน (CSV)
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  ส่งออกบัญชีเวลาเรียน 25 คาบ (CSV)
                 </Button>
                 <Button
-                  onClick={handleSaveAttendance}
-                  disabled={isPending}
+                  onClick={handleSaveAllAttendanceMatrix}
+                  disabled={isPending || isSavingAttendance || !canEditAttendance || currentClassStudents.length === 0}
                   size="sm"
-                  className="gap-1.5 bg-blue-700 hover:bg-blue-800 text-white shadow-2xs font-semibold"
+                  className="gap-1.5 bg-blue-700 hover:bg-blue-800 text-white shadow-2xs font-semibold disabled:opacity-50"
                 >
-                  <Save className="w-3.5 h-3.5" /> บันทึกการเช็คชื่อ
+                  <Save className="w-3.5 h-3.5" />
+                  {isSavingAttendance ? "กำลังบันทึก..." : "บันทึกข้อมูลการเช็คชื่อทั้งหมด"}
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Attendance Check Sheet Table */}
+          {/* ═══ 25-Period Attendance Matrix Table ═══ */}
           <LiyonCard>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+            <div className="overflow-x-auto pb-4">
+              <table className="w-full text-left border-collapse text-xs select-none">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-bold uppercase">
-                    <th className="py-3 px-4 w-14 text-center">เลขที่</th>
-                    <th className="py-3 px-4 w-32">รหัสนักเรียน</th>
-                    <th className="py-3 px-4">ชื่อ - นามสกุล</th>
-                    <th className="py-3 px-4 text-center w-80">
-                      สถานะการเข้าเรียน (ปีการศึกษา {selectedAcademicYear} • วันที่ {attendanceDate} • คาบที่ {attendancePeriod})
+                  <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 font-bold uppercase">
+                    {/* Sticky Left: เลขที่ */}
+                    <th className="py-3 px-2 w-12 text-center sticky left-0 z-30 bg-slate-100 shadow-[1px_0_0_#e2e8f0]">
+                      เลขที่
                     </th>
-                    <th className="py-3 px-4 w-44 text-center">สถิติเวลาเรียนรวม</th>
-                    <th className="py-3 px-4 w-28 text-center">สิทธิ์สอบ</th>
+                    {/* Sticky Left: รหัส */}
+                    <th className="py-3 px-3 w-28 sticky left-12 z-30 bg-slate-100 shadow-[1px_0_0_#e2e8f0]">
+                      รหัสนักเรียน
+                    </th>
+                    {/* Sticky Left: ชื่อ-สกุล */}
+                    <th className="py-3 px-3 min-w-[170px] sticky left-40 z-30 bg-slate-100 shadow-[3px_0_5px_rgba(0,0,0,0.06)]">
+                      ชื่อ - นามสกุล
+                    </th>
+
+                    {/* 25 Period Columns (คาบที่ 1 ถึง 25) */}
+                    {Array.from({ length: 25 }, (_, i) => i + 1).map((p) => {
+                      const curDate = periodDates[p] || "";
+                      return (
+                        <th
+                          key={p}
+                          className="py-2 px-1 w-[110px] min-w-[105px] text-center border-l border-slate-200/80 bg-slate-50/90 font-semibold"
+                        >
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-bold text-[11px] text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+                              คาบ {p}
+                            </span>
+                            <input
+                              type="date"
+                              value={curDate}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                handleSetPeriodDate(p, e.target.value)
+                              }
+                              disabled={!canEditAttendance}
+                              title={`เลือกวันที่เช็คชื่อ/เรียน คาบที่ ${p}`}
+                              className="w-[98px] text-[10px] p-0.5 text-center border border-slate-200 rounded bg-white text-slate-700 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-hidden focus:border-blue-500 font-sans"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSetPeriodAllStatus(p, "PRESENT")}
+                              disabled={!canEditAttendance || currentClassStudents.length === 0}
+                              className="text-[9px] font-bold text-emerald-700 hover:text-emerald-900 hover:underline disabled:opacity-40"
+                              title={`เช็ค "มา" ทั้งห้องในคาบที่ ${p}`}
+                            >
+                              มาทั้งคาบ
+                            </button>
+                          </div>
+                        </th>
+                      );
+                    })}
+
+                    {/* Right Summary Columns */}
+                    <th className="py-3 px-2 w-14 text-center border-l-2 border-slate-300 bg-emerald-50 text-emerald-900">
+                      มา
+                    </th>
+                    <th className="py-3 px-2 w-14 text-center border-l border-slate-200 bg-red-50 text-red-900">
+                      ขาด
+                    </th>
+                    <th className="py-3 px-2 w-14 text-center border-l border-slate-200 bg-amber-50 text-amber-900">
+                      ลา
+                    </th>
+                    <th className="py-3 px-2 w-14 text-center border-l border-slate-200 bg-purple-50 text-purple-900">
+                      สาย
+                    </th>
+                    <th className="py-3 px-2 w-16 text-center border-l border-slate-200 bg-slate-100 text-slate-800">
+                      รวมคาบ
+                    </th>
+                    <th className="py-3 px-2 w-20 text-center border-l border-slate-200 bg-blue-50 text-blue-900">
+                      % เวลาเรียน
+                    </th>
+                    <th className="py-3 px-3 w-24 text-center border-l border-slate-200 bg-slate-100 text-slate-800">
+                      สิทธิ์สอบ
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {currentClassStudents.map((s) => {
-                    const st = attendanceMap[s.id] || "PRESENT";
-                    const summary = attendanceSummaries.find((a) => a.studentId === s.id);
-                    const attPercent = summary?.attendancePercent ?? 100;
-                    const isEligible = attPercent >= 80;
 
-                    return (
-                      <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4 text-center font-bold text-slate-700">{s.seatNo}</td>
-                        <td className="py-3 px-4 font-mono text-xs font-semibold text-blue-700">{s.studentCode}</td>
-                        <td className="py-3 px-4 font-semibold text-slate-900">{s.fullName}</td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setAttendanceMap((prev) => ({ ...prev, [s.id]: "PRESENT" }))}
-                              className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
-                                st === "PRESENT" ? "bg-emerald-600 text-white shadow-xs" : "text-slate-600 hover:text-emerald-700"
+                <tbody className="divide-y divide-slate-100">
+                  {currentClassStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={35} className="py-12 text-center text-slate-400 font-medium">
+                        ไม่พบข้อมูลนักเรียนในห้อง {selectedClassRoom} ปีการศึกษา {selectedAcademicYear} เทอม {selectedGradingSemester}
+                      </td>
+                    </tr>
+                  ) : (
+                    currentClassStudents.map((s) => {
+                      const studentPeriods = attendanceGrid[s.id] || {};
+                      let pCount = 0;
+                      let aCount = 0;
+                      let lCount = 0;
+                      let tCount = 0;
+                      let recCount = 0;
+
+                      for (let p = 1; p <= 25; p++) {
+                        const st = studentPeriods[p];
+                        if (st === "PRESENT") {
+                          pCount++;
+                          recCount++;
+                        } else if (st === "ABSENT") {
+                          aCount++;
+                          recCount++;
+                        } else if (st === "LEAVE") {
+                          lCount++;
+                          recCount++;
+                        } else if (st === "LATE") {
+                          tCount++;
+                          recCount++;
+                        }
+                      }
+
+                      const effectivePresent = pCount + tCount * 0.5;
+                      const attPercent = recCount > 0 ? Math.round((effectivePresent / recCount) * 100) : 100;
+                      const isEligible = attPercent >= 80;
+
+                      return (
+                        <tr key={s.id} className="hover:bg-blue-50/30 transition-colors">
+                          {/* Sticky Left: เลขที่ */}
+                          <td className="py-2.5 px-2 text-center font-bold text-slate-700 sticky left-0 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_#f1f5f9]">
+                            {s.seatNo}
+                          </td>
+                          {/* Sticky Left: รหัส */}
+                          <td className="py-2.5 px-3 font-mono text-[11px] font-semibold text-blue-700 sticky left-12 z-20 bg-white shadow-[1px_0_0_#f1f5f9]">
+                            {s.studentCode}
+                          </td>
+                          {/* Sticky Left: ชื่อ-สกุล */}
+                          <td className="py-2.5 px-3 font-semibold text-slate-900 sticky left-40 z-20 bg-white shadow-[3px_0_5px_rgba(0,0,0,0.06)] truncate max-w-[200px]">
+                            {s.fullName}
+                          </td>
+
+                          {/* 25 Period Selectors */}
+                          {Array.from({ length: 25 }, (_, i) => i + 1).map((p) => {
+                            const st = studentPeriods[p] || "";
+                            return (
+                              <td
+                                key={p}
+                                className="py-1 px-1 text-center border-l border-slate-100"
+                              >
+                                <select
+                                  value={st}
+                                  disabled={!canEditAttendance}
+                                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                                    handleSetCellStatus(
+                                      s.id,
+                                      p,
+                                      e.target.value as "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "",
+                                    )
+                                  }
+                                  className={`w-[68px] h-7 text-[11px] font-black rounded text-center border cursor-pointer transition-colors focus:outline-hidden ${
+                                    st === "PRESENT"
+                                      ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                                      : st === "ABSENT"
+                                      ? "bg-red-50 text-red-800 border-red-300 hover:bg-red-100"
+                                      : st === "LEAVE"
+                                      ? "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
+                                      : st === "LATE"
+                                      ? "bg-purple-50 text-purple-800 border-purple-300 hover:bg-purple-100"
+                                      : "bg-slate-50 text-slate-400 border-dashed border-slate-300 hover:bg-slate-100"
+                                  } disabled:cursor-not-allowed disabled:opacity-75`}
+                                  title={`คาบที่ ${p} (${periodDates[p] || "ยังไม่ระบุวัน"}): ${
+                                    st === "PRESENT"
+                                      ? "มา"
+                                      : st === "ABSENT"
+                                      ? "ขาด"
+                                      : st === "LEAVE"
+                                      ? "ลา"
+                                      : st === "LATE"
+                                      ? "สาย"
+                                      : "ว่าง"
+                                  }`}
+                                >
+                                  <option value="">-</option>
+                                  <option value="PRESENT">ม (มา)</option>
+                                  <option value="ABSENT">ข (ขาด)</option>
+                                  <option value="LEAVE">ล (ลา)</option>
+                                  <option value="LATE">ส (สาย)</option>
+                                </select>
+                              </td>
+                            );
+                          })}
+
+                          {/* Summary: มา */}
+                          <td className="py-2.5 px-2 text-center font-bold text-emerald-700 bg-emerald-50/40 border-l-2 border-slate-200">
+                            {pCount}
+                          </td>
+                          {/* Summary: ขาด */}
+                          <td className="py-2.5 px-2 text-center font-bold text-red-600 bg-red-50/40 border-l border-slate-100">
+                            {aCount}
+                          </td>
+                          {/* Summary: ลา */}
+                          <td className="py-2.5 px-2 text-center font-bold text-amber-600 bg-amber-50/40 border-l border-slate-100">
+                            {lCount}
+                          </td>
+                          {/* Summary: สาย */}
+                          <td className="py-2.5 px-2 text-center font-bold text-purple-600 bg-purple-50/40 border-l border-slate-100">
+                            {tCount}
+                          </td>
+                          {/* Summary: รวมคาบ */}
+                          <td className="py-2.5 px-2 text-center font-semibold text-slate-700 bg-slate-50 border-l border-slate-100">
+                            {recCount}
+                          </td>
+                          {/* Summary: % เวลาเรียน */}
+                          <td className="py-2.5 px-2 text-center border-l border-slate-100 bg-blue-50/30">
+                            <span
+                              className={`font-black text-xs ${
+                                isEligible ? "text-emerald-700" : "text-red-600"
                               }`}
                             >
-                              มา
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAttendanceMap((prev) => ({ ...prev, [s.id]: "ABSENT" }))}
-                              className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
-                                st === "ABSENT" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-red-700"
-                              }`}
-                            >
-                              ขาด
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAttendanceMap((prev) => ({ ...prev, [s.id]: "LEAVE" }))}
-                              className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
-                                st === "LEAVE" ? "bg-amber-500 text-white shadow-xs" : "text-slate-600 hover:text-amber-700"
-                              }`}
-                            >
-                              ลา
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAttendanceMap((prev) => ({ ...prev, [s.id]: "LATE" }))}
-                              className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
-                                st === "LATE" ? "bg-purple-600 text-white shadow-xs" : "text-slate-600 hover:text-purple-700"
-                              }`}
-                            >
-                              สาย
-                            </button>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex flex-col items-center">
-                            <span className={`text-xs font-bold ${isEligible ? "text-emerald-700" : "text-red-600"}`}>
                               {attPercent}%
                             </span>
-                            <span className="text-[10px] text-slate-400">
-                              (มา {summary?.presentCount ?? 10} / ขาด {summary?.absentCount ?? 0})
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          {isEligible ? (
-                            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              มีสิทธิ์สอบ
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-700 border border-red-300 animate-pulse">
-                              มส (&lt; 80%)
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          {/* Summary: สิทธิ์สอบ */}
+                          <td className="py-2.5 px-3 text-center border-l border-slate-100">
+                            {isEligible ? (
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                มีสิทธิ์สอบ
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-300 animate-pulse">
+                                มส (&lt;80%)
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Legend & Instructions Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-bold text-slate-700">สัญลักษณ์สถานะ:</span>
+                <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-300">
+                  ม = มา (Present)
+                </span>
+                <span className="inline-flex items-center gap-1 font-bold text-red-800 bg-red-100/80 px-2 py-0.5 rounded border border-red-300">
+                  ข = ขาด (Absent)
+                </span>
+                <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded border border-amber-300">
+                  ล = ลา (Leave)
+                </span>
+                <span className="inline-flex items-center gap-1 font-bold text-purple-800 bg-purple-100/80 px-2 py-0.5 rounded border border-purple-300">
+                  ส = สาย (Late 0.5)
+                </span>
+                <span className="inline-flex items-center gap-1 font-medium text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded">
+                  - = ยังไม่บันทึก
+                </span>
+              </div>
+
+              <div className="text-[11px] text-slate-500">
+                * เกณฑ์การมีสิทธิ์สอบปลายภาค: ต้องมีเวลาเรียนไม่น้อยกว่าร้อยละ 80 ของเวลาเรียนทั้งหมด (หากต่ำกว่า 80% จะติด "มส")
+              </div>
             </div>
           </LiyonCard>
         </div>

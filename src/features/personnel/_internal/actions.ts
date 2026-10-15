@@ -6,8 +6,15 @@ import { getLocale } from "@/shared/lib/i18n/server";
 import { zodErrorMap } from "@/shared/lib/i18n/zod-locale";
 import { requirePermission } from "@/features/identity/server";
 import { PERSONNEL_P } from "../permissions";
-import { createEmployeeSchema, updateEmployeeSchema } from "./validations";
-import { createEmployee, updateEmployee, deleteEmployee, listEmployees, type EmployeeDto } from "./services";
+import { createEmployeeSchema, updateEmployeeSchema, reorderEmployeesSchema } from "./validations";
+import {
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
+  listEmployees,
+  reorderEmployees,
+  type EmployeeDto,
+} from "./services";
 
 export async function getEmployeesAction(): Promise<ActionResult<EmployeeDto[]>> {
   return runAction(async () => {
@@ -22,6 +29,8 @@ export async function createEmployeeAction(input: unknown): Promise<ActionResult
     const parsed = createEmployeeSchema.parse(input, { error: zodErrorMap(await getLocale()) });
     const result = await createEmployee(ctx.tenantId, parsed);
     revalidatePath("/personnel");
+    revalidatePath("/school/personnel");
+    revalidatePath("/");
     return result;
   });
 }
@@ -32,6 +41,20 @@ export async function updateEmployeeAction(input: unknown): Promise<ActionResult
     const parsed = updateEmployeeSchema.parse(input, { error: zodErrorMap(await getLocale()) });
     const result = await updateEmployee(ctx.tenantId, parsed);
     revalidatePath("/personnel");
+    revalidatePath("/school/personnel");
+    revalidatePath("/");
+    return result;
+  });
+}
+
+export async function reorderEmployeesAction(orderedIds: string[]): Promise<ActionResult<EmployeeDto[]>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(PERSONNEL_P.manage);
+    const parsed = reorderEmployeesSchema.parse(orderedIds);
+    const result = await reorderEmployees(ctx.tenantId, parsed);
+    revalidatePath("/personnel");
+    revalidatePath("/school/personnel");
+    revalidatePath("/");
     return result;
   });
 }
@@ -41,5 +64,7 @@ export async function deleteEmployeeAction(id: string): Promise<ActionResult<voi
     const ctx = await requirePermission(PERSONNEL_P.manage);
     await deleteEmployee(ctx.tenantId, id);
     revalidatePath("/personnel");
+    revalidatePath("/school/personnel");
+    revalidatePath("/");
   });
 }

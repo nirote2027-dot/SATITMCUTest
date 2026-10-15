@@ -11,6 +11,14 @@ describe("personnel validations", () => {
     expect(res.success).toBe(true);
   });
 
+  it("validates createEmployeeSchema without employeeCode successfully", () => {
+    const res = createEmployeeSchema.safeParse({
+      firstName: "สมชาย",
+      lastName: "ใจดี",
+    });
+    expect(res.success).toBe(true);
+  });
+
   it("fails when firstName is missing", () => {
     const res = createEmployeeSchema.safeParse({
       employeeCode: "EMP001",

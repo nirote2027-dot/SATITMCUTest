@@ -447,15 +447,6 @@ export function CurriculumSection({ curricula, themeColor }: CurriculumSectionPr
                     ) : (
                       <span className="text-xs text-slate-400 italic">พร้อมเปิดสอนตามแผนการเรียน</span>
                     )}
-
-                    <Link
-                      href="/curriculum"
-                      style={{ color: theme.hex }}
-                      className="text-xs font-bold hover:underline flex items-center gap-1 group/btn ml-auto"
-                    >
-                      <span>รายละเอียดเพิ่มเติม</span>
-                      <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
-                    </Link>
                   </div>
                 </div>
               );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Edit2, Trash2, Users, AlertCircle, User, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, Users, AlertCircle, User, Image as ImageIcon, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { useT, useLocale } from "@/shared/lib/i18n/client";
 import { formatDate } from "@/shared/lib/format";
@@ -22,6 +22,7 @@ import type { EmployeeDto } from "@/features/personnel";
 import {
   createEmployeeAction,
   updateEmployeeAction,
+  reorderEmployeesAction,
   deleteEmployeeAction,
   getEmployeesAction,
 } from "@/features/personnel/actions";
@@ -41,10 +42,10 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<EmployeeDto | null>(null);
   const [editingItem, setEditingItem] = useState<EmployeeDto | null>(null);
 
-  const [formCode, setFormCode] = useState("");
   const [formFirstName, setFormFirstName] = useState("");
   const [formLastName, setFormLastName] = useState("");
   const [formPosition, setFormPosition] = useState("");
+  const [formDisplayOrder, setFormDisplayOrder] = useState(1);
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formIsActive, setFormIsActive] = useState<"TRUE" | "FALSE">("TRUE");
   const [formPhone, setFormPhone] = useState("");
@@ -54,10 +55,10 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
 
   const openCreateDialog = () => {
     setEditingItem(null);
-    setFormCode("");
     setFormFirstName("");
     setFormLastName("");
     setFormPosition("");
+    setFormDisplayOrder(items.length + 1);
     setFormImageUrl("");
     setFormIsActive("TRUE");
     setFormPhone("");
@@ -69,10 +70,10 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
 
   const openEditDialog = (item: EmployeeDto) => {
     setEditingItem(item);
-    setFormCode(item.employeeCode);
     setFormFirstName(item.firstName);
     setFormLastName(item.lastName);
     setFormPosition(item.position ?? "");
+    setFormDisplayOrder(item.displayOrder || items.indexOf(item) + 1);
     setFormImageUrl(item.imageUrl ?? "");
     setFormIsActive(item.isActive ? "TRUE" : "FALSE");
     setFormPhone(item.contactInfo?.phone ?? "");
@@ -89,18 +90,48 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
     }
   };
 
+  const handleMove = (index: number, direction: "up" | "down") => {
+    if (!canManage) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+
+    const newItems = [...items];
+    const [moved] = newItems.splice(index, 1);
+    newItems.splice(targetIndex, 0, moved);
+
+    const orderedIds = newItems.map((x) => x.id);
+    setItems(newItems.map((item, idx) => ({ ...item, displayOrder: idx + 1 })));
+
+    startTransition(async () => {
+      try {
+        const res = await reorderEmployeesAction(orderedIds);
+        if (res.ok && res.data) {
+          setItems(res.data);
+          toast.success("จัดเรียงลำดับบุคลากรเรียบร้อยแล้ว");
+        } else {
+          toast.error("ไม่สามารถบันทึกลำดับได้");
+          await refreshItems();
+        }
+      } catch {
+        toast.error("ไม่สามารถบันทึกลำดับได้");
+        await refreshItems();
+      }
+    });
+  };
+
   const handleSave = () => {
-    if (!formCode.trim() || !formFirstName.trim() || !formLastName.trim()) {
-      toast.error("กรุณากรอกรหัสพนักงาน ชื่อ และนามสกุล");
+    if (!formFirstName.trim() || !formLastName.trim()) {
+      toast.error("กรุณากรอกชื่อ และนามสกุล");
       return;
     }
 
     startTransition(async () => {
       const payload = {
-        employeeCode: formCode.trim(),
+        employeeCode: editingItem ? editingItem.employeeCode : undefined,
         firstName: formFirstName.trim(),
         lastName: formLastName.trim(),
         position: formPosition.trim() || undefined,
+        displayOrder: Number(formDisplayOrder),
         imageUrl: formImageUrl.trim() || null,
         isActive: formIsActive === "TRUE",
         contactInfo: {
@@ -127,7 +158,7 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
           setModalOpen(false);
           await refreshItems();
         } else {
-          toast.error("ไม่สามารถเพิ่มบุคลากรได้ (อาจมีรหัสซ้ำ)");
+          toast.error("ไม่สามารถเพิ่มบุคลากรได้");
         }
       }
     });
@@ -148,6 +179,49 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
 
   const columns: DataTableColumn<EmployeeDto>[] = [
     {
+      key: "displayOrder",
+      header: "ลำดับ",
+      className: "w-20 text-center",
+      render: (row) => {
+        const index = items.findIndex((x) => x.id === row.id);
+        return (
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700 border border-slate-200 shadow-2xs">
+              {row.displayOrder || index + 1}
+            </span>
+            {canManage && (
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  disabled={index === 0 || isPending}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMove(index, "up");
+                  }}
+                  className="p-0.5 text-slate-400 hover:text-blue-600 disabled:opacity-20 disabled:pointer-events-none transition-colors"
+                  title="เลื่อนขึ้น"
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={index === items.length - 1 || isPending}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMove(index, "down");
+                  }}
+                  className="p-0.5 text-slate-400 hover:text-blue-600 disabled:opacity-20 disabled:pointer-events-none transition-colors"
+                  title="เลื่อนลง"
+                >
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: "imageUrl",
       header: "รูปถ่าย",
       className: "w-16 text-center",
@@ -164,12 +238,6 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
             {row.firstName ? row.firstName.charAt(0) : <User className="w-4 h-4" />}
           </div>
         ),
-    },
-    {
-      key: "employeeCode",
-      header: "รหัสบุคลากร",
-      className: "nowrap font-mono text-xs text-muted-foreground",
-      render: (row) => <span>{row.employeeCode}</span>,
     },
     {
       key: "name",
@@ -273,7 +341,7 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
       <LiyonDialog open={modalOpen} onOpenChange={setModalOpen}>
         <LiyonDialogHeader
           title={editingItem ? "แก้ไขข้อมูลบุคลากร" : "เพิ่มข้อมูลบุคลากรใหม่"}
-          description="กรอกข้อมูลส่วนบุคคล ตำแหน่ง และแนบรูปถ่าย"
+          description="กรอกข้อมูลส่วนบุคคล ตำแหน่ง ลำดับการแสดงผล และแนบรูปถ่าย"
         />
         <LiyonDialogBody>
           <div className="space-y-4 py-2">
@@ -283,24 +351,25 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
               label="รูปถ่ายบุคลากร / รูปโปรไฟล์"
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1.5">รหัสบุคลากร *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
+                <label className="text-xs font-semibold text-slate-700 block mb-1.5">ตำแหน่ง / หน้าที่ (Position)</label>
                 <input
-                  value={formCode}
-                  onChange={(e) => setFormCode(e.target.value)}
-                  placeholder="เช่น EMP-001"
+                  value={formPosition}
+                  onChange={(e) => setFormPosition(e.target.value)}
+                  placeholder="เช่น ผู้อำนวยการ, รองผู้อำนวยการ, อาจารย์ผู้สอน"
                   className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                  required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1.5">ตำแหน่ง / หน้าที่</label>
+                <label className="text-xs font-semibold text-slate-700 block mb-1.5">ลำดับการแสดงผล (Sort Order)</label>
                 <input
-                  value={formPosition}
-                  onChange={(e) => setFormPosition(e.target.value)}
-                  placeholder="เช่น อาจารย์ประจำภาควิชา"
+                  type="number"
+                  min={1}
+                  value={formDisplayOrder}
+                  onChange={(e) => setFormDisplayOrder(Math.max(1, parseInt(e.target.value) || 1))}
+                  placeholder="เช่น 1, 2, 3..."
                   className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -406,7 +475,8 @@ export function PersonnelClient({ initialItems, canManage }: Props) {
         />
         <LiyonDialogBody>
           <div className="p-3 bg-red-50 text-red-800 rounded-xl border border-red-200 text-sm font-medium">
-            {deleteConfirmItem?.firstName} {deleteConfirmItem?.lastName} ({deleteConfirmItem?.employeeCode})
+            {deleteConfirmItem?.firstName} {deleteConfirmItem?.lastName}
+            {deleteConfirmItem?.position ? ` (${deleteConfirmItem.position})` : ""}
           </div>
         </LiyonDialogBody>
         <LiyonDialogFooter>

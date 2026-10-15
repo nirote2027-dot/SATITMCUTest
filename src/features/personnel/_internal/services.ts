@@ -19,6 +19,7 @@ export interface EmployeeDto {
   position: string | null;
   imageUrl: string | null;
   contactInfo: ContactInfo | null;
+  displayOrder: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -43,7 +44,10 @@ export async function listEmployees(tenantId: string): Promise<EmployeeDto[]> {
   const items = await prisma.employee.findMany({
     where: { tenantId },
     include: { department: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { displayOrder: "asc" },
+      { createdAt: "desc" },
+    ],
   });
   return items.map((item) => ({
     id: item.id,
@@ -56,6 +60,7 @@ export async function listEmployees(tenantId: string): Promise<EmployeeDto[]> {
     position: item.position,
     imageUrl: item.imageUrl,
     contactInfo: parseContactInfo(item.contactInfo),
+    displayOrder: item.displayOrder ?? 0,
     isActive: item.isActive,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
@@ -64,10 +69,23 @@ export async function listEmployees(tenantId: string): Promise<EmployeeDto[]> {
 }
 
 export async function createEmployee(tenantId: string, input: CreateEmployeeInput): Promise<EmployeeDto> {
+  const code =
+    input.employeeCode?.trim() ||
+    `EMP-${Date.now().toString().slice(-6)}${Math.floor(100 + Math.random() * 900)}`;
+
+  let displayOrder = input.displayOrder;
+  if (displayOrder === undefined || displayOrder === null || displayOrder === 0) {
+    const maxOrder = await prisma.employee.aggregate({
+      where: { tenantId },
+      _max: { displayOrder: true },
+    });
+    displayOrder = (maxOrder._max.displayOrder ?? 0) + 1;
+  }
+
   const created = await prisma.employee.create({
     data: {
       tenantId,
-      employeeCode: input.employeeCode,
+      employeeCode: code,
       firstName: input.firstName,
       lastName: input.lastName,
       position: input.position,
@@ -75,6 +93,7 @@ export async function createEmployee(tenantId: string, input: CreateEmployeeInpu
       departmentId: input.departmentId,
       userId: input.userId,
       contactInfo: input.contactInfo ?? undefined,
+      displayOrder,
       isActive: input.isActive,
     },
     include: { department: true },
@@ -90,6 +109,7 @@ export async function createEmployee(tenantId: string, input: CreateEmployeeInpu
     position: created.position,
     imageUrl: created.imageUrl,
     contactInfo: parseContactInfo(created.contactInfo),
+    displayOrder: created.displayOrder,
     isActive: created.isActive,
     createdAt: created.createdAt.toISOString(),
     updatedAt: created.updatedAt.toISOString(),
@@ -101,7 +121,7 @@ export async function updateEmployee(tenantId: string, input: UpdateEmployeeInpu
   const updated = await prisma.employee.update({
     where: { id: input.id, tenantId },
     data: {
-      employeeCode: input.employeeCode,
+      ...(input.employeeCode ? { employeeCode: input.employeeCode.trim() } : {}),
       firstName: input.firstName,
       lastName: input.lastName,
       position: input.position,
@@ -109,6 +129,7 @@ export async function updateEmployee(tenantId: string, input: UpdateEmployeeInpu
       departmentId: input.departmentId,
       userId: input.userId,
       contactInfo: input.contactInfo ?? undefined,
+      ...(input.displayOrder !== undefined ? { displayOrder: input.displayOrder } : {}),
       isActive: input.isActive,
     },
     include: { department: true },
@@ -124,11 +145,24 @@ export async function updateEmployee(tenantId: string, input: UpdateEmployeeInpu
     position: updated.position,
     imageUrl: updated.imageUrl,
     contactInfo: parseContactInfo(updated.contactInfo),
+    displayOrder: updated.displayOrder,
     isActive: updated.isActive,
     createdAt: updated.createdAt.toISOString(),
     updatedAt: updated.updatedAt.toISOString(),
     department: updated.department ? { id: updated.department.id, name: updated.department.name } : null,
   };
+}
+
+export async function reorderEmployees(tenantId: string, orderedIds: string[]): Promise<EmployeeDto[]> {
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.employee.update({
+        where: { id, tenantId },
+        data: { displayOrder: index + 1 },
+      })
+    )
+  );
+  return listEmployees(tenantId);
 }
 
 export async function deleteEmployee(tenantId: string, id: string): Promise<void> {

@@ -58,7 +58,7 @@ export default async function HomePage() {
   // Fetch real data from DB if available & Record live visitor hit (Auto-Tracker)
   const [articles, employees, curricula, schoolInfo, executives, downloadDocs, footerSettings, liveVisitorStats, heroSettings] = await Promise.all([
     prisma.article.findMany({ take: 6, orderBy: { createdAt: "desc" } }).catch(() => []),
-    prisma.employee.findMany({ take: 8, orderBy: { createdAt: "desc" } }).catch(() => []),
+    prisma.employee.findMany({ where: { isActive: true }, take: 12, orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }] }).catch(() => []),
     prisma.curriculum
       .findMany({
         take: 6,
@@ -511,9 +511,6 @@ export default async function HomePage() {
         />
       )}
 
-      {/* ═══ 4. SECTION: หลักสูตรสถานศึกษา (Curriculum Section) ═══ */}
-      <CurriculumSection curricula={displayCurricula as any} themeColor={themeColor} />
-
       {/* ═══ 5. SECTION: ทำเนียบบุคลากร (Personnel Management) ═══ */}
       <section id="personnel" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
@@ -565,11 +562,16 @@ export default async function HomePage() {
               <p className="text-xs font-semibold mb-1" style={{ color: theme.hex }}>
                 {emp.position || "อาจารย์ผู้สอน"}
               </p>
-              <p className="text-xs text-slate-500">{(emp as any).department?.name || (emp as any).department || "กลุ่มสาระการเรียนรู้"}</p>
+              {Boolean((emp as any).department?.name || (emp as any).department) && (
+                <p className="text-xs text-slate-500">{(emp as any).department?.name || (emp as any).department}</p>
+              )}
             </div>
           ))}
         </div>
       </section>
+
+      {/* ═══ 6. SECTION: หลักสูตรสถานศึกษา (Curriculum Section) ═══ */}
+      <CurriculumSection curricula={displayCurricula as any} themeColor={themeColor} />
 
       {/* ═══ 6. SECTION: สารสนเทศ & ศูนย์ดาวน์โหลด (Services & Downloads) ═══ */}
       <DownloadShowcaseSection

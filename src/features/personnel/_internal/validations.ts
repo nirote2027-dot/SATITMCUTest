@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createEmployeeSchema = z.object({
-  employeeCode: z.string().min(1, "employee_code_required").max(100),
+  employeeCode: z.string().max(100).optional().nullable(),
   firstName: z.string().min(1, "first_name_required").max(100),
   lastName: z.string().min(1, "last_name_required").max(100),
   position: z.string().max(255).optional().nullable(),
@@ -17,12 +17,15 @@ export const createEmployeeSchema = z.object({
     })
     .optional()
     .nullable(),
+  displayOrder: z.number().int().optional().default(0),
   isActive: z.boolean().default(true),
 });
 
 export const updateEmployeeSchema = createEmployeeSchema.extend({
   id: z.string().uuid(),
 });
+
+export const reorderEmployeesSchema = z.array(z.string().uuid());
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
