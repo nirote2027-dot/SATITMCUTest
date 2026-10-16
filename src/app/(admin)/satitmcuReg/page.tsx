@@ -52,6 +52,8 @@ export default async function SatitmcuRegPage() {
         name: ctx.userName,
         email: ctx.email,
         isSuperAdmin: ctx.isSuperAdmin,
+        roles: ctx.roles.map((r) => ({ roleCode: r.code })),
+        canViewPP6: ctx.isSuperAdmin || hasPermission(ctx, DOCUMENT_P.pp6Read) || hasPermission(ctx, DOCUMENT_P.read),
       }}
     />
   );

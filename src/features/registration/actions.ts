@@ -133,6 +133,7 @@ export async function createCourseAction(data: {
   name: string;
   credits: number;
   semester?: number;
+  academicYear?: string;
   curriculumId?: string;
   subjectGroup?: string;
   instructorName?: string;
@@ -153,6 +154,7 @@ export async function updateCourseAction(
     name?: string;
     credits?: number;
     semester?: number;
+    academicYear?: string;
     curriculumId?: string;
     subjectGroup?: string;
     instructorName?: string;

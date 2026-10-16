@@ -20,6 +20,7 @@ export interface CourseDto {
   name: string;
   credits: number;
   semester?: number | null;
+  academicYear?: string;
   curriculumName?: string;
   curriculumId?: string;
   subjectGroup?: string | null;

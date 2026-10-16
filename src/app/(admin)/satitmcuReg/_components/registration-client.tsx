@@ -89,6 +89,8 @@ interface Props {
     name: string;
     email: string;
     isSuperAdmin: boolean;
+    roles?: { roleCode: string }[];
+    canViewPP6?: boolean;
   };
 }
 
@@ -135,7 +137,19 @@ export function RegistrationClient({
   canManage,
   currentUser,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"students" | "courses" | "attendance" | "grading" | "pp6">("attendance");
+  const userRoles = useMemo(
+    () => (currentUser?.roles || []).map((r) => r.roleCode),
+    [currentUser],
+  );
+  const isParentOrStudent = userRoles.includes("PARENT") || userRoles.includes("STUDENT");
+
+  const [activeTab, setActiveTab] = useState<"students" | "courses" | "attendance" | "grading" | "pp6">(() => {
+    const roles = (currentUser?.roles || []).map((r) => r.roleCode);
+    if (roles.includes("PARENT") || roles.includes("STUDENT")) {
+      return "pp6";
+    }
+    return "attendance";
+  });
   // Attendance Feature: Enabled by default as requested
   const [enableAttendance, setEnableAttendance] = useState<boolean>(true);
 
@@ -195,6 +209,7 @@ export function RegistrationClient({
   const [formCourseName, setFormCourseName] = useState("");
   const [formCredits, setFormCredits] = useState("1.0");
   const [formCourseSemester, setFormCourseSemester] = useState("1");
+  const [formCourseAcademicYear, setFormCourseAcademicYear] = useState("2569");
   const [formSubjectGroup, setFormSubjectGroup] = useState("กลุ่มสาระการเรียนรู้ภาษาไทย");
   const [formInstructorId, setFormInstructorId] = useState("");
   const [formInstructorName, setFormInstructorName] = useState("");
@@ -203,6 +218,7 @@ export function RegistrationClient({
   const [searchCourse, setSearchCourse] = useState("");
   const [filterSubjectGroup, setFilterSubjectGroup] = useState("ALL");
   const [filterCourseSemester, setFilterCourseSemester] = useState("ALL");
+  const [filterCourseYear, setFilterCourseYear] = useState("ALL");
 
   // Instructors list
   const [instructors, setInstructors] = useState<InstructorDto[]>(initialInstructors);
@@ -303,10 +319,13 @@ export function RegistrationClient({
     }
   }, [gradingClassRooms, selectedClassRoom, students, selectedAcademicYear, selectedGradingSemester]);
 
-  // Courses filtered according to selected classroom's grade level, semester, and instructor filter
+  // Courses filtered according to selected classroom's grade level, academic year, semester, and instructor filter
   const availableCourses = useMemo(() => {
-    const byClass = courses.filter((c) => isCourseMatchingClassRoom(c, selectedClassRoom));
-    const baseList = byClass.length > 0 ? byClass : courses;
+    const byYear = courses.filter((c) => !c.academicYear || c.academicYear === selectedAcademicYear);
+    const yearList = byYear.length > 0 ? byYear : courses;
+
+    const byClass = yearList.filter((c) => isCourseMatchingClassRoom(c, selectedClassRoom));
+    const baseList = byClass.length > 0 ? byClass : yearList;
 
     const bySemester = baseList.filter((c) => !c.semester || c.semester === selectedGradingSemester);
     const semList = bySemester.length > 0 ? bySemester : baseList;
@@ -319,7 +338,7 @@ export function RegistrationClient({
     }
 
     return semList;
-  }, [courses, selectedClassRoom, selectedGradingSemester, filterGradingInstructor]);
+  }, [courses, selectedClassRoom, selectedAcademicYear, selectedGradingSemester, filterGradingInstructor]);
 
   // If selectedCourseId is not in availableCourses, auto-select the first one
   useEffect(() => {
@@ -432,6 +451,9 @@ export function RegistrationClient({
   // Filtered Courses (Tab 2)
   const filteredCoursesList = useMemo(() => {
     return courses.filter((c) => {
+      if (filterCourseYear !== "ALL" && (c.academicYear || "2569") !== filterCourseYear) {
+        return false;
+      }
       if (filterCourseSemester !== "ALL" && c.semester !== Number(filterCourseSemester)) {
         return false;
       }
@@ -444,21 +466,25 @@ export function RegistrationClient({
         const nameMatch = c.name.toLowerCase().includes(q);
         const teacherMatch = (c.instructorName || "").toLowerCase().includes(q);
         const groupMatch = (c.subjectGroup || "").toLowerCase().includes(q);
-        if (!codeMatch && !nameMatch && !teacherMatch && !groupMatch) return false;
+        const yearMatch = (c.academicYear || "").toLowerCase().includes(q);
+        if (!codeMatch && !nameMatch && !teacherMatch && !groupMatch && !yearMatch) return false;
       }
       return true;
     });
-  }, [courses, filterCourseSemester, filterSubjectGroup, searchCourse]);
+  }, [courses, filterCourseYear, filterCourseSemester, filterSubjectGroup, searchCourse]);
 
-  // Tab 1 & Grading: Academic Years List
+  // Tab 1 & Grading & Courses: Academic Years List
   const academicYearsList = useMemo(() => {
     const set = new Set(students.map((s) => s.academicYear).filter(Boolean));
+    for (const c of courses) {
+      if (c.academicYear) set.add(c.academicYear);
+    }
     set.add("2569");
     set.add("2568");
     set.add("2567");
     set.add("2570");
     return Array.from(set).sort().reverse();
-  }, [students]);
+  }, [students, courses]);
 
   // Unique Classrooms
   const classRooms = useMemo(() => {
@@ -1014,7 +1040,8 @@ export function RegistrationClient({
     setFormCourseCode("");
     setFormCourseName("");
     setFormCredits("1.0");
-    setFormCourseSemester("1");
+    setFormCourseSemester(filterCourseSemester !== "ALL" ? filterCourseSemester : "1");
+    setFormCourseAcademicYear(filterCourseYear !== "ALL" ? filterCourseYear : selectedAcademicYear || "2569");
     setFormSubjectGroup("กลุ่มสาระการเรียนรู้ภาษาไทย");
     setFormInstructorId("");
     setFormInstructorName("");
@@ -1028,6 +1055,7 @@ export function RegistrationClient({
     setFormCourseName(course.name);
     setFormCredits(String(course.credits || 1.0));
     setFormCourseSemester(String(course.semester || 1));
+    setFormCourseAcademicYear(course.academicYear || "2569");
     setFormSubjectGroup(course.subjectGroup || "กลุ่มสาระการเรียนรู้ภาษาไทย");
     setFormInstructorId(course.instructorId || "");
     setFormInstructorName(course.instructorName || "");
@@ -1049,6 +1077,7 @@ export function RegistrationClient({
             name: formCourseName,
             credits: parseFloat(formCredits) || 1.0,
             semester: parseInt(formCourseSemester, 10) || 1,
+            academicYear: formCourseAcademicYear,
             subjectGroup: formSubjectGroup,
             instructorId: formInstructorId || undefined,
             instructorName: formInstructorName || undefined,
@@ -1066,6 +1095,7 @@ export function RegistrationClient({
             name: formCourseName,
             credits: parseFloat(formCredits) || 1.0,
             semester: parseInt(formCourseSemester, 10) || 1,
+            academicYear: formCourseAcademicYear,
             subjectGroup: formSubjectGroup,
             instructorId: formInstructorId || undefined,
             instructorName: formInstructorName || undefined,
@@ -1637,95 +1667,116 @@ export function RegistrationClient({
           </p>
         </div>
 
-        {/* Global Export & Action Cluster */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            onClick={() => handleExportCSV(activeTab === "grading" ? "grades" : (activeTab === "attendance" && enableAttendance) ? "attendance" : "students")}
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-semibold"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            ส่งออกเป็น Google Sheets (CSV)
-          </Button>
-          <a
-            href="https://docs.google.com/spreadsheets/u/0/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-            title="เปิด Google Sheets เพื่อนำเข้าไฟล์"
-          >
-            เปิด Google Sheets <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-          {canManage && (
-            <>
-              <Button
-                onClick={openImportModal}
-                className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs font-semibold"
-              >
-                <Upload className="w-4 h-4" />
-                นำเข้า CSV (Import)
-              </Button>
-              <Button onClick={openCreateStudent} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white shadow-xs font-semibold">
-                <Plus className="w-4 h-4" />
-                เพิ่มนักเรียน
-              </Button>
-            </>
-          )}
-        </div>
+        {/* Global Export & Action Cluster (Hidden for Parent / Student) */}
+        {!isParentOrStudent && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              onClick={() => handleExportCSV(activeTab === "grading" ? "grades" : (activeTab === "attendance" && enableAttendance) ? "attendance" : "students")}
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-semibold"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              ส่งออกเป็น Google Sheets (CSV)
+            </Button>
+            <a
+              href="https://docs.google.com/spreadsheets/u/0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              title="เปิด Google Sheets เพื่อนำเข้าไฟล์"
+            >
+              เปิด Google Sheets <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            {canManage && (
+              <>
+                <Button
+                  onClick={openImportModal}
+                  className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs font-semibold"
+                >
+                  <Upload className="w-4 h-4" />
+                  นำเข้า CSV (Import)
+                </Button>
+                <Button onClick={openCreateStudent} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white shadow-xs font-semibold">
+                  <Plus className="w-4 h-4" />
+                  เพิ่มนักเรียน
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Role Notice Banner for Parent or Student */}
+      {isParentOrStudent && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between text-xs text-emerald-900 shadow-2xs print:hidden">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+            <span>
+              เข้าใช้งานในฐานะ: <strong className="font-bold underline">{userRoles.includes("STUDENT") ? "นักเรียน" : "ผู้ปกครอง"}</strong> ({currentUser?.name || currentUser?.email}) — สิทธิ์การเข้าถึง: ดูรายงานผลการพัฒนาคุณภาพผู้เรียนรายบุคคล (แบบ ปพ. 6)
+            </span>
+          </div>
+          <span className="bg-white px-2.5 py-1 rounded-md border border-emerald-200 text-emerald-700 font-semibold text-2xs">
+            สิทธิ์: ดูรายงาน ปพ.6
+          </span>
+        </div>
+      )}
 
       {/* ═══ Tab Navigation ═══ */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3 print:hidden">
-        <button
-          type="button"
-          onClick={() => setActiveTab("students")}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
-            activeTab === "students"
-              ? "bg-blue-700 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          1. รายชื่อนักเรียน ({students.length})
-        </button>
+        {!isParentOrStudent && (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab("students")}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                activeTab === "students"
+                  ? "bg-blue-700 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              1. รายชื่อนักเรียน ({students.length})
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("courses")}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
-            activeTab === "courses"
-              ? "bg-blue-700 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
-        >
-          <BookOpen className="w-4 h-4" />
-          2. รายวิชาที่สอน ({courses.length})
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("courses")}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                activeTab === "courses"
+                  ? "bg-blue-700 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              2. รายวิชาที่สอน ({courses.length})
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("attendance")}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
-            activeTab === "attendance"
-              ? "bg-blue-700 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
-        >
-          <CalendarCheck className="w-4 h-4" />
-          3. เช็คชื่อเข้าเรียน (Attendance)
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("attendance")}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                activeTab === "attendance"
+                  ? "bg-blue-700 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <CalendarCheck className="w-4 h-4" />
+              3. เช็คชื่อเข้าเรียน (Attendance)
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("grading")}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
-            activeTab === "grading"
-              ? "bg-blue-700 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
-        >
-          <Award className="w-4 h-4" />
-          4. บันทึกคะแนนและตัดเกรด (Grading)
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("grading")}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                activeTab === "grading"
+                  ? "bg-blue-700 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <Award className="w-4 h-4" />
+              4. บันทึกคะแนนและตัดเกรด (Grading)
+            </button>
+          </>
+        )}
 
         <button
           type="button"
@@ -1969,10 +2020,10 @@ export function RegistrationClient({
               <div>
                 <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-blue-700" />
-                  รายวิชาในหลักสูตรสถานศึกษา ({courses.length} วิชา)
+                  รายวิชาในหลักสูตรสถานศึกษา ({filteredCoursesList.length}/{courses.length} วิชา)
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  จัดการรหัสวิชา ชื่อวิชา หน่วยกิต ภาคเรียน กลุ่มสาระการเรียนรู้ และอาจารย์ผู้สอนประจำวิชา
+                  จัดการรหัสวิชา ชื่อวิชา หน่วยกิต ปีการศึกษา ภาคเรียน กลุ่มสาระการเรียนรู้ และอาจารย์ผู้สอนประจำวิชา
                 </p>
               </div>
               {canManage && (
@@ -1989,24 +2040,20 @@ export function RegistrationClient({
             {/* Filter & Search Controls */}
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-2 border-t border-slate-100">
               <div className="flex flex-wrap items-center gap-3">
-                {/* 1. กลุ่มสาระการเรียนรู้ */}
+                {/* 1. ปีการศึกษา */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700 shrink-0">กลุ่มสาระฯ:</span>
+                  <span className="text-xs font-bold text-slate-700 shrink-0">ปีการศึกษา:</span>
                   <select
-                    value={filterSubjectGroup}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterSubjectGroup(e.target.value)}
-                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs max-w-[220px] truncate"
+                    value={filterCourseYear}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterCourseYear(e.target.value)}
+                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs"
                   >
-                    <option value="ALL">ทุกกลุ่มสาระการเรียนรู้</option>
-                    <option value="กลุ่มสาระการเรียนรู้ภาษาไทย">กลุ่มสาระฯ ภาษาไทย</option>
-                    <option value="กลุ่มสาระการเรียนรู้คณิตศาสตร์">กลุ่มสาระฯ คณิตศาสตร์</option>
-                    <option value="กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี">กลุ่มสาระฯ วิทยาศาสตร์และเทคโนโลยี</option>
-                    <option value="กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม">กลุ่มสาระฯ สังคมศึกษาฯ</option>
-                    <option value="กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ">กลุ่มสาระฯ ภาษาต่างประเทศ</option>
-                    <option value="กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา">กลุ่มสาระฯ สุขศึกษาและพลศึกษา</option>
-                    <option value="กลุ่มสาระการเรียนรู้ศิลปะ">กลุ่มสาระฯ ศิลปะ</option>
-                    <option value="กลุ่มสาระการเรียนรู้การงานอาชีพ">กลุ่มสาระฯ การงานอาชีพ</option>
-                    <option value="พุทธศาสน์ศึกษาและภาษาบาลี">พุทธศาสน์ศึกษาและภาษาบาลี</option>
+                    <option value="ALL">ทุกปีการศึกษา</option>
+                    {academicYearsList.map((y) => (
+                      <option key={y} value={y}>
+                        ปีการศึกษา {y}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -2021,6 +2068,27 @@ export function RegistrationClient({
                     <option value="ALL">ทุกภาคเรียน</option>
                     <option value="1">ภาคเรียนที่ 1</option>
                     <option value="2">ภาคเรียนที่ 2</option>
+                  </select>
+                </div>
+
+                {/* 3. กลุ่มสาระการเรียนรู้ */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 shrink-0">กลุ่มสาระฯ:</span>
+                  <select
+                    value={filterSubjectGroup}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterSubjectGroup(e.target.value)}
+                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs max-w-[200px] truncate"
+                  >
+                    <option value="ALL">ทุกกลุ่มสาระการเรียนรู้</option>
+                    <option value="กลุ่มสาระการเรียนรู้ภาษาไทย">กลุ่มสาระฯ ภาษาไทย</option>
+                    <option value="กลุ่มสาระการเรียนรู้คณิตศาสตร์">กลุ่มสาระฯ คณิตศาสตร์</option>
+                    <option value="กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี">กลุ่มสาระฯ วิทยาศาสตร์และเทคโนโลยี</option>
+                    <option value="กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม">กลุ่มสาระฯ สังคมศึกษาฯ</option>
+                    <option value="กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ">กลุ่มสาระฯ ภาษาต่างประเทศ</option>
+                    <option value="กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา">กลุ่มสาระฯ สุขศึกษาและพลศึกษา</option>
+                    <option value="กลุ่มสาระการเรียนรู้ศิลปะ">กลุ่มสาระฯ ศิลปะ</option>
+                    <option value="กลุ่มสาระการเรียนรู้การงานอาชีพ">กลุ่มสาระฯ การงานอาชีพ</option>
+                    <option value="พุทธศาสน์ศึกษาและภาษาบาลี">พุทธศาสน์ศึกษาและภาษาบาลี</option>
                   </select>
                 </div>
               </div>
@@ -2048,7 +2116,7 @@ export function RegistrationClient({
                     <th className="py-3 px-4 w-28">รหัสวิชา</th>
                     <th className="py-3 px-4">ชื่อรายวิชา</th>
                     <th className="py-3 px-4 w-24 text-center">หน่วยกิต</th>
-                    <th className="py-3 px-4 w-28 text-center">ภาคเรียน</th>
+                    <th className="py-3 px-4 w-36 text-center">ปีการศึกษา / ภาคเรียน</th>
                     <th className="py-3 px-4 w-52">กลุ่มสาระฯ / หลักสูตรที่สังกัด</th>
                     <th className="py-3 px-4 w-48">อาจารย์ผู้สอน</th>
                     <th className="py-3 px-4 w-28 text-center">การจัดการ</th>
@@ -2086,11 +2154,16 @@ export function RegistrationClient({
                           </span>
                         </td>
 
-                        {/* ภาคเรียน */}
+                        {/* ปีการศึกษา / ภาคเรียน */}
                         <td className="py-3 px-4 text-center">
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                            เทอม {c.semester || 1}
-                          </span>
+                          <div className="inline-flex flex-col items-center gap-1">
+                            <span className="inline-block px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                              ปี {c.academicYear || "2569"}
+                            </span>
+                            <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                              เทอม {c.semester || 1}
+                            </span>
+                          </div>
                         </td>
 
                         {/* กลุ่มสาระฯ */}
@@ -2981,6 +3054,7 @@ export function RegistrationClient({
           students={students}
           courses={courses}
           initialGrades={grades}
+          currentUser={currentUser}
         />
       )}
 
@@ -3155,7 +3229,7 @@ export function RegistrationClient({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">จำนวนหน่วยกิต *</label>
               <input
@@ -3167,6 +3241,37 @@ export function RegistrationClient({
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCredits(e.target.value)}
                 className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">ปีการศึกษา *</label>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={academicYearsList.includes(formCourseAcademicYear) ? formCourseAcademicYear : "CUSTOM"}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                    if (e.target.value !== "CUSTOM") {
+                      setFormCourseAcademicYear(e.target.value);
+                    }
+                  }}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden bg-white"
+                >
+                  {academicYearsList.map((y) => (
+                    <option key={y} value={y}>
+                      ปีการศึกษา {y}
+                    </option>
+                  ))}
+                  <option value="CUSTOM">-- ระบุปีอื่น --</option>
+                </select>
+                {!academicYearsList.includes(formCourseAcademicYear) && (
+                  <input
+                    type="text"
+                    value={formCourseAcademicYear}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCourseAcademicYear(e.target.value)}
+                    placeholder="เช่น 2568"
+                    className="w-24 text-sm border border-slate-200 rounded-lg p-2 focus:border-blue-500 focus:outline-hidden font-mono"
+                    maxLength={4}
+                  />
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">ภาคเรียน (เทอม) *</label>

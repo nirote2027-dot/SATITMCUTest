@@ -16,11 +16,17 @@ export const IDENTITY_PERMISSIONS: readonly PermissionDef[] = [
   { code: P.auditRead, module: "audit", action: "read" },
 ];
 
+import { DOCUMENT_P } from "@/features/document/permissions";
+
 /** บทบาทตั้งต้น — seed และ bootstrap ใช้ร่วมกัน */
 export const SUPER_ADMIN_CODE = "SUPER_ADMIN";
 export const DEFAULT_ROLES: ReadonlyArray<{ code: string; nameTh: string; nameEn: string; isSystem: boolean; permissions: readonly string[] }> = [
   { code: SUPER_ADMIN_CODE, nameTh: "ผู้ดูแลสูงสุด", nameEn: "Super admin", isSystem: true, permissions: [] },
-  { code: "ADMIN", nameTh: "ผู้ดูแลระบบ", nameEn: "Administrator", isSystem: false, permissions: [P.usersRead, P.usersManage, P.rolesManage, P.settingsManage, P.auditRead] },
-  { code: "STAFF", nameTh: "เจ้าหน้าที่", nameEn: "Staff", isSystem: false, permissions: [P.usersRead] },
-  { code: "VIEWER", nameTh: "ผู้ดู", nameEn: "Viewer", isSystem: false, permissions: [P.usersRead] },
+  { code: "ADMIN", nameTh: "ผู้ดูแลระบบ", nameEn: "Administrator", isSystem: false, permissions: [P.usersRead, P.usersManage, P.rolesManage, P.settingsManage, P.auditRead, DOCUMENT_P.documentRead, DOCUMENT_P.documentManage, DOCUMENT_P.pp6Read] },
+  { code: "ACADEMIC_OFFICER", nameTh: "เจ้าหน้าที่วิชาการศึกษา", nameEn: "Academic Officer", isSystem: false, permissions: [P.usersRead, DOCUMENT_P.documentRead, DOCUMENT_P.documentManage, DOCUMENT_P.pp6Read] },
+  { code: "STAFF", nameTh: "เจ้าหน้าที่", nameEn: "Staff", isSystem: false, permissions: [P.usersRead, DOCUMENT_P.documentRead, DOCUMENT_P.documentManage, DOCUMENT_P.pp6Read] },
+  { code: "TEACHER", nameTh: "อาจารย์ / ครูผู้สอน", nameEn: "Teacher", isSystem: false, permissions: [P.usersRead, DOCUMENT_P.documentRead, DOCUMENT_P.pp6Read] },
+  { code: "PARENT", nameTh: "ผู้ปกครอง", nameEn: "Parent", isSystem: false, permissions: [DOCUMENT_P.documentRead, DOCUMENT_P.pp6Read] },
+  { code: "STUDENT", nameTh: "นักเรียน", nameEn: "Student", isSystem: false, permissions: [DOCUMENT_P.documentRead, DOCUMENT_P.pp6Read] },
+  { code: "VIEWER", nameTh: "ผู้ดู", nameEn: "Viewer", isSystem: false, permissions: [P.usersRead, DOCUMENT_P.documentRead, DOCUMENT_P.pp6Read] },
 ];

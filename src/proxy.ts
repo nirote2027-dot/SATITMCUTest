@@ -6,6 +6,7 @@ const PUBLIC_PREFIXES = [
   "/news/",
   "/download/",
   "/downloads/",
+  "/personnel/",
   "/reset-password/",
   "/verify-email/",
   "/api/auth/",
@@ -14,7 +15,7 @@ const PUBLIC_PREFIXES = [
   "/_next/",
   "/favicon.ico",
 ];
-const PUBLIC_EXACT = ["/", "/download"];
+const PUBLIC_EXACT = ["/", "/download", "/personnel"];
 const GUEST_ONLY = ["/login", "/forgot-password"];
 
 /** ด่านตรวจระดับ route — ไม่แตะ DB (edge) · สิทธิ์ละเอียดตรวจใน Server Action ผ่าน requirePermission */

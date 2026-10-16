@@ -546,6 +546,7 @@ export async function listCourses(tenantId: string): Promise<CourseDto[]> {
       name: c.name,
       credits: c.credits,
       semester: c.semester,
+      academicYear: c.academicYear || "2569",
       curriculumName: c.curriculum?.name,
       curriculumId: c.curriculumId,
       subjectGroup: c.subjectGroup,
@@ -564,6 +565,7 @@ export async function createCourse(
     name: string;
     credits: number;
     semester?: number;
+    academicYear?: string;
     curriculumId?: string;
     subjectGroup?: string;
     instructorName?: string;
@@ -596,6 +598,7 @@ export async function createCourse(
       name: data.name.trim(),
       credits: Number(data.credits) || 1.0,
       semester: data.semester ? Number(data.semester) : 1,
+      academicYear: data.academicYear?.trim() || "2569",
       subjectGroup: data.subjectGroup?.trim() || null,
       instructorName: data.instructorName?.trim() || null,
       instructorId: data.instructorId || null,
@@ -612,6 +615,7 @@ export async function createCourse(
     name: created.name,
     credits: created.credits,
     semester: created.semester,
+    academicYear: created.academicYear || "2569",
     curriculumName: created.curriculum?.name,
     curriculumId: created.curriculumId,
     subjectGroup: created.subjectGroup,
@@ -628,6 +632,7 @@ export async function updateCourse(
     name?: string;
     credits?: number;
     semester?: number;
+    academicYear?: string;
     curriculumId?: string;
     subjectGroup?: string;
     instructorName?: string;
@@ -641,6 +646,7 @@ export async function updateCourse(
       ...(data.name ? { name: data.name.trim() } : {}),
       ...(data.credits !== undefined ? { credits: Number(data.credits) || 1.0 } : {}),
       ...(data.semester !== undefined ? { semester: Number(data.semester) || 1 } : {}),
+      ...(data.academicYear !== undefined ? { academicYear: data.academicYear?.trim() || "2569" } : {}),
       ...(data.curriculumId ? { curriculumId: data.curriculumId } : {}),
       ...(data.subjectGroup !== undefined ? { subjectGroup: data.subjectGroup?.trim() || null } : {}),
       ...(data.instructorName !== undefined ? { instructorName: data.instructorName?.trim() || null } : {}),
@@ -658,6 +664,7 @@ export async function updateCourse(
     name: updated.name,
     credits: updated.credits,
     semester: updated.semester,
+    academicYear: updated.academicYear || "2569",
     curriculumName: updated.curriculum?.name,
     curriculumId: updated.curriculumId,
     subjectGroup: updated.subjectGroup,

@@ -523,13 +523,24 @@ export default async function HomePage() {
             </div>
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">ทำเนียบบุคลากร</h2>
           </div>
-          <Link
-            href="/personnel"
-            style={{ color: theme.hex }}
-            className="inline-flex items-center gap-1 text-sm font-semibold hover:underline mt-4 sm:mt-0 group"
-          >
-            จัดการหรือดูทำเนียบทั้งหมด <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
+          <div className="flex items-center gap-3 mt-4 sm:mt-0">
+            {isSuperAdmin && (
+              <Link
+                href="/school/personnel"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-colors"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span>จัดการบุคลากร</span>
+              </Link>
+            )}
+            <Link
+              href="/personnel"
+              style={{ color: theme.hex }}
+              className="inline-flex items-center gap-1 text-sm font-semibold hover:underline group"
+            >
+              ดูทำเนียบทั้งหมด <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

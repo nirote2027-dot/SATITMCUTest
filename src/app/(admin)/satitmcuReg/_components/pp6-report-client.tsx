@@ -40,6 +40,13 @@ export interface PP6Props {
   students: StudentDto[];
   courses: CourseDto[];
   initialGrades: GradeRecordDto[];
+  currentUser?: {
+    id: string;
+    name: string;
+    email: string;
+    isSuperAdmin: boolean;
+    roles?: { roleCode: string }[];
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -565,13 +572,19 @@ function gradeToPoint(grade: string): number {
 // PP6 Main Component (Read-Only Official Report)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) {
-  // Student filter controls
-  const [levelFilter, setLevelFilter] = useState<"ALL" | "LOWER" | "UPPER">("ALL");
+export function PP6ReportClient({ students, courses, initialGrades, currentUser }: PP6Props) {
+  // Semester selector: "ALL" = รวม 2 ภาคเรียน (ทั้งปีการศึกษา), "1" = ภาคเรียนที่ 1, "2" = ภาคเรียนที่ 2
+  const [selectedSemester, setSelectedSemester] = useState<"ALL" | "1" | "2">("ALL");
   const [selectedClassRoom, setSelectedClassRoom] = useState<string>("ALL");
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(
-    students[0]?.id || "",
-  );
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => {
+    if (currentUser?.roles?.some((r) => r.roleCode === "STUDENT")) {
+      const matched = students.find(
+        (s) => s.fullName.includes(currentUser.name) || currentUser.name.includes(s.firstName),
+      );
+      if (matched) return matched.id;
+    }
+    return students[0]?.id || "";
+  });
   const [academicYear, setAcademicYear] = useState<string>("2569");
   const [viewMode, setViewMode] = useState<"official" | "analytics">("official");
 
@@ -676,12 +689,22 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
       totalPointsSem1 += p1 * sub.creditsSem1;
       totalPointsSem2 += p2 * sub.creditsSem2;
 
-      // Group totals
+      // Group totals based on selected semester
+      let subCred = sub.creditsSem1 + sub.creditsSem2;
+      let subPoints = p1 * sub.creditsSem1 + p2 * sub.creditsSem2;
+      if (selectedSemester === "1") {
+        subCred = sub.creditsSem1;
+        subPoints = p1 * sub.creditsSem1;
+      } else if (selectedSemester === "2") {
+        subCred = sub.creditsSem2;
+        subPoints = p2 * sub.creditsSem2;
+      }
+
       if (!groupStats[sub.group]) {
         groupStats[sub.group] = { totalCredits: 0, totalPoints: 0, count: 0 };
       }
-      groupStats[sub.group].totalCredits += sub.creditsSem1 + sub.creditsSem2;
-      groupStats[sub.group].totalPoints += p1 * sub.creditsSem1 + p2 * sub.creditsSem2;
+      groupStats[sub.group].totalCredits += subCred;
+      groupStats[sub.group].totalPoints += subPoints;
       groupStats[sub.group].count += 1;
     }
 
@@ -718,27 +741,15 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
       isPromoted: annualGpa >= 1.0 && activityPassSem1 && activityPassSem2,
       groupGpas,
     };
-  }, [activeSubjects]);
+  }, [activeSubjects, selectedSemester]);
 
   // Filtered student list for dropdown & navigation
   const availableStudents = useMemo(() => {
     return students.filter((s) => {
-      const room = s.classRoom.toLowerCase();
-      const sIsUpper =
-        room.startsWith("ม.4") ||
-        room.startsWith("ม.5") ||
-        room.startsWith("ม.6") ||
-        room.startsWith("4") ||
-        room.startsWith("5") ||
-        room.startsWith("6");
-
-      if (levelFilter === "LOWER" && sIsUpper) return false;
-      if (levelFilter === "UPPER" && !sIsUpper) return false;
       if (selectedClassRoom !== "ALL" && s.classRoom !== selectedClassRoom) return false;
-
       return true;
     });
-  }, [students, levelFilter, selectedClassRoom]);
+  }, [students, selectedClassRoom]);
 
   // Unique classrooms in database
   const classRooms = useMemo(() => {
@@ -769,55 +780,69 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
       return;
     }
 
-    const filename = `PP6_${currentStudent.studentCode}_${currentStudent.firstName}_${academicYear}.csv`;
+    const semSuffix = selectedSemester === "ALL" ? "Annual" : `Sem${selectedSemester}`;
+    const filename = `PP6_${currentStudent.studentCode}_${currentStudent.firstName}_${academicYear}_${semSuffix}.csv`;
     let csv = "\uFEFF"; // UTF-8 BOM for Excel / Google Sheets
 
     // Document Header
     csv += `"แบบรายงานผลการพัฒนาคุณภาพผู้เรียนรายบุคคล (ปพ. 6)"\n`;
     csv += `"โรงเรียนสาธิตมหาวิทยาลัยมหาจุฬาลงกรณราชวิทยาลัย (SATIT MCU)"\n`;
     csv += `"ตามหลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน พุทธศักราช ๒๕๕๑ (ฉบับปรับปรุง ๒๕๖๐)"\n`;
-    csv += `"ระดับการศึกษา: ${isUpper ? "มัธยมศึกษาตอนปลาย" : "มัธยมศึกษาตอนต้น"}","ปีการศึกษา: ${academicYear}"\n`;
-    csv += `"ชื่อ - สกุล: ${currentStudent.fullName}","รหัสประจำตัว: ${currentStudent.studentCode}","เลขที่: ${currentStudent.seatNo}","ชั้น/ห้อง: ${currentStudent.classRoom}"\n`;
-    csv += `\n`;
+    csv += `"ระดับการศึกษา: ${isUpper ? "มัธยมศึกษาตอนปลาย" : "มัธยมศึกษาตอนต้น"}","${selectedSemester === "ALL" ? `ปีการศึกษา: ${academicYear} (รวม 2 ภาคเรียน)` : `ภาคเรียนที่: ${selectedSemester} ปีการศึกษา: ${academicYear}`}"\n`;
+    csv += `"ชื่อ - สกุล: ${currentStudent.fullName}","รหัสประจำตัว: ${currentStudent.studentCode}","เลขที่: ${currentStudent.seatNo}","ชั้น/ห้อง: ${currentStudent.classRoom}"\n\n`;
 
-    // Table Header (Column 1: รายวิชา, Column 2: อาจารย์ผู้สอน)
-    csv += `"รายวิชา","อาจารย์ผู้สอน","ประเภทวิชา","รหัสวิชา (เทอม 1)","นก. (เทอม 1)","คะแนน (เทอม 1)","เกรด (เทอม 1)","รหัสวิชา (เทอม 2)","นก. (เทอม 2)","คะแนน (เทอม 2)","เกรด (เทอม 2)","เกรดเฉลี่ยรายวิชา","หน่วยกิตสะสม"\n`;
-
-    // Subject Rows
-    for (const sub of activeSubjects) {
-      const typeThai =
-        sub.type === "CORE" ? "พื้นฐาน" : sub.type === "ELECTIVE" ? "เพิ่มเติม" : "กิจกรรม";
-
-      let annualSubjectAvg = "-";
-      let earnedCreditsTotal = "-";
-
-      if (sub.type !== "ACTIVITY") {
-        const p1 = gradeToPoint(sub.gradeSem1);
-        const p2 = gradeToPoint(sub.gradeSem2);
-        const totalCred = sub.creditsSem1 + sub.creditsSem2;
-        const avg = totalCred > 0 ? (p1 * sub.creditsSem1 + p2 * sub.creditsSem2) / totalCred : 0;
-        annualSubjectAvg = avg.toFixed(2);
-        const earned = (p1 > 0 ? sub.creditsSem1 : 0) + (p2 > 0 ? sub.creditsSem2 : 0);
-        earnedCreditsTotal = earned.toFixed(1);
-      } else {
-        annualSubjectAvg = sub.gradeSem1 === "ผ" && sub.gradeSem2 === "ผ" ? "ผ" : "มผ";
+    if (selectedSemester === "1" || selectedSemester === "2") {
+      const sem = selectedSemester === "1" ? 1 : 2;
+      csv += `"รหัสวิชา","รายวิชา","อาจารย์ผู้สอน","ประเภทวิชา","หน่วยกิต","คะแนนเต็ม","คะแนนที่ได้","ระดับเกรด","ผลการตัดสิน"\n`;
+      for (const sub of activeSubjects) {
+        const typeThai = sub.type === "CORE" ? "พื้นฐาน" : sub.type === "ELECTIVE" ? "เพิ่มเติม" : "กิจกรรม";
+        const code = sem === 1 ? sub.courseCodeSem1 : sub.courseCodeSem2;
+        const cred = sem === 1 ? sub.creditsSem1 : sub.creditsSem2;
+        const score = sem === 1 ? sub.scoreSem1 : sub.scoreSem2;
+        const grade = sem === 1 ? sub.gradeSem1 : sub.gradeSem2;
+        const result = sub.type === "ACTIVITY" ? (grade === "ผ" ? "ผ่าน" : "ไม่ผ่าน") : (gradeToPoint(grade) >= 1 ? "ผ่าน" : "ไม่ผ่าน");
+        csv += `"${code}","${sub.name}","${sub.instructorName}","${typeThai}","${sub.type === "ACTIVITY" ? "-" : cred}","${sub.type === "ACTIVITY" ? "-" : 100}","${sub.type === "ACTIVITY" ? "-" : score}","${grade}","${result}"\n`;
       }
-
-      csv += `"${sub.name}","${sub.instructorName}","${typeThai}","${sub.courseCodeSem1}","${sub.creditsSem1}","${sub.scoreSem1}","${sub.gradeSem1}","${sub.courseCodeSem2}","${sub.creditsSem2}","${sub.scoreSem2}","${sub.gradeSem2}","${annualSubjectAvg}","${earnedCreditsTotal}"\n`;
+      csv += `\n"--- สรุปผลการประเมิน ภาคเรียนที่ ${sem} ปีการศึกษา ${academicYear} ---"\n`;
+      csv += `"รายการสรุป","ผลการประเมิน"\n`;
+      csv += `"จำนวนหน่วยกิตที่ลงทะเบียน","${(sem === 1 ? stats.enrolledCreditsSem1 : stats.enrolledCreditsSem2).toFixed(1)}"\n`;
+      csv += `"จำนวนหน่วยกิตที่ได้","${(sem === 1 ? stats.earnedCreditsSem1 : stats.earnedCreditsSem2).toFixed(1)}"\n`;
+      csv += `"แต้มระดับคะแนนรวม","${(sem === 1 ? stats.totalPointsSem1 : stats.totalPointsSem2).toFixed(2)}"\n`;
+      csv += `"ผลการเรียนเฉลี่ย (GPA)","${(sem === 1 ? stats.gpaSem1 : stats.gpaSem2).toFixed(2)}"\n`;
+      csv += `"ผลการประเมินกิจกรรมพัฒนาผู้เรียน","${(sem === 1 ? stats.activityPassSem1 : stats.activityPassSem2) ? "ผ่าน (ผ)" : "ไม่ผ่าน (มผ)"}"\n`;
+      csv += `"การประเมินคุณลักษณะอันพึงประสงค์","ดีเยี่ยม (3)"\n`;
+      csv += `"การประเมินการอ่าน คิดวิเคราะห์ และเขียน","ดีเยี่ยม (3)"\n`;
+    } else {
+      // ALL: 2 semesters
+      csv += `"รายวิชา","อาจารย์ผู้สอน","ประเภทวิชา","รหัสวิชา (เทอม 1)","นก. (เทอม 1)","คะแนน (เทอม 1)","เกรด (เทอม 1)","รหัสวิชา (เทอม 2)","นก. (เทอม 2)","คะแนน (เทอม 2)","เกรด (เทอม 2)","เกรดเฉลี่ยรายวิชา","หน่วยกิตสะสม"\n`;
+      for (const sub of activeSubjects) {
+        const typeThai = sub.type === "CORE" ? "พื้นฐาน" : sub.type === "ELECTIVE" ? "เพิ่มเติม" : "กิจกรรม";
+        let annualSubjectAvg = "-";
+        let earnedCreditsTotal = "-";
+        if (sub.type !== "ACTIVITY") {
+          const p1 = gradeToPoint(sub.gradeSem1);
+          const p2 = gradeToPoint(sub.gradeSem2);
+          const totalCred = sub.creditsSem1 + sub.creditsSem2;
+          const avg = totalCred > 0 ? (p1 * sub.creditsSem1 + p2 * sub.creditsSem2) / totalCred : 0;
+          annualSubjectAvg = avg.toFixed(2);
+          const earned = (p1 > 0 ? sub.creditsSem1 : 0) + (p2 > 0 ? sub.creditsSem2 : 0);
+          earnedCreditsTotal = earned.toFixed(1);
+        } else {
+          annualSubjectAvg = sub.gradeSem1 === "ผ" && sub.gradeSem2 === "ผ" ? "ผ" : "มผ";
+        }
+        csv += `"${sub.name}","${sub.instructorName}","${typeThai}","${sub.courseCodeSem1}","${sub.creditsSem1}","${sub.scoreSem1}","${sub.gradeSem1}","${sub.courseCodeSem2}","${sub.creditsSem2}","${sub.scoreSem2}","${sub.gradeSem2}","${annualSubjectAvg}","${earnedCreditsTotal}"\n`;
+      }
+      csv += `\n"--- สรุปผลการประเมินและการตัดสินผลการเรียน ประจำปีการศึกษา ${academicYear} ---"\n`;
+      csv += `"รายการสรุป","ภาคเรียนที่ 1","ภาคเรียนที่ 2","สรุปตลอดปีการศึกษา"\n`;
+      csv += `"จำนวนหน่วยกิตที่ลงทะเบียน","${stats.enrolledCreditsSem1.toFixed(1)}","${stats.enrolledCreditsSem2.toFixed(1)}","${stats.totalEnrolled.toFixed(1)}"\n`;
+      csv += `"จำนวนหน่วยกิตที่ได้","${stats.earnedCreditsSem1.toFixed(1)}","${stats.earnedCreditsSem2.toFixed(1)}","${stats.totalEarned.toFixed(1)}"\n`;
+      csv += `"แต้มระดับคะแนนรวม","${stats.totalPointsSem1.toFixed(2)}","${stats.totalPointsSem2.toFixed(2)}","${stats.totalAnnualPoints.toFixed(2)}"\n`;
+      csv += `"ผลการเรียนเฉลี่ย (GPA)","${stats.gpaSem1.toFixed(2)}","${stats.gpaSem2.toFixed(2)}","${stats.annualGpa.toFixed(2)}"\n`;
+      csv += `"ผลการประเมินกิจกรรมพัฒนาผู้เรียน","${stats.activityPassSem1 ? "ผ่าน (ผ)" : "ไม่ผ่าน (มผ)"}","${stats.activityPassSem2 ? "ผ่าน (ผ)" : "ไม่ผ่าน (มผ)"}","${stats.activityPassSem1 && stats.activityPassSem2 ? "ผ่าน (ผ)" : "ไม่ผ่าน (มผ)"}"\n`;
+      csv += `"การประเมินคุณลักษณะอันพึงประสงค์","ดีเยี่ยม (3)","ดีเยี่ยม (3)","ดีเยี่ยม (3)"\n`;
+      csv += `"การประเมินการอ่าน คิดวิเคราะห์ และเขียน","ดีเยี่ยม (3)","ดีเยี่ยม (3)","ดีเยี่ยม (3)"\n`;
+      csv += `"ผลการตัดสินประจำปี","${stats.isPromoted ? "อนุมัติเลื่อนชั้น" : "ซ่อมเสริม"}","${stats.isPromoted ? "อนุมัติเลื่อนชั้น" : "ซ่อมเสริม"}","${stats.isPromoted ? "อนุมัติเลื่อนชั้น" : "ซ่อมเสริม"}"\n`;
     }
-
-    // Summary Section
-    csv += `\n`;
-    csv += `"--- สรุปผลการประเมินและการตัดสินผลการเรียน ประจำปีการศึกษา ${academicYear} ---"\n`;
-    csv += `"รายการสรุป","ภาคเรียนที่ 1","ภาคเรียนที่ 2","สรุปตลอดปีการศึกษา"\n`;
-    csv += `"จำนวนหน่วยกิตที่ลงทะเบียน","${stats.enrolledCreditsSem1.toFixed(1)}","${stats.enrolledCreditsSem2.toFixed(1)}","${stats.totalEnrolled.toFixed(1)}"\n`;
-    csv += `"จำนวนหน่วยกิตที่ได้","${stats.earnedCreditsSem1.toFixed(1)}","${stats.earnedCreditsSem2.toFixed(1)}","${stats.totalEarned.toFixed(1)}"\n`;
-    csv += `"แต้มระดับคะแนนรวม","${stats.totalPointsSem1.toFixed(2)}","${stats.totalPointsSem2.toFixed(2)}","${stats.totalAnnualPoints.toFixed(2)}"\n`;
-    csv += `"ผลการเรียนเฉลี่ย (GPA)","${stats.gpaSem1.toFixed(2)}","${stats.gpaSem2.toFixed(2)}","${stats.annualGpa.toFixed(2)}"\n`;
-    csv += `"ผลการประเมินกิจกรรมพัฒนาผู้เรียน","${stats.activityPassSem1 ? "ผ่าน (ผ)" : "ไม่ผ่าน (มผ)"}","${stats.activityPassSem2 ? "ผ่าน (ผ)" : "ไม่ผ่าน (มผ)"}","${stats.activityPassSem1 && stats.activityPassSem2 ? "ผ่าน (ผ)" : "ไม่ผ่าน (มผ)"}"\n`;
-    csv += `"การประเมินคุณลักษณะอันพึงประสงค์","ดีเยี่ยม (3)","ดีเยี่ยม (3)","ดีเยี่ยม (3)"\n`;
-    csv += `"การประเมินการอ่าน คิดวิเคราะห์ และเขียน","ดีเยี่ยม (3)","ดีเยี่ยม (3)","ดีเยี่ยม (3)"\n`;
-    csv += `"ผลการตัดสินประจำปี","${stats.isPromoted ? "อนุมัติเลื่อนชั้น" : "ซ่อมเสริม"}","${stats.isPromoted ? "อนุมัติเลื่อนชั้น" : "ซ่อมเสริม"}","${stats.isPromoted ? "อนุมัติเลื่อนชั้น" : "ซ่อมเสริม"}"\n`;
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -853,7 +878,9 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
                 แบบ ปพ. 6 (รายงานผลการพัฒนาคุณภาพผู้เรียนรายบุคคล)
               </h2>
               <p className="text-xs text-slate-500">
-                สรุปผลการเรียนรู้และเกรดเฉลี่ยรายวิชา 2 ภาคเรียน สรุปรายปีการศึกษา และเกรดเฉลี่ยสะสม (GPA) ตามเกณฑ์ สพฐ.
+                {selectedSemester === "ALL"
+                  ? "สรุปผลการเรียนรู้และเกรดเฉลี่ยรายวิชา 2 ภาคเรียน สรุปรายปีการศึกษา และเกรดเฉลี่ยสะสม (GPA) ตามเกณฑ์ สพฐ."
+                  : `สรุปผลการเรียนรู้และผลการประเมินรายวิชา ประจำภาคเรียนที่ ${selectedSemester} ปีการศึกษา ${academicYear}`}
               </p>
             </div>
           </div>
@@ -880,19 +907,19 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
 
         {/* Filter Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          {/* Level Filter */}
+          {/* Semester Selector */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">ช่วงชั้นการศึกษา:</label>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">ภาคเรียน:</label>
             <select
-              value={levelFilter}
+              value={selectedSemester}
               onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                setLevelFilter(e.target.value as any);
+                setSelectedSemester(e.target.value as any);
               }}
-              className="w-full text-xs border border-slate-200 rounded-lg p-2 bg-white font-medium"
+              className="w-full text-xs border border-blue-200 rounded-lg p-2 bg-blue-50/40 font-bold text-blue-900 focus:outline-hidden focus:border-blue-500"
             >
-              <option value="ALL">ทุกช่วงชั้น (ม.1 - ม.6)</option>
-              <option value="LOWER">มัธยมศึกษาตอนต้น (ม.1 - ม.3)</option>
-              <option value="UPPER">มัธยมศึกษาตอนปลาย (ม.4 - ม.6)</option>
+              <option value="ALL">รวม 2 ภาคเรียน (ทั้งปีการศึกษา)</option>
+              <option value="1">ภาคเรียนที่ 1</option>
+              <option value="2">ภาคเรียนที่ 2</option>
             </select>
           </div>
 
@@ -1011,8 +1038,10 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
             ตามหลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน พุทธศักราช ๒๕๕๑ (ฉบับปรับปรุง ๒๕๖๐)
           </div>
           <div className="inline-block px-4 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-blue-900 mt-1 print:mt-0.5 print:bg-slate-50 print:border-slate-300 print:py-0.5 print:px-2.5 print:text-[9px]">
-            ระดับ{isUpper ? "มัธยมศึกษาตอนปลาย (ม.4 - ม.6)" : "มัธยมศึกษาตอนต้น (ม.1 - ม.3)"} ประจำปีการศึกษา{" "}
-            {academicYear}
+            ระดับ{isUpper ? "มัธยมศึกษาตอนปลาย (ม.4 - ม.6)" : "มัธยมศึกษาตอนต้น (ม.1 - ม.3)"}{" "}
+            {selectedSemester === "ALL"
+              ? `ประจำปีการศึกษา ${academicYear} (รวม 2 ภาคเรียน)`
+              : `ประจำภาคเรียนที่ ${selectedSemester === "1" ? "๑" : "๒"} ปีการศึกษา ${academicYear}`}
           </div>
         </div>
 
@@ -1047,185 +1076,319 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
         {/* ═══ Official Table (Always rendered for print, toggled for screen) ═══ */}
         <div className={viewMode === "official" ? "space-y-4 print:space-y-0" : "hidden print:block space-y-4 print:space-y-0"}>
           <div className="border border-slate-300 rounded-xl overflow-x-auto shadow-2xs print:border-slate-300 print:rounded-lg print:shadow-none">
-            <table className="w-full text-xs text-left border-collapse">
-              <thead>
-                {/* Top Header Grouping: Column 1 = รายวิชา, Column 2 = อาจารย์ผู้สอน */}
-                <tr className="bg-slate-800 text-white font-bold text-center border-b border-slate-700 print:bg-slate-900 print:border-slate-800">
-                  <th rowSpan={2} className="py-2.5 px-3 border-r border-slate-700 text-left print:py-1 print:px-1.5 print:text-[9px]">
-                    รายวิชา
-                  </th>
-                  <th rowSpan={2} className="py-2.5 px-3 w-44 text-left border-r border-slate-700 print:py-1 print:px-1.5 print:w-32 print:text-[9px]">
-                    อาจารย์ผู้สอน
-                  </th>
-                  <th colSpan={3} className="py-1 px-2 border-r border-slate-700 bg-blue-900/60 print:bg-slate-800 print:py-0.5 print:text-[8.5px]">
-                    ภาคเรียนที่ 1
-                  </th>
-                  <th colSpan={3} className="py-1 px-2 border-r border-slate-700 bg-indigo-900/60 print:bg-slate-800 print:py-0.5 print:text-[8.5px]">
-                    ภาคเรียนที่ 2
-                  </th>
-                  <th colSpan={2} className="py-1 px-2 bg-slate-900 print:py-0.5 print:text-[8.5px]">
-                    สรุปผลการเรียนรายปี
-                  </th>
-                </tr>
-                {/* Sub Header */}
-                <tr className="bg-slate-100 text-slate-700 font-bold text-center border-b border-slate-300 text-[11px] print:bg-slate-100 print:text-[8px]">
-                  <th className="py-1.5 px-2 w-14 border-r border-slate-200 print:py-0.5 print:px-1 print:w-9">นก.</th>
-                  <th className="py-1.5 px-2 w-16 border-r border-slate-200 print:py-0.5 print:px-1 print:w-11">คะแนน</th>
-                  <th className="py-1.5 px-2 w-14 border-r border-slate-300 print:py-0.5 print:px-1 print:w-10">เกรด</th>
-                  <th className="py-1.5 px-2 w-14 border-r border-slate-200 print:py-0.5 print:px-1 print:w-9">นก.</th>
-                  <th className="py-1.5 px-2 w-16 border-r border-slate-200 print:py-0.5 print:px-1 print:w-11">คะแนน</th>
-                  <th className="py-1.5 px-2 w-14 border-r border-slate-300 print:py-0.5 print:px-1 print:w-10">เกรด</th>
-                  <th className="py-1.5 px-2 w-20 border-r border-slate-200 print:py-0.5 print:px-1 print:w-12">เกรดเฉลี่ย</th>
-                  <th className="py-1.5 px-2 w-16 print:py-0.5 print:px-1 print:w-11">นก.ได้</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 print:divide-slate-300">
-                {activeSubjects.map((sub, index) => {
-                  const isActivity = sub.type === "ACTIVITY";
-                  const p1 = gradeToPoint(sub.gradeSem1);
-                  const p2 = gradeToPoint(sub.gradeSem2);
-                  const totalCred = sub.creditsSem1 + sub.creditsSem2;
-                  const annualAvg =
-                    !isActivity && totalCred > 0
-                      ? ((p1 * sub.creditsSem1 + p2 * sub.creditsSem2) / totalCred).toFixed(2)
-                      : isActivity
-                      ? sub.gradeSem1 === "ผ" && sub.gradeSem2 === "ผ"
-                        ? "ผ"
-                        : "มผ"
-                      : "-";
-                  const earnedCred =
-                    !isActivity
-                      ? ((p1 > 0 ? sub.creditsSem1 : 0) + (p2 > 0 ? sub.creditsSem2 : 0)).toFixed(1)
-                      : "-";
+            {selectedSemester === "ALL" ? (
+              /* ─── Mode A: รวม 2 ภาคเรียน (ทั้งปีการศึกษา) ─── */
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  {/* Top Header Grouping: Column 1 = รายวิชา, Column 2 = อาจารย์ผู้สอน */}
+                  <tr className="bg-slate-800 text-white font-bold text-center border-b border-slate-700 print:bg-slate-900 print:border-slate-800">
+                    <th rowSpan={2} className="py-2.5 px-3 border-r border-slate-700 text-left print:py-1 print:px-1.5 print:text-[9px]">
+                      รายวิชา
+                    </th>
+                    <th rowSpan={2} className="py-2.5 px-3 w-44 text-left border-r border-slate-700 print:py-1 print:px-1.5 print:w-32 print:text-[9px]">
+                      อาจารย์ผู้สอน
+                    </th>
+                    <th colSpan={3} className="py-1 px-2 border-r border-slate-700 bg-blue-900/60 print:bg-slate-800 print:py-0.5 print:text-[8.5px]">
+                      ภาคเรียนที่ 1
+                    </th>
+                    <th colSpan={3} className="py-1 px-2 border-r border-slate-700 bg-indigo-900/60 print:bg-slate-800 print:py-0.5 print:text-[8.5px]">
+                      ภาคเรียนที่ 2
+                    </th>
+                    <th colSpan={2} className="py-1 px-2 bg-slate-900 print:py-0.5 print:text-[8.5px]">
+                      สรุปผลการเรียนรายปี
+                    </th>
+                  </tr>
+                  {/* Sub Header */}
+                  <tr className="bg-slate-100 text-slate-700 font-bold text-center border-b border-slate-300 text-[11px] print:bg-slate-100 print:text-[8px]">
+                    <th className="py-1.5 px-2 w-14 border-r border-slate-200 print:py-0.5 print:px-1 print:w-9">นก.</th>
+                    <th className="py-1.5 px-2 w-16 border-r border-slate-200 print:py-0.5 print:px-1 print:w-11">คะแนน</th>
+                    <th className="py-1.5 px-2 w-14 border-r border-slate-300 print:py-0.5 print:px-1 print:w-10">เกรด</th>
+                    <th className="py-1.5 px-2 w-14 border-r border-slate-200 print:py-0.5 print:px-1 print:w-9">นก.</th>
+                    <th className="py-1.5 px-2 w-16 border-r border-slate-200 print:py-0.5 print:px-1 print:w-11">คะแนน</th>
+                    <th className="py-1.5 px-2 w-14 border-r border-slate-300 print:py-0.5 print:px-1 print:w-10">เกรด</th>
+                    <th className="py-1.5 px-2 w-20 border-r border-slate-200 print:py-0.5 print:px-1 print:w-12">เกรดเฉลี่ย</th>
+                    <th className="py-1.5 px-2 w-16 print:py-0.5 print:px-1 print:w-11">นก.ได้</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 print:divide-slate-300">
+                  {activeSubjects.map((sub, index) => {
+                    const isActivity = sub.type === "ACTIVITY";
+                    const p1 = gradeToPoint(sub.gradeSem1);
+                    const p2 = gradeToPoint(sub.gradeSem2);
+                    const totalCred = sub.creditsSem1 + sub.creditsSem2;
+                    const annualAvg =
+                      !isActivity && totalCred > 0
+                        ? ((p1 * sub.creditsSem1 + p2 * sub.creditsSem2) / totalCred).toFixed(2)
+                        : isActivity
+                        ? sub.gradeSem1 === "ผ" && sub.gradeSem2 === "ผ"
+                          ? "ผ"
+                          : "มผ"
+                        : "-";
+                    const earnedCred =
+                      !isActivity
+                        ? ((p1 > 0 ? sub.creditsSem1 : 0) + (p2 > 0 ? sub.creditsSem2 : 0)).toFixed(1)
+                        : "-";
 
-                  return (
-                    <tr
-                      key={sub.id}
-                      className={`hover:bg-slate-50/80 transition-colors ${
-                        isActivity ? "bg-amber-50/30" : index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
-                      } print:bg-white`}
-                    >
-                      {/* 1. รายวิชา (Subject Code & Name) */}
-                      <td className="py-2.5 px-3 border-r border-slate-200 print:py-0.5 print:px-1.5">
-                        <div className="font-bold text-slate-900 print:text-[8.5px] print:leading-tight">{sub.name}</div>
-                        <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 mt-0.5 print:text-[7.5px] print:mt-0">
-                          <span>{sub.courseCodeSem1} / {sub.courseCodeSem2}</span>
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 print:text-[7px] print:px-1">
-                            {sub.type === "CORE" ? "พื้นฐาน" : sub.type === "ELECTIVE" ? "เพิ่มเติม" : "กิจกรรม"}
-                          </span>
-                        </div>
-                      </td>
+                    return (
+                      <tr
+                        key={sub.id}
+                        className={`hover:bg-slate-50/80 transition-colors ${
+                          isActivity ? "bg-amber-50/30" : index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
+                        } print:bg-white`}
+                      >
+                        {/* 1. รายวิชา (Subject Code & Name) */}
+                        <td className="py-2.5 px-3 border-r border-slate-200 print:py-0.5 print:px-1.5">
+                          <div className="font-bold text-slate-900 print:text-[8.5px] print:leading-tight">{sub.name}</div>
+                          <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 mt-0.5 print:text-[7.5px] print:mt-0">
+                            <span>{sub.courseCodeSem1} / {sub.courseCodeSem2}</span>
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 print:text-[7px] print:px-1">
+                              {sub.type === "CORE" ? "พื้นฐาน" : sub.type === "ELECTIVE" ? "เพิ่มเติม" : "กิจกรรม"}
+                            </span>
+                          </div>
+                        </td>
 
-                      {/* 2. อาจารย์ผู้สอน (Instructor Name) */}
-                      <td className="py-2.5 px-3 font-semibold text-slate-700 border-r border-slate-200 text-xs print:py-0.5 print:px-1.5 print:text-[8px]">
-                        {sub.instructorName}
-                      </td>
+                        {/* 2. อาจารย์ผู้สอน (Instructor Name) */}
+                        <td className="py-2.5 px-3 font-semibold text-slate-700 border-r border-slate-200 text-xs print:py-0.5 print:px-1.5 print:text-[8px]">
+                          {sub.instructorName}
+                        </td>
 
-                      {/* Sem 1 Credits */}
-                      <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium print:py-0.5 print:px-1 print:text-[8.5px]">
-                        {isActivity ? "-" : sub.creditsSem1.toFixed(1)}
-                      </td>
+                        {/* Sem 1 Credits */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? "-" : sub.creditsSem1.toFixed(1)}
+                        </td>
 
-                      {/* Sem 1 Score */}
-                      <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium text-slate-700 print:py-0.5 print:px-1 print:text-[8.5px]">
-                        {isActivity ? "-" : sub.scoreSem1}
-                      </td>
+                        {/* Sem 1 Score */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium text-slate-700 print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? "-" : sub.scoreSem1}
+                        </td>
 
-                      {/* Sem 1 Grade */}
-                      <td className="py-2.5 px-2 text-center border-r border-slate-300 print:py-0.5 print:px-1 print:text-[8.5px]">
-                        {isActivity ? (
-                          <span className="font-bold text-xs text-emerald-700 print:text-black">
-                            {sub.gradeSem1}
-                          </span>
-                        ) : (
+                        {/* Sem 1 Grade */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-300 print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? (
+                            <span className="font-bold text-xs text-emerald-700 print:text-black">
+                              {sub.gradeSem1}
+                            </span>
+                          ) : (
+                            <span
+                              className={`font-black text-xs font-mono ${
+                                sub.gradeSem1 === "4"
+                                  ? "text-emerald-700"
+                                  : sub.gradeSem1 === "0"
+                                  ? "text-rose-600"
+                                  : "text-blue-800"
+                              } print:text-black`}
+                            >
+                              {sub.gradeSem1}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Sem 2 Credits */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? "-" : sub.creditsSem2.toFixed(1)}
+                        </td>
+
+                        {/* Sem 2 Score */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium text-slate-700 print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? "-" : sub.scoreSem2}
+                        </td>
+
+                        {/* Sem 2 Grade */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-300 print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? (
+                            <span className="font-bold text-xs text-emerald-700 print:text-black">
+                              {sub.gradeSem2}
+                            </span>
+                          ) : (
+                            <span
+                              className={`font-black text-xs font-mono ${
+                                sub.gradeSem2 === "4"
+                                  ? "text-emerald-700"
+                                  : sub.gradeSem2 === "0"
+                                  ? "text-rose-600"
+                                  : "text-blue-800"
+                              } print:text-black`}
+                            >
+                              {sub.gradeSem2}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Annual Course GPA */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-black text-blue-900 bg-blue-50/20 print:py-0.5 print:px-1 print:text-[8.5px] print:text-black print:bg-transparent">
+                          {annualAvg}
+                        </td>
+
+                        {/* Annual Credits Earned */}
+                        <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-700 bg-slate-50/20 print:py-0.5 print:px-1 print:text-[8.5px] print:text-black print:bg-transparent">
+                          {earnedCred}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+
+                {/* Table Footer with Summary Breakdown */}
+                <tfoot className="border-t-2 border-slate-700 bg-slate-100 font-bold text-slate-900 text-[11px] print:border-slate-800 print:bg-slate-100/70 print:text-[8.5px]">
+                  <tr>
+                    <td colSpan={2} className="py-2.5 px-3 text-right border-r border-slate-300 print:py-1 print:px-2">
+                      รวมหน่วยกิต / ผลการเรียนเฉลี่ย (GPA):
+                    </td>
+                    <td className="py-2.5 px-2 text-center font-mono border-r border-slate-200 print:py-1 print:px-1">
+                      {stats.enrolledCreditsSem1.toFixed(1)}
+                    </td>
+                    <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono text-slate-500 print:py-1 print:px-1">-</td>
+                    <td className="py-2.5 px-2 text-center border-r border-slate-300 font-mono text-blue-800 font-black print:py-1 print:px-1 print:text-black">
+                      {stats.gpaSem1.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-2 text-center font-mono border-r border-slate-200 print:py-1 print:px-1">
+                      {stats.enrolledCreditsSem2.toFixed(1)}
+                    </td>
+                    <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono text-slate-500 print:py-1 print:px-1">-</td>
+                    <td className="py-2.5 px-2 text-center border-r border-slate-300 font-mono text-indigo-800 font-black print:py-1 print:px-1 print:text-black">
+                      {stats.gpaSem2.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-2 text-center font-mono font-black text-emerald-800 bg-emerald-50 border-r border-slate-300 text-sm print:py-1 print:px-1 print:text-[9.5px] print:text-black print:bg-transparent">
+                      {stats.annualGpa.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-900 bg-slate-200 print:py-1 print:px-1 print:bg-transparent">
+                      {stats.totalEarned.toFixed(1)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            ) : (
+              /* ─── Mode B: รายงานทีละ 1 ภาคเรียน (ภาคเรียนที่ 1 หรือ ภาคเรียนที่ 2) ─── */
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-800 text-white font-bold text-center border-b border-slate-700 print:bg-slate-900 print:border-slate-800">
+                    <th className="py-2.5 px-3 border-r border-slate-700 text-left print:py-1 print:px-1.5 print:text-[9px]">
+                      รายวิชา
+                    </th>
+                    <th className="py-2.5 px-3 w-48 text-left border-r border-slate-700 print:py-1 print:px-1.5 print:w-36 print:text-[9px]">
+                      อาจารย์ผู้สอน
+                    </th>
+                    <th className="py-2.5 px-2 w-16 border-r border-slate-700 bg-blue-900/60 print:bg-slate-800 print:py-1 print:px-1 print:w-12 print:text-[8.5px]">
+                      หน่วยกิต
+                    </th>
+                    <th className="py-2.5 px-2 w-20 border-r border-slate-700 bg-blue-900/60 print:bg-slate-800 print:py-1 print:px-1 print:w-14 print:text-[8.5px]">
+                      คะแนนเต็ม
+                    </th>
+                    <th className="py-2.5 px-2 w-20 border-r border-slate-700 bg-blue-900/60 print:bg-slate-800 print:py-1 print:px-1 print:w-14 print:text-[8.5px]">
+                      คะแนนที่ได้
+                    </th>
+                    <th className="py-2.5 px-2 w-20 border-r border-slate-700 bg-blue-900/60 print:bg-slate-800 print:py-1 print:px-1 print:w-14 print:text-[8.5px]">
+                      ระดับเกรด
+                    </th>
+                    <th className="py-2.5 px-2 w-28 bg-slate-900 print:py-1 print:px-1 print:w-20 print:text-[8.5px]">
+                      ผลการตัดสิน
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 print:divide-slate-300">
+                  {activeSubjects.map((sub, index) => {
+                    const isActivity = sub.type === "ACTIVITY";
+                    const isSem1 = selectedSemester === "1";
+                    const code = isSem1 ? sub.courseCodeSem1 : sub.courseCodeSem2;
+                    const credits = isSem1 ? sub.creditsSem1 : sub.creditsSem2;
+                    const score = isSem1 ? sub.scoreSem1 : sub.scoreSem2;
+                    const grade = isSem1 ? sub.gradeSem1 : sub.gradeSem2;
+                    const point = gradeToPoint(grade);
+                    const isPass = isActivity ? grade === "ผ" : point >= 1.0;
+
+                    return (
+                      <tr
+                        key={sub.id}
+                        className={`hover:bg-slate-50/80 transition-colors ${
+                          isActivity ? "bg-amber-50/30" : index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
+                        } print:bg-white`}
+                      >
+                        {/* 1. รายวิชา */}
+                        <td className="py-2.5 px-3 border-r border-slate-200 print:py-0.5 print:px-1.5">
+                          <div className="font-bold text-slate-900 print:text-[8.5px] print:leading-tight">{sub.name}</div>
+                          <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 mt-0.5 print:text-[7.5px] print:mt-0">
+                            <span className="font-bold text-blue-700 print:text-black">{code}</span>
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 print:text-[7px] print:px-1">
+                              {sub.type === "CORE" ? "พื้นฐาน" : sub.type === "ELECTIVE" ? "เพิ่มเติม" : "กิจกรรม"}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 2. อาจารย์ผู้สอน */}
+                        <td className="py-2.5 px-3 font-semibold text-slate-700 border-r border-slate-200 text-xs print:py-0.5 print:px-1.5 print:text-[8px]">
+                          {sub.instructorName}
+                        </td>
+
+                        {/* 3. หน่วยกิต */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? "-" : credits.toFixed(1)}
+                        </td>
+
+                        {/* 4. คะแนนเต็ม */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono text-slate-500 print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? "-" : 100}
+                        </td>
+
+                        {/* 5. คะแนนที่ได้ */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-bold text-slate-800 print:py-0.5 print:px-1 print:text-[8.5px]">
+                          {isActivity ? "-" : score}
+                        </td>
+
+                        {/* 6. ระดับผลการเรียน (เกรด) */}
+                        <td className="py-2.5 px-2 text-center border-r border-slate-200 print:py-0.5 print:px-1 print:text-[8.5px]">
                           <span
                             className={`font-black text-xs font-mono ${
-                              sub.gradeSem1 === "4"
+                              isActivity
                                 ? "text-emerald-700"
-                                : sub.gradeSem1 === "0"
+                                : grade === "4"
+                                ? "text-emerald-700"
+                                : grade === "0"
                                 ? "text-rose-600"
                                 : "text-blue-800"
                             } print:text-black`}
                           >
-                            {sub.gradeSem1}
+                            {grade}
                           </span>
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Sem 2 Credits */}
-                      <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium print:py-0.5 print:px-1 print:text-[8.5px]">
-                        {isActivity ? "-" : sub.creditsSem2.toFixed(1)}
-                      </td>
-
-                      {/* Sem 2 Score */}
-                      <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-medium text-slate-700 print:py-0.5 print:px-1 print:text-[8.5px]">
-                        {isActivity ? "-" : sub.scoreSem2}
-                      </td>
-
-                      {/* Sem 2 Grade */}
-                      <td className="py-2.5 px-2 text-center border-r border-slate-300 print:py-0.5 print:px-1 print:text-[8.5px]">
-                        {isActivity ? (
-                          <span className="font-bold text-xs text-emerald-700 print:text-black">
-                            {sub.gradeSem2}
-                          </span>
-                        ) : (
+                        {/* 7. ผลการตัดสิน */}
+                        <td className="py-2.5 px-2 text-center print:py-0.5 print:px-1 print:text-[8.5px]">
                           <span
-                            className={`font-black text-xs font-mono ${
-                              sub.gradeSem2 === "4"
-                                ? "text-emerald-700"
-                                : sub.gradeSem2 === "0"
-                                ? "text-rose-600"
-                                : "text-blue-800"
-                            } print:text-black`}
+                            className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                              isPass
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-rose-50 text-rose-700 border border-rose-200"
+                            } print:border-none print:bg-transparent print:text-black print:p-0 print:text-[8px]`}
                           >
-                            {sub.gradeSem2}
+                            {isPass ? "ผ่าน" : "ไม่ผ่าน"}
                           </span>
-                        )}
-                      </td>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
 
-                      {/* Annual Course GPA */}
-                      <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono font-black text-blue-900 bg-blue-50/20 print:py-0.5 print:px-1 print:text-[8.5px] print:text-black print:bg-transparent">
-                        {annualAvg}
-                      </td>
-
-                      {/* Annual Credits Earned */}
-                      <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-700 bg-slate-50/20 print:py-0.5 print:px-1 print:text-[8.5px] print:text-black print:bg-transparent">
-                        {earnedCred}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-
-              {/* Table Footer with Summary Breakdown */}
-              <tfoot className="border-t-2 border-slate-700 bg-slate-100 font-bold text-slate-900 text-[11px] print:border-slate-800 print:bg-slate-100/70 print:text-[8.5px]">
-                <tr>
-                  <td colSpan={2} className="py-2.5 px-3 text-right border-r border-slate-300 print:py-1 print:px-2">
-                    รวมหน่วยกิต / ผลการเรียนเฉลี่ย (GPA):
-                  </td>
-                  <td className="py-2.5 px-2 text-center font-mono border-r border-slate-200 print:py-1 print:px-1">
-                    {stats.enrolledCreditsSem1.toFixed(1)}
-                  </td>
-                  <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono text-slate-500 print:py-1 print:px-1">-</td>
-                  <td className="py-2.5 px-2 text-center border-r border-slate-300 font-mono text-blue-800 font-black print:py-1 print:px-1 print:text-black">
-                    {stats.gpaSem1.toFixed(2)}
-                  </td>
-                  <td className="py-2.5 px-2 text-center font-mono border-r border-slate-200 print:py-1 print:px-1">
-                    {stats.enrolledCreditsSem2.toFixed(1)}
-                  </td>
-                  <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono text-slate-500 print:py-1 print:px-1">-</td>
-                  <td className="py-2.5 px-2 text-center border-r border-slate-300 font-mono text-indigo-800 font-black print:py-1 print:px-1 print:text-black">
-                    {stats.gpaSem2.toFixed(2)}
-                  </td>
-                  <td className="py-2.5 px-2 text-center font-mono font-black text-emerald-800 bg-emerald-50 border-r border-slate-300 text-sm print:py-1 print:px-1 print:text-[9.5px] print:text-black print:bg-transparent">
-                    {stats.annualGpa.toFixed(2)}
-                  </td>
-                  <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-900 bg-slate-200 print:py-1 print:px-1 print:bg-transparent">
-                    {stats.totalEarned.toFixed(1)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                {/* Table Footer: Single Semester Summary */}
+                <tfoot className="border-t-2 border-slate-700 bg-slate-100 font-bold text-slate-900 text-[11px] print:border-slate-800 print:bg-slate-100/70 print:text-[8.5px]">
+                  <tr>
+                    <td colSpan={2} className="py-2.5 px-3 text-right border-r border-slate-300 print:py-1 print:px-2">
+                      รวมหน่วยกิต / ผลการเรียนเฉลี่ย ภาคเรียนที่ {selectedSemester} (GPA):
+                    </td>
+                    <td className="py-2.5 px-2 text-center font-mono border-r border-slate-200 print:py-1 print:px-1">
+                      {(selectedSemester === "1" ? stats.enrolledCreditsSem1 : stats.enrolledCreditsSem2).toFixed(1)}
+                    </td>
+                    <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono text-slate-500 print:py-1 print:px-1">-</td>
+                    <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono text-slate-500 print:py-1 print:px-1">-</td>
+                    <td className="py-2.5 px-2 text-center border-r border-slate-200 font-mono text-blue-800 font-black text-sm print:py-1 print:px-1 print:text-black">
+                      {(selectedSemester === "1" ? stats.gpaSem1 : stats.gpaSem2).toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-2 text-center font-mono font-bold text-emerald-800 bg-emerald-50 print:py-1 print:px-1 print:text-black print:bg-transparent">
+                      {(selectedSemester === "1" ? stats.earnedCreditsSem1 : stats.earnedCreditsSem2).toFixed(1)} นก. ได้
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
           </div>
         </div>
 
@@ -1234,7 +1397,7 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
           <div className="space-y-4 print:hidden">
             <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <BarChart3 className="w-4 h-4 text-blue-700" />
-              สรุปผลการเรียนและเกรดเฉลี่ย แยกตามกลุ่มสาระการเรียนรู้ (Learning Area Breakdown)
+              สรุปผลการเรียนและเกรดเฉลี่ย แยกตามกลุ่มสาระการเรียนรู้ ({selectedSemester === "ALL" ? "รวม 2 ภาคเรียน" : `ภาคเรียนที่ ${selectedSemester}`})
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -1283,119 +1446,196 @@ export function PP6ReportClient({ students, courses, initialGrades }: PP6Props) 
           </div>
         )}
 
-        {/* ═══ Official Summary Boxes (Semester 1, Semester 2 & Annual GPA) ═══ */}
+        {/* ═══ Official Summary Boxes ═══ */}
         <div className="pp6-summary-box border border-slate-200 rounded-xl overflow-hidden shadow-2xs print:border-slate-300 print:rounded-lg print:shadow-none">
           <div className="bg-slate-900 text-white font-bold p-3 text-xs flex items-center justify-between print:py-1 print:px-2.5 print:text-[9px]">
             <div className="flex items-center gap-2 print:gap-1.5">
               <Award className="w-4 h-4 text-amber-400 print:w-3 print:h-3" />
-              <span>สรุปผลการประเมินและการตัดสินผลการเรียน ประจำปีการศึกษา {academicYear}</span>
+              <span>
+                {selectedSemester === "ALL"
+                  ? `สรุปผลการประเมินและการตัดสินผลการเรียน ประจำปีการศึกษา ${academicYear}`
+                  : `สรุปผลการประเมินและการตัดสินผลการเรียน ประจำภาคเรียนที่ ${selectedSemester} ปีการศึกษา ${academicYear}`}
+              </span>
             </div>
             <span className="text-[11px] text-slate-300 font-mono print:text-[8.5px]">
               รหัสนักเรียน: {currentStudent?.studentCode}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200 bg-white print:grid-cols-3 print:divide-y-0 print:divide-x print:divide-slate-300">
-            {/* Box 1: ภาคเรียนที่ 1 */}
-            <div className="p-4 space-y-3 print:p-1.5 print:space-y-1">
-              <div className="text-xs font-bold text-blue-900 flex items-center justify-between border-b border-blue-50 pb-2 print:text-[9.5px] print:pb-1 print:border-slate-200">
-                <span>📘 ภาคเรียนที่ 1</span>
-                <span className="text-[10px] text-slate-500 print:text-[8px]">ปีการศึกษา {academicYear}</span>
+          {selectedSemester === "ALL" ? (
+            /* Mode A: 3 Cards (ภาค 1, ภาค 2, สรุปรายปี) */
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200 bg-white print:grid-cols-3 print:divide-y-0 print:divide-x print:divide-slate-300">
+              {/* Box 1: ภาคเรียนที่ 1 */}
+              <div className="p-4 space-y-3 print:p-1.5 print:space-y-1">
+                <div className="text-xs font-bold text-blue-900 flex items-center justify-between border-b border-blue-50 pb-2 print:text-[9.5px] print:pb-1 print:border-slate-200">
+                  <span>📘 ภาคเรียนที่ 1</span>
+                  <span className="text-[10px] text-slate-500 print:text-[8px]">ปีการศึกษา {academicYear}</span>
+                </div>
+                <div className="space-y-1.5 text-xs text-slate-600 print:space-y-0.5 print:text-[8.5px]">
+                  <div className="flex justify-between">
+                    <span>หน่วยกิตลงทะเบียน:</span>
+                    <span className="font-mono font-bold text-slate-800">{stats.enrolledCreditsSem1.toFixed(1)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>หน่วยกิตที่ได้:</span>
+                    <span className="font-mono font-bold text-emerald-700 print:text-black">{stats.earnedCreditsSem1.toFixed(1)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>แต้มระดับคะแนน:</span>
+                    <span className="font-mono font-bold text-slate-800">{stats.totalPointsSem1.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline pt-2 border-t border-slate-100 print:pt-0.5 print:border-slate-200">
+                    <span className="font-bold text-slate-900">ผลการเรียนเฉลี่ย (GPA):</span>
+                    <span className="text-2xl font-black font-mono text-blue-700 print:text-sm print:text-black">{stats.gpaSem1.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] print:text-[8px]">
+                    <span>กิจกรรมพัฒนาผู้เรียน:</span>
+                    <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded print:text-black print:bg-transparent print:p-0">ผ่าน (ผ)</span>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1.5 text-xs text-slate-600 print:space-y-0.5 print:text-[8.5px]">
-                <div className="flex justify-between">
-                  <span>หน่วยกิตลงทะเบียน:</span>
-                  <span className="font-mono font-bold text-slate-800">{stats.enrolledCreditsSem1.toFixed(1)}</span>
+
+              {/* Box 2: ภาคเรียนที่ 2 */}
+              <div className="p-4 space-y-3 print:p-1.5 print:space-y-1">
+                <div className="text-xs font-bold text-indigo-900 flex items-center justify-between border-b border-indigo-50 pb-2 print:text-[9.5px] print:pb-1 print:border-slate-200">
+                  <span>📙 ภาคเรียนที่ 2</span>
+                  <span className="text-[10px] text-slate-500 print:text-[8px]">ปีการศึกษา {academicYear}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>หน่วยกิตที่ได้:</span>
-                  <span className="font-mono font-bold text-emerald-700 print:text-black">{stats.earnedCreditsSem1.toFixed(1)}</span>
+                <div className="space-y-1.5 text-xs text-slate-600 print:space-y-0.5 print:text-[8.5px]">
+                  <div className="flex justify-between">
+                    <span>หน่วยกิตลงทะเบียน:</span>
+                    <span className="font-mono font-bold text-slate-800">{stats.enrolledCreditsSem2.toFixed(1)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>หน่วยกิตที่ได้:</span>
+                    <span className="font-mono font-bold text-emerald-700 print:text-black">{stats.earnedCreditsSem2.toFixed(1)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>แต้มระดับคะแนน:</span>
+                    <span className="font-mono font-bold text-slate-800">{stats.totalPointsSem2.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline pt-2 border-t border-slate-100 print:pt-0.5 print:border-slate-200">
+                    <span className="font-bold text-slate-900">ผลการเรียนเฉลี่ย (GPA):</span>
+                    <span className="text-2xl font-black font-mono text-indigo-700 print:text-sm print:text-black">{stats.gpaSem2.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] print:text-[8px]">
+                    <span>กิจกรรมพัฒนาผู้เรียน:</span>
+                    <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded print:text-black print:bg-transparent print:p-0">ผ่าน (ผ)</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>แต้มระดับคะแนน:</span>
-                  <span className="font-mono font-bold text-slate-800">{stats.totalPointsSem1.toFixed(2)}</span>
+              </div>
+
+              {/* Box 3: สรุปผลตลอดปีการศึกษา */}
+              <div className="p-4 space-y-3 bg-amber-50/20 print:p-1.5 print:space-y-1 print:bg-transparent">
+                <div className="text-xs font-bold text-amber-900 flex items-center justify-between border-b border-amber-100 pb-2 print:text-[9.5px] print:pb-1 print:border-slate-200 print:text-black">
+                  <span>🏆 สรุปผลรวมตลอดปีการศึกษา</span>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full print:text-[8px] print:text-black print:bg-transparent print:p-0">
+                    ประจำปี {academicYear}
+                  </span>
                 </div>
-                <div className="flex justify-between items-baseline pt-2 border-t border-slate-100 print:pt-0.5 print:border-slate-200">
-                  <span className="font-bold text-slate-900">ผลการเรียนเฉลี่ย (GPA):</span>
-                  <span className="text-2xl font-black font-mono text-blue-700 print:text-sm print:text-black">{stats.gpaSem1.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px] print:text-[8px]">
-                  <span>กิจกรรมพัฒนาผู้เรียน:</span>
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded print:text-black print:bg-transparent print:p-0">ผ่าน (ผ)</span>
+                <div className="space-y-1.5 text-xs text-slate-600 print:space-y-0.5 print:text-[8.5px]">
+                  <div className="flex justify-between">
+                    <span>หน่วยกิตรวมทั้งปี:</span>
+                    <span className="font-mono font-bold text-slate-900">{stats.totalEnrolled.toFixed(1)} นก.</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>หน่วยกิตที่ได้รวมทั้งปี:</span>
+                    <span className="font-mono font-bold text-emerald-700 print:text-black">{stats.totalEarned.toFixed(1)} นก.</span>
+                  </div>
+                  <div className="flex justify-between items-baseline pt-1 border-t border-amber-200/60 print:pt-0.5 print:border-slate-200">
+                    <span className="font-black text-slate-900 text-xs print:text-[8.5px]">ผลการเรียนเฉลี่ยสะสมรายปี (GPA):</span>
+                    <span className="text-2xl font-black font-mono text-emerald-700 print:text-base print:text-black">{stats.annualGpa.toFixed(2)}</span>
+                  </div>
+                  <div className="pt-0.5 space-y-0.5 text-[11px] print:text-[8px]">
+                    <div className="flex justify-between">
+                      <span>คุณลักษณะอันพึงประสงค์:</span>
+                      <span className="font-bold text-emerald-800 print:text-black">ดีเยี่ยม (3)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>การอ่าน คิดวิเคราะห์ เขียน:</span>
+                      <span className="font-bold text-emerald-800 print:text-black">ดีเยี่ยม (3)</span>
+                    </div>
+                    <div className="flex justify-between pt-0.5 font-bold text-slate-900 border-t border-slate-200">
+                      <span>การตัดสินผลการเรียน:</span>
+                      <span className="text-emerald-700 font-black print:text-black">
+                        {stats.isPromoted ? "อนุมัติเลื่อนชั้น" : "ซ่อมเสริม"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          ) : (
+            /* Mode B: 2 Cards สำหรับ 1 ภาคเรียน (ผลการเรียน และ ผลการประเมินคุณลักษณะ) */
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200 bg-white print:grid-cols-2 print:divide-y-0 print:divide-x print:divide-slate-300">
+              {/* Card 1: ผลการเรียนประจำภาคเรียน */}
+              <div className="p-4 space-y-3 print:p-1.5 print:space-y-1">
+                <div className="text-xs font-bold text-blue-900 flex items-center justify-between border-b border-blue-50 pb-2 print:text-[9.5px] print:pb-1 print:border-slate-200">
+                  <span>📘 สรุปผลการเรียน ภาคเรียนที่ {selectedSemester}</span>
+                  <span className="text-[10px] text-slate-500 print:text-[8px]">ปีการศึกษา {academicYear}</span>
+                </div>
+                <div className="space-y-1.5 text-xs text-slate-600 print:space-y-0.5 print:text-[8.5px]">
+                  <div className="flex justify-between">
+                    <span>หน่วยกิตลงทะเบียน:</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {(selectedSemester === "1" ? stats.enrolledCreditsSem1 : stats.enrolledCreditsSem2).toFixed(1)} นก.
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>หน่วยกิตที่ได้:</span>
+                    <span className="font-mono font-bold text-emerald-700 print:text-black">
+                      {(selectedSemester === "1" ? stats.earnedCreditsSem1 : stats.earnedCreditsSem2).toFixed(1)} นก.
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>แต้มระดับคะแนน:</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {(selectedSemester === "1" ? stats.totalPointsSem1 : stats.totalPointsSem2).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline pt-2 border-t border-slate-100 print:pt-0.5 print:border-slate-200">
+                    <span className="font-bold text-slate-900">ผลการเรียนเฉลี่ย (GPA):</span>
+                    <span className="text-2xl font-black font-mono text-blue-700 print:text-sm print:text-black">
+                      {(selectedSemester === "1" ? stats.gpaSem1 : stats.gpaSem2).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] print:text-[8px]">
+                    <span>กิจกรรมพัฒนาผู้เรียน:</span>
+                    <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded print:text-black print:bg-transparent print:p-0">
+                      {(selectedSemester === "1" ? stats.activityPassSem1 : stats.activityPassSem2) ? "ผ่าน (ผ)" : "ไม่ผ่าน (มผ)"}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            {/* Box 2: ภาคเรียนที่ 2 */}
-            <div className="p-4 space-y-3 print:p-1.5 print:space-y-1">
-              <div className="text-xs font-bold text-indigo-900 flex items-center justify-between border-b border-indigo-50 pb-2 print:text-[9.5px] print:pb-1 print:border-slate-200">
-                <span>📙 ภาคเรียนที่ 2</span>
-                <span className="text-[10px] text-slate-500 print:text-[8px]">ปีการศึกษา {academicYear}</span>
-              </div>
-              <div className="space-y-1.5 text-xs text-slate-600 print:space-y-0.5 print:text-[8.5px]">
-                <div className="flex justify-between">
-                  <span>หน่วยกิตลงทะเบียน:</span>
-                  <span className="font-mono font-bold text-slate-800">{stats.enrolledCreditsSem2.toFixed(1)}</span>
+              {/* Card 2: ผลการประเมินคุณลักษณะและทักษะ */}
+              <div className="p-4 space-y-3 bg-slate-50/40 print:p-1.5 print:space-y-1 print:bg-transparent">
+                <div className="text-xs font-bold text-slate-800 flex items-center justify-between border-b border-slate-200 pb-2 print:text-[9.5px] print:pb-1">
+                  <span>📋 ผลการประเมินคุณลักษณะ & กิจกรรม</span>
+                  <span className="text-[10px] text-slate-500 font-bold print:text-[8px]">ภาคเรียนที่ {selectedSemester}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>หน่วยกิตที่ได้:</span>
-                  <span className="font-mono font-bold text-emerald-700 print:text-black">{stats.earnedCreditsSem2.toFixed(1)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>แต้มระดับคะแนน:</span>
-                  <span className="font-mono font-bold text-slate-800">{stats.totalPointsSem2.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-baseline pt-2 border-t border-slate-100 print:pt-0.5 print:border-slate-200">
-                  <span className="font-bold text-slate-900">ผลการเรียนเฉลี่ย (GPA):</span>
-                  <span className="text-2xl font-black font-mono text-indigo-700 print:text-sm print:text-black">{stats.gpaSem2.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px] print:text-[8px]">
-                  <span>กิจกรรมพัฒนาผู้เรียน:</span>
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded print:text-black print:bg-transparent print:p-0">ผ่าน (ผ)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Box 3: สรุปผลตลอดปีการศึกษา */}
-            <div className="p-4 space-y-3 bg-amber-50/20 print:p-1.5 print:space-y-1 print:bg-transparent">
-              <div className="text-xs font-bold text-amber-900 flex items-center justify-between border-b border-amber-100 pb-2 print:text-[9.5px] print:pb-1 print:border-slate-200 print:text-black">
-                <span>🏆 สรุปผลรวมตลอดปีการศึกษา</span>
-                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full print:text-[8px] print:text-black print:bg-transparent print:p-0">
-                  ประจำปี {academicYear}
-                </span>
-              </div>
-              <div className="space-y-1.5 text-xs text-slate-600 print:space-y-0.5 print:text-[8.5px]">
-                <div className="flex justify-between">
-                  <span>หน่วยกิตรวมทั้งปี:</span>
-                  <span className="font-mono font-bold text-slate-900">{stats.totalEnrolled.toFixed(1)} นก.</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>หน่วยกิตที่ได้รวมทั้งปี:</span>
-                  <span className="font-mono font-bold text-emerald-700 print:text-black">{stats.totalEarned.toFixed(1)} นก.</span>
-                </div>
-                <div className="flex justify-between items-baseline pt-1 border-t border-amber-200/60 print:pt-0.5 print:border-slate-200">
-                  <span className="font-black text-slate-900 text-xs print:text-[8.5px]">ผลการเรียนเฉลี่ยสะสมรายปี (GPA):</span>
-                  <span className="text-2xl font-black font-mono text-emerald-700 print:text-base print:text-black">{stats.annualGpa.toFixed(2)}</span>
-                </div>
-                <div className="pt-0.5 space-y-0.5 text-[11px] print:text-[8px]">
+                <div className="space-y-2 text-xs text-slate-600 print:space-y-1 print:text-[8.5px]">
                   <div className="flex justify-between">
                     <span>คุณลักษณะอันพึงประสงค์:</span>
                     <span className="font-bold text-emerald-800 print:text-black">ดีเยี่ยม (3)</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>การอ่าน คิดวิเคราะห์ เขียน:</span>
+                    <span>การอ่าน คิดวิเคราะห์ และเขียน:</span>
                     <span className="font-bold text-emerald-800 print:text-black">ดีเยี่ยม (3)</span>
                   </div>
-                  <div className="flex justify-between pt-0.5 font-bold text-slate-900 border-t border-slate-200">
-                    <span>การตัดสินผลการเรียน:</span>
+                  <div className="flex justify-between pt-2 font-bold text-slate-900 border-t border-slate-200">
+                    <span>ผลการประเมินภาคเรียนที่ {selectedSemester}:</span>
                     <span className="text-emerald-700 font-black print:text-black">
-                      {stats.isPromoted ? "อนุมัติเลื่อนชั้น" : "ซ่อมเสริม"}
+                      {((selectedSemester === "1" ? stats.gpaSem1 : stats.gpaSem2) >= 1.0 &&
+                        (selectedSemester === "1" ? stats.activityPassSem1 : stats.activityPassSem2))
+                        ? "ผ่านเกณฑ์การประเมิน"
+                        : "ต้องซ่อมเสริม/พัฒนา"}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* ═══ Official Signature Section for Print ═══ */}

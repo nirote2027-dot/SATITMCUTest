@@ -4,9 +4,11 @@ export const DOCUMENT_P = {
   manage: "DOCUMENT_MANAGE",
   documentRead: "DOCUMENT_READ",
   documentManage: "DOCUMENT_MANAGE",
+  pp6Read: "PP6_READ",
 } as const;
 export const DOCUMENT_PERMISSIONS: readonly PermissionDef[] = [
   { code: DOCUMENT_P.documentRead, module: "document", action: "read", description: "Read document" },
   { code: DOCUMENT_P.documentManage, module: "document", action: "manage", description: "Manage document" },
+  { code: DOCUMENT_P.pp6Read, module: "document", action: "read_pp6", description: "Read PP6 student evaluation report" },
 ];
 

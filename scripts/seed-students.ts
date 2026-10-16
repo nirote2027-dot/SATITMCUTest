@@ -55,17 +55,31 @@ async function main() {
 
   for (const c of m1CoursesData) {
     await prisma.course.upsert({
-      where: { curriculumId_courseCode: { curriculumId: currM1.id, courseCode: c.courseCode } },
-      update: { name: c.name, credits: c.credits, semester: c.semester },
-      create: { curriculumId: currM1.id, courseCode: c.courseCode, name: c.name, credits: c.credits, semester: c.semester },
+      where: {
+        curriculumId_courseCode_academicYear_semester: {
+          curriculumId: currM1.id,
+          courseCode: c.courseCode,
+          academicYear: "2569",
+          semester: c.semester,
+        },
+      },
+      update: { name: c.name, credits: c.credits, semester: c.semester, academicYear: "2569" },
+      create: { curriculumId: currM1.id, courseCode: c.courseCode, name: c.name, credits: c.credits, semester: c.semester, academicYear: "2569" },
     });
   }
 
   for (const c of m4CoursesData) {
     await prisma.course.upsert({
-      where: { curriculumId_courseCode: { curriculumId: currM4.id, courseCode: c.courseCode } },
-      update: { name: c.name, credits: c.credits, semester: c.semester },
-      create: { curriculumId: currM4.id, courseCode: c.courseCode, name: c.name, credits: c.credits, semester: c.semester },
+      where: {
+        curriculumId_courseCode_academicYear_semester: {
+          curriculumId: currM4.id,
+          courseCode: c.courseCode,
+          academicYear: "2569",
+          semester: c.semester,
+        },
+      },
+      update: { name: c.name, credits: c.credits, semester: c.semester, academicYear: "2569" },
+      create: { curriculumId: currM4.id, courseCode: c.courseCode, name: c.name, credits: c.credits, semester: c.semester, academicYear: "2569" },
     });
   }
 

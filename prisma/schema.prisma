@@ -402,6 +402,7 @@ model Course {
   name           String     @db.VarChar(255)
   credits        Float      @default(1.0)
   semester       Int?       @default(1)
+  academicYear   String?    @default("2569") @map("academic_year") @db.VarChar(10)
   courseType     CourseType @default(CORE) @map("course_type")
   subjectGroup   String?    @map("subject_group") @db.VarChar(255)
   instructorName String?    @map("instructor_name") @db.VarChar(255)
@@ -416,7 +417,7 @@ model Course {
   grades         GradeRecord[]
   gradingSchemes CourseGradingScheme[]
 
-  @@unique([curriculumId, courseCode])
+  @@unique([curriculumId, courseCode, academicYear, semester])
   @@index([instructorId])
   @@map("courses")
 }
