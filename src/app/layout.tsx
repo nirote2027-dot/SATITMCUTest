@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${inter.variable} ${sarabun.variable} font-sans antialiased`} suppressHydrationWarning>
         <div className="bg" aria-hidden="true" />
         <I18nProvider locale={locale} messages={UI_MESSAGES}>
-          <SessionProvider>
+          <SessionProvider session={session}>
             <ThemeProvider attribute={["class", "data-theme"]} defaultTheme="light" enableSystem={false}>
               {children}
               <Toaster />

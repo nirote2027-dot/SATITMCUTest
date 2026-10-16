@@ -164,6 +164,7 @@ export function RegistrationClient({
   const [selectedClassRoom, setSelectedClassRoom] = useState<string>("ม.1/1");
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("2569");
   const [selectedGradingSemester, setSelectedGradingSemester] = useState<number>(1);
+  const [filterAttendanceInstructor, setFilterAttendanceInstructor] = useState<string>("ALL");
   const [filterGradingInstructor, setFilterGradingInstructor] = useState<string>("ALL");
   const [activeGradingInstructor, setActiveGradingInstructor] = useState<string>("AUTO");
   const [searchStudent, setSearchStudent] = useState<string>("");
@@ -319,8 +320,8 @@ export function RegistrationClient({
     }
   }, [gradingClassRooms, selectedClassRoom, students, selectedAcademicYear, selectedGradingSemester]);
 
-  // Courses filtered according to selected classroom's grade level, academic year, semester, and instructor filter
-  const availableCourses = useMemo(() => {
+  // Base courses matching classroom, academic year, and semester (before instructor filter)
+  const coursesInClassAndSem = useMemo(() => {
     const byYear = courses.filter((c) => !c.academicYear || c.academicYear === selectedAcademicYear);
     const yearList = byYear.length > 0 ? byYear : courses;
 
@@ -328,17 +329,56 @@ export function RegistrationClient({
     const baseList = byClass.length > 0 ? byClass : yearList;
 
     const bySemester = baseList.filter((c) => !c.semester || c.semester === selectedGradingSemester);
-    const semList = bySemester.length > 0 ? bySemester : baseList;
+    return bySemester.length > 0 ? bySemester : baseList;
+  }, [courses, selectedClassRoom, selectedAcademicYear, selectedGradingSemester]);
 
-    if (filterGradingInstructor !== "ALL") {
-      const byInst = semList.filter(
-        (c) => c.instructorName === filterGradingInstructor || c.instructorId === filterGradingInstructor,
+  // Distinct instructors list for Attendance Tab filter
+  const attendanceInstructorsList = useMemo(() => {
+    const names = new Set<string>();
+    courses.forEach((c) => {
+      if (c.instructorName && c.instructorName.trim() !== "") {
+        names.add(c.instructorName.trim());
+      }
+    });
+    instructors.forEach((inst) => {
+      if (inst.fullName && inst.fullName.trim() !== "") {
+        names.add(inst.fullName.trim());
+      }
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "th"));
+  }, [courses, instructors]);
+
+  // Available courses for Attendance Tab (filtered by filterAttendanceInstructor)
+  const availableAttendanceCourses = useMemo(() => {
+    if (filterAttendanceInstructor !== "ALL") {
+      return coursesInClassAndSem.filter(
+        (c) =>
+          c.instructorName === filterAttendanceInstructor ||
+          c.instructorId === filterAttendanceInstructor ||
+          (c.instructorName && c.instructorName.trim() === filterAttendanceInstructor.trim()),
       );
-      if (byInst.length > 0) return byInst;
     }
+    return coursesInClassAndSem;
+  }, [coursesInClassAndSem, filterAttendanceInstructor]);
 
-    return semList;
-  }, [courses, selectedClassRoom, selectedAcademicYear, selectedGradingSemester, filterGradingInstructor]);
+  // Available courses for Grading Tab (filtered by filterGradingInstructor)
+  const availableGradingCourses = useMemo(() => {
+    if (filterGradingInstructor !== "ALL") {
+      return coursesInClassAndSem.filter(
+        (c) =>
+          c.instructorName === filterGradingInstructor ||
+          c.instructorId === filterGradingInstructor ||
+          (c.instructorName && c.instructorName.trim() === filterGradingInstructor.trim()),
+      );
+    }
+    return coursesInClassAndSem;
+  }, [coursesInClassAndSem, filterGradingInstructor]);
+
+  // Dynamic available courses based on activeTab
+  const availableCourses = useMemo(() => {
+    return activeTab === "attendance" ? availableAttendanceCourses : availableGradingCourses;
+  }, [activeTab, availableAttendanceCourses, availableGradingCourses]);
+
 
   // If selectedCourseId is not in availableCourses, auto-select the first one
   useEffect(() => {
@@ -2230,14 +2270,14 @@ export function RegistrationClient({
         <div className="space-y-4">
           {/* Attendance Controls Bar */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
               {/* 1. ปีการศึกษา */}
-              <div>
+              <div className="lg:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 mb-1">ปีการศึกษา:</label>
                 <select
                   value={selectedAcademicYear}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedAcademicYear(e.target.value)}
-                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-medium bg-slate-50/50"
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold bg-slate-50/70 text-slate-900 focus:border-blue-500 focus:outline-hidden"
                 >
                   {academicYearsList.map((yr) => (
                     <option key={yr} value={yr}>
@@ -2247,8 +2287,21 @@ export function RegistrationClient({
                 </select>
               </div>
 
-              {/* 2. ระดับชั้น/ห้อง */}
-              <div>
+              {/* 2. ภาคเรียนที่ */}
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">ภาคเรียนที่:</label>
+                <select
+                  value={String(selectedGradingSemester)}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedGradingSemester(Number(e.target.value))}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold bg-slate-50/70 text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                >
+                  <option value="1">ภาคเรียนที่ 1</option>
+                  <option value="2">ภาคเรียนที่ 2</option>
+                </select>
+              </div>
+
+              {/* 3. ระดับชั้น/ห้อง */}
+              <div className="lg:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 mb-1">ระดับชั้น/ห้องเรียน:</label>
                 <select
                   value={selectedClassRoom}
@@ -2263,21 +2316,53 @@ export function RegistrationClient({
                 </select>
               </div>
 
-              {/* 3. รายวิชา พร้อมชื่อ อ.ผู้สอน */}
-              <div>
+              {/* 4. กรองวิชาตามผู้สอน */}
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                  กรองวิชาตามผู้สอน:
+                </label>
+                <select
+                  value={filterAttendanceInstructor}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterAttendanceInstructor(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-medium bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs"
+                >
+                  <option value="ALL">-- แสดงทุกผู้สอน ({coursesInClassAndSem.length} วิชา) --</option>
+                  {attendanceInstructorsList.map((instName) => {
+                    const count = coursesInClassAndSem.filter(
+                      (c) => c.instructorName === instName || c.instructorId === instName,
+                    ).length;
+                    return (
+                      <option key={instName} value={instName}>
+                        {instName} {count > 0 ? `(${count} วิชา)` : "(0 วิชาในห้องนี้)"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* 5. รายวิชา พร้อมชื่อ อ.ผู้สอน */}
+              <div className="lg:col-span-3">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   รายวิชา ({selectedClassRoom}) • แสดงชื่อ อ.ผู้สอน:
                 </label>
                 <select
                   value={selectedCourseId}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCourseId(e.target.value)}
-                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold text-blue-900 bg-blue-50/30 truncate"
+                  disabled={availableAttendanceCourses.length === 0}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold text-blue-900 bg-blue-50/30 truncate disabled:bg-slate-100 disabled:text-slate-400"
                 >
-                  {availableCourses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      [{c.courseCode}] {c.name} {c.credits ? `(${c.credits} นก.)` : ""} • อ.ผู้สอน: {c.instructorName || "ไม่ระบุ"}
+                  {availableAttendanceCourses.length === 0 ? (
+                    <option value="" disabled>
+                      -- ไม่พบรายวิชาที่ตรงตามเงื่อนไข --
                     </option>
-                  ))}
+                  ) : (
+                    availableAttendanceCourses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        [{c.courseCode}] {c.name} {c.credits ? `(${c.credits} นก.)` : ""} • อ.ผู้สอน: {c.instructorName || "ไม่ระบุ"}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
             </div>
@@ -2290,11 +2375,13 @@ export function RegistrationClient({
                     {selectedCourse?.courseCode || "รหัสวิชา"}
                   </span>
                   <span className="font-bold text-sm text-slate-900">
-                    {selectedCourse?.name || "ชื่อวิชา"}
+                    {selectedCourse?.name || (availableAttendanceCourses.length === 0 ? "ไม่พบรายวิชาตามเงื่อนไข" : "ชื่อวิชา")}
                   </span>
-                  <span className="text-xs text-slate-500 font-medium">
-                    ({Number(selectedCourse?.credits || 1.0).toFixed(1)} หน่วยกิต • {selectedCourse?.subjectGroup || "กลุ่มสาระทั่วไป"})
-                  </span>
+                  {selectedCourse && (
+                    <span className="text-xs text-slate-500 font-medium">
+                      ({Number(selectedCourse.credits || 1.0).toFixed(1)} หน่วยกิต • {selectedCourse.subjectGroup || "กลุ่มสาระทั่วไป"})
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600">
                   <span className="inline-flex items-center gap-1.5 font-bold text-blue-900 bg-blue-100/70 px-2.5 py-0.5 rounded-md">
@@ -2304,7 +2391,15 @@ export function RegistrationClient({
                   <span>•</span>
                   <span>ห้อง {selectedClassRoom} (นักเรียน {currentClassStudents.length} คน)</span>
                   <span>•</span>
-                  <span>ภาคเรียนที่ {selectedGradingSemester}/{selectedAcademicYear}</span>
+                  <span className="font-semibold text-blue-800">ภาคเรียนที่ {selectedGradingSemester}/{selectedAcademicYear}</span>
+                  {filterAttendanceInstructor !== "ALL" && (
+                    <>
+                      <span>•</span>
+                      <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-medium">
+                        กรองผู้สอน: {filterAttendanceInstructor}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -2332,7 +2427,7 @@ export function RegistrationClient({
                   size="sm"
                   variant="outline"
                   onClick={() => handleSetAll25Periods("PRESENT")}
-                  disabled={!canEditAttendance || currentClassStudents.length === 0}
+                  disabled={!canEditAttendance || currentClassStudents.length === 0 || availableAttendanceCourses.length === 0}
                   className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50 disabled:opacity-50"
                   title="เช็คสถานะ มา ทั้งหมด 25 คาบ ให้กับนักเรียนทุกคน"
                 >
@@ -2343,7 +2438,7 @@ export function RegistrationClient({
                   size="sm"
                   variant="outline"
                   onClick={handleAutoFillWeeklyDates}
-                  disabled={!canEditAttendance || currentClassStudents.length === 0}
+                  disabled={!canEditAttendance || currentClassStudents.length === 0 || availableAttendanceCourses.length === 0}
                   className="text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50 disabled:opacity-50"
                   title="เติมวันที่เรียนอัตโนมัติ สัปดาห์ละ 1 คาบ จนครบ 25 คาบ"
                 >
@@ -2354,7 +2449,7 @@ export function RegistrationClient({
                   size="sm"
                   variant="outline"
                   onClick={handleClearAttendanceGrid}
-                  disabled={!canEditAttendance || currentClassStudents.length === 0}
+                  disabled={!canEditAttendance || currentClassStudents.length === 0 || availableAttendanceCourses.length === 0}
                   className="text-xs text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1 text-slate-500" />
@@ -2367,7 +2462,7 @@ export function RegistrationClient({
                   onClick={() => handleExportCSV("attendance")}
                   variant="outline"
                   size="sm"
-                  disabled={currentClassStudents.length === 0}
+                  disabled={currentClassStudents.length === 0 || availableAttendanceCourses.length === 0}
                   className="gap-1.5 text-xs text-slate-700 hover:bg-slate-50 border-slate-300 disabled:opacity-50"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
@@ -2375,7 +2470,7 @@ export function RegistrationClient({
                 </Button>
                 <Button
                   onClick={handleSaveAllAttendanceMatrix}
-                  disabled={isPending || isSavingAttendance || !canEditAttendance || currentClassStudents.length === 0}
+                  disabled={isPending || isSavingAttendance || !canEditAttendance || currentClassStudents.length === 0 || availableAttendanceCourses.length === 0}
                   size="sm"
                   className="gap-1.5 bg-blue-700 hover:bg-blue-800 text-white shadow-2xs font-semibold disabled:opacity-50"
                 >
@@ -2467,7 +2562,23 @@ export function RegistrationClient({
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                  {currentClassStudents.length === 0 ? (
+                  {availableAttendanceCourses.length === 0 ? (
+                    <tr>
+                      <td colSpan={35} className="py-12 text-center text-slate-500 font-medium">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <AlertCircle className="w-8 h-8 text-amber-500" />
+                          <span className="font-semibold text-sm text-slate-700">
+                            ไม่พบรายวิชาที่ตรงตามเงื่อนไข (ห้อง {selectedClassRoom} ภาคเรียนที่ {selectedGradingSemester}/{selectedAcademicYear})
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {filterAttendanceInstructor !== "ALL"
+                              ? `อาจารย์ ${filterAttendanceInstructor} ไม่มีรายวิชาที่สอนในห้องนี้ กรุณาเลือกอาจารย์ผู้สอนอื่น หรือเลือก "แสดงทุกผู้สอน"`
+                              : "กรุณาตรวจสอบรายวิชาที่เปิดสอนในระดับชั้นและภาคเรียนนี้"}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : currentClassStudents.length === 0 ? (
                     <tr>
                       <td colSpan={35} className="py-12 text-center text-slate-400 font-medium">
                         ไม่พบข้อมูลนักเรียนในห้อง {selectedClassRoom} ปีการศึกษา {selectedAcademicYear} เทอม {selectedGradingSemester}
@@ -2655,172 +2766,201 @@ export function RegistrationClient({
         <div className="space-y-4">
           {/* Grading Controls Bar */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
-              <div className="flex flex-wrap items-end gap-3.5">
-                {/* 1. ปีการศึกษา */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">ปีการศึกษา:</label>
-                  <select
-                    value={selectedAcademicYear}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedAcademicYear(e.target.value)}
-                    className="text-sm border border-slate-200 rounded-lg p-2 font-semibold bg-slate-50/70 min-w-[120px] text-slate-900 focus:border-blue-500 focus:outline-hidden"
-                  >
-                    {academicYearsList.map((yr) => (
-                      <option key={yr} value={yr}>
-                        ปี {yr}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 2. ภาคเรียน */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">เทอม:</label>
-                  <select
-                    value={String(selectedGradingSemester)}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedGradingSemester(Number(e.target.value))}
-                    className="text-sm border border-slate-200 rounded-lg p-2 font-semibold bg-slate-50/70 min-w-[110px] text-slate-900 focus:border-blue-500 focus:outline-hidden"
-                  >
-                    <option value="1">เทอม 1</option>
-                    <option value="2">เทอม 2</option>
-                  </select>
-                </div>
-
-                {/* 3. ระดับชั้น/ห้อง (เชื่อมโยงตรงกับ 1. รายชื่อนักเรียน ตามปีการศึกษาและเทอม) */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ระดับชั้น/ห้อง (ปี {selectedAcademicYear} เทอม {selectedGradingSemester}):
-                  </label>
-                  <select
-                    value={selectedClassRoom}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedClassRoom(e.target.value)}
-                    className="text-sm border border-slate-200 rounded-lg p-2 font-semibold min-w-[180px] text-slate-900 focus:border-blue-500 focus:outline-hidden"
-                  >
-                    <optgroup label="ห้องเรียนเฉพาะ">
-                      {gradingClassRooms.map((cr) => {
-                        const count = students.filter(
-                          (s) =>
-                            s.classRoom === cr &&
-                            (s.academicYear || "2569") === selectedAcademicYear &&
-                            (s.semester ?? 1) === selectedGradingSemester,
-                        ).length;
-                        return (
-                          <option key={cr} value={cr}>
-                            ห้อง {cr} ({count} คน)
-                          </option>
-                        );
-                      })}
-                    </optgroup>
-                    <optgroup label="ระดับชั้น (แสดงทุกห้อง)">
-                      {["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"].map((lv) => {
-                        const lvCount = students.filter(
-                          (s) =>
-                            s.classRoom.startsWith(lv) &&
-                            (s.academicYear || "2569") === selectedAcademicYear &&
-                            (s.semester ?? 1) === selectedGradingSemester,
-                        ).length;
-                        return (
-                          <option key={lv} value={lv}>
-                            ชั้น {lv} ทั้งหมด ({lvCount} คน)
-                          </option>
-                        );
-                      })}
-                    </optgroup>
-                  </select>
-                </div>
-
-                {/* 4. รายวิชาที่ตัดเกรด (เชื่อมโยงตามระดับชั้น/ห้อง และเทอม) */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    รายวิชาที่ตัดเกรด ({selectedClassRoom}):
-                  </label>
-                  <select
-                    value={selectedCourseId}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCourseId(e.target.value)}
-                    className="text-sm border border-slate-200 rounded-lg p-2 font-semibold min-w-[260px] text-slate-900 focus:border-blue-500 focus:outline-hidden"
-                  >
-                    {availableCourses.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.courseCode} {c.name} {c.instructorName ? `— อ.${c.instructorName}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 5. อาจารย์ผู้สอนประจำวิชา (แสดงชื่อและเลือก/เปลี่ยนอาจารย์ผู้สอนได้) */}
-                <div>
-                  <label className="block text-xs font-bold text-emerald-800 mb-1 flex items-center gap-1">
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    อาจารย์ผู้สอนประจำวิชา ({selectedClassRoom}):
-                  </label>
-                  <select
-                    value={selectedCourse?.instructorId || selectedCourse?.instructorName || currentCourseInstructorName}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => handleAssignInstructorToCourse(e.target.value)}
-                    disabled={isPending}
-                    className="text-sm border border-emerald-300 bg-emerald-50/60 text-emerald-950 rounded-lg p-2 font-bold min-w-[210px] focus:border-emerald-600 focus:outline-hidden"
-                    title="ชื่ออาจารย์ผู้สอนประจำวิชานี้ (สามารถเลือกเพื่อกำหนดอาจารย์ผู้สอนได้)"
-                  >
-                    {selectedCourse?.instructorName &&
-                      !instructors.some(
-                        (inst) =>
-                          inst.fullName === selectedCourse.instructorName || inst.id === selectedCourse.instructorId,
-                      ) && (
-                        <option value={selectedCourse.instructorName}>
-                          {selectedCourse.instructorName} (อาจารย์ผู้สอน)
-                        </option>
-                      )}
-                    {instructors.map((inst) => (
-                      <option key={inst.id} value={inst.id}>
-                        {inst.fullName} {inst.position ? `(${inst.position})` : ""}
-                      </option>
-                    ))}
-                    {instructors.length === 0 && !selectedCourse?.instructorName && (
-                      <option value={currentCourseInstructorName}>{currentCourseInstructorName}</option>
-                    )}
-                  </select>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
+              {/* 1. ปีการศึกษา */}
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">ปีการศึกษา:</label>
+                <select
+                  value={selectedAcademicYear}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedAcademicYear(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold bg-slate-50/70 text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                >
+                  {academicYearsList.map((yr) => (
+                    <option key={yr} value={yr}>
+                      ปี {yr}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  onClick={() => handleExportCSV("grades")}
-                  variant="outline"
-                  disabled={currentClassGrades.length === 0}
-                  className="gap-2 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+              {/* 2. ภาคเรียนที่ */}
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">ภาคเรียนที่:</label>
+                <select
+                  value={String(selectedGradingSemester)}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedGradingSemester(Number(e.target.value))}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold bg-slate-50/70 text-slate-900 focus:border-blue-500 focus:outline-hidden"
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> ส่งออก ปพ.5 (CSV)
-                </Button>
-                <Button
-                  onClick={handleSaveAllGrades}
-                  disabled={isPending || !canGradeCurrentCourse || currentClassGrades.length === 0}
-                  className="gap-2 bg-blue-700 hover:bg-blue-800 text-white disabled:opacity-50"
+                  <option value="1">ภาคเรียนที่ 1</option>
+                  <option value="2">ภาคเรียนที่ 2</option>
+                </select>
+              </div>
+
+              {/* 3. ระดับชั้น/ห้อง */}
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">ระดับชั้น/ห้องเรียน:</label>
+                <select
+                  value={selectedClassRoom}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedClassRoom(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-medium"
                 >
-                  <Save className="w-4 h-4" /> บันทึกและส่งผลการเรียน
-                </Button>
+                  <optgroup label="ห้องเรียนเฉพาะ">
+                    {gradingClassRooms.map((cr) => {
+                      const count = students.filter(
+                        (s) =>
+                          s.classRoom === cr &&
+                          (s.academicYear || "2569") === selectedAcademicYear &&
+                          (s.semester ?? 1) === selectedGradingSemester,
+                      ).length;
+                      return (
+                        <option key={cr} value={cr}>
+                          ห้อง {cr} ({count} คน)
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                  <optgroup label="ระดับชั้น (แสดงทุกห้อง)">
+                    {["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"].map((lv) => {
+                      const lvCount = students.filter(
+                        (s) =>
+                          s.classRoom.startsWith(lv) &&
+                          (s.academicYear || "2569") === selectedAcademicYear &&
+                          (s.semester ?? 1) === selectedGradingSemester,
+                      ).length;
+                      return (
+                        <option key={lv} value={lv}>
+                          ชั้น {lv} ทั้งหมด ({lvCount} คน)
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* 4. กรองวิชาตามผู้สอน */}
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                  กรองวิชาตามผู้สอน:
+                </label>
+                <select
+                  value={filterGradingInstructor}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterGradingInstructor(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-medium bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs"
+                >
+                  <option value="ALL">-- แสดงทุกผู้สอน ({coursesInClassAndSem.length} วิชา) --</option>
+                  {attendanceInstructorsList.map((instName) => {
+                    const count = coursesInClassAndSem.filter(
+                      (c) => c.instructorName === instName || c.instructorId === instName,
+                    ).length;
+                    return (
+                      <option key={instName} value={instName}>
+                        {instName} {count > 0 ? `(${count} วิชา)` : "(0 วิชาในห้องนี้)"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* 5. รายวิชา พร้อมชื่อ อ.ผู้สอน */}
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  รายวิชา ({selectedClassRoom}) • แสดงชื่อ อ.ผู้สอน:
+                </label>
+                <select
+                  value={selectedCourseId}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCourseId(e.target.value)}
+                  disabled={availableGradingCourses.length === 0}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2 font-semibold text-blue-900 bg-blue-50/30 truncate disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {availableGradingCourses.length === 0 ? (
+                    <option value="" disabled>
+                      -- ไม่พบรายวิชาที่ตรงตามเงื่อนไข --
+                    </option>
+                  ) : (
+                    availableGradingCourses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        [{c.courseCode}] {c.name} {c.credits ? `(${c.credits} นก.)` : ""} • อ.ผู้สอน: {c.instructorName || "ไม่ระบุ"}
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
             </div>
 
-            {/* Linked Info & Instructor Permission Bar */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              {/* Left: Linked Summary & Instructor Badge */}
-              <div className="flex flex-wrap items-center gap-2.5 text-xs">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 font-bold">
-                  📅 ปีการศึกษา {selectedAcademicYear} / เทอม {selectedGradingSemester}
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-900 border border-indigo-200/80 font-bold">
-                  🏫 {selectedClassRoom.length === 3 ? `ชั้น ${selectedClassRoom}` : `ห้อง ${selectedClassRoom}`} (พบนักเรียน {currentClassStudents.length} คน)
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-900 border border-blue-200/80 font-bold">
-                  📘 {selectedCourse?.courseCode} {selectedCourse?.name} ({selectedCourse?.credits ?? 1.0} หน่วยกิต)
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200 font-bold">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  อาจารย์ผู้สอน: <span className="underline decoration-emerald-400">{currentCourseInstructorName}</span>
-                </span>
+            {/* Course Summary & Instructor Permission Status Banner */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50/60 via-slate-50 to-indigo-50/40 border border-blue-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs font-black text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+                    {selectedCourse?.courseCode || "รหัสวิชา"}
+                  </span>
+                  <span className="font-bold text-sm text-slate-900">
+                    {selectedCourse?.name || (availableGradingCourses.length === 0 ? "ไม่พบรายวิชาตามเงื่อนไข" : "ชื่อวิชา")}
+                  </span>
+                  {selectedCourse && (
+                    <span className="text-xs text-slate-500 font-medium">
+                      ({Number(selectedCourse.credits || 1.0).toFixed(1)} หน่วยกิต • {selectedCourse.subjectGroup || "กลุ่มสาระทั่วไป"})
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600">
+                  <span className="inline-flex items-center gap-1.5 font-bold text-blue-900 bg-blue-100/70 px-2.5 py-0.5 rounded-md">
+                    <UserCheck className="w-3.5 h-3.5 text-blue-700" />
+                    อ.ผู้สอน: {currentCourseInstructorName}
+                  </span>
+                  <span>•</span>
+                  <span>ห้อง {selectedClassRoom} (นักเรียน {currentClassStudents.length} คน)</span>
+                  <span>•</span>
+                  <span className="font-semibold text-blue-800">ภาคเรียนที่ {selectedGradingSemester}/{selectedAcademicYear}</span>
+                  {filterGradingInstructor !== "ALL" && (
+                    <>
+                      <span>•</span>
+                      <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-medium">
+                        กรองผู้สอน: {filterGradingInstructor}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
 
+              {/* Permission & Simulation Badge */}
+              <div className="flex flex-wrap items-center gap-2">
+                {canGradeCurrentCourse ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>มีสิทธิ์กรอกเกรดและบันทึกส่ง ({currentCourseInstructorName})</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold shadow-2xs">
+                    <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>โหมดดูอย่างเดียว (เฉพาะ อ.ผู้สอน: {currentCourseInstructorName} เท่านั้นที่มีสิทธิ์แก้ไข)</span>
+                  </div>
+                )}
+
+                <select
+                  value={activeGradingInstructor}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setActiveGradingInstructor(e.target.value)}
+                  className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-medium text-slate-700 shadow-2xs focus:border-blue-500 focus:outline-hidden"
+                  title="จำลองหรือเลือกสิทธิ์อาจารย์ผู้สอนในการกรอกเกรด"
+                >
+                  <option value="AUTO">
+                    สิทธิ์: อ.ผู้สอนประจำวิชา ({currentCourseInstructorName}) / ผู้ดูแลระบบ
+                  </option>
+                  {instructors.map((inst) => (
+                    <option key={inst.id} value={inst.fullName}>
+                      จำลองสิทธิ์: {inst.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Actions & Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <div className="flex flex-wrap items-center gap-2.5">
                 {/* Grading Scheme Pill */}
-                <div className="inline-flex items-center gap-2 bg-blue-50/70 border border-blue-200/80 rounded-lg px-3 py-1">
+                <div className="inline-flex items-center gap-2 bg-blue-50/70 border border-blue-200/80 rounded-lg px-3 py-1.5 text-xs">
                   <span className="text-slate-600 font-medium">สัดส่วนคะแนน:</span>
                   <span className="font-bold text-blue-900">
                     เก็บ {gradingScheme.maxAssignment}% • กลางภาค {gradingScheme.maxMidterm}% • จิตพิสัย{" "}
@@ -2840,60 +2980,56 @@ export function RegistrationClient({
                     <SlidersHorizontal className="w-3 h-3" /> ตั้งค่าเกณฑ์
                   </button>
                 </div>
+
+                {/* Assign instructor if admin */}
+                {(currentUser?.isSuperAdmin || canManage) && selectedCourse && (
+                  <div className="flex items-center gap-1.5 text-xs bg-emerald-50/70 border border-emerald-200 rounded-lg px-2.5 py-1">
+                    <span className="text-emerald-900 font-medium">มอบหมายผู้สอน:</span>
+                    <select
+                      value={selectedCourse.instructorId || selectedCourse.instructorName || ""}
+                      onChange={(e: ChangeEvent<HTMLSelectElement>) => handleAssignInstructorToCourse(e.target.value)}
+                      disabled={isPending}
+                      className="text-xs border border-emerald-300 bg-white text-emerald-950 rounded px-2 py-0.5 font-semibold focus:border-emerald-600 focus:outline-hidden"
+                      title="กำหนดหรือเปลี่ยนอาจารย์ผู้สอนประจำวิชานี้"
+                    >
+                      {selectedCourse.instructorName &&
+                        !instructors.some(
+                          (inst) =>
+                            inst.fullName === selectedCourse.instructorName || inst.id === selectedCourse.instructorId,
+                        ) && (
+                          <option value={selectedCourse.instructorName}>
+                            {selectedCourse.instructorName}
+                          </option>
+                        )}
+                      {instructors.map((inst) => (
+                        <option key={inst.id} value={inst.id}>
+                          {inst.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              {/* Right: Instructor Permission Status & Course Filter by Instructor */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-slate-500 font-medium">กรองวิชาตามผู้สอน:</span>
-                  <select
-                    value={filterGradingInstructor}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterGradingInstructor(e.target.value)}
-                    className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white font-semibold text-slate-700"
-                  >
-                    <option value="ALL">แสดงทุกวิชาของชั้น {selectedClassRoom}</option>
-                    {Array.from(
-                      new Set(
-                        courses
-                          .map((c) => c.instructorName)
-                          .filter((name): name is string => Boolean(name && name.trim() !== "")),
-                      ),
-                    ).map((instName) => (
-                      <option key={instName} value={instName}>
-                        เฉพาะวิชาของ {instName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-slate-500 font-medium">สิทธิ์ผู้ใช้งานขณะนี้:</span>
-                  <select
-                    value={activeGradingInstructor}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setActiveGradingInstructor(e.target.value)}
-                    className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white font-semibold text-slate-700"
-                    title="จำลองหรือเลือกสิทธิ์อาจารย์ผู้สอนในการกรอกเกรด"
-                  >
-                    <option value="AUTO">
-                      อาจารย์ผู้สอนประจำวิชา ({currentCourseInstructorName}) / ผู้ดูแลระบบ
-                    </option>
-                    {instructors.map((inst) => (
-                      <option key={inst.id} value={inst.fullName}>
-                        เข้าใช้งานในชื่อ: {inst.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {canGradeCurrentCourse ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    <Check className="w-3.5 h-3.5" /> มีสิทธิ์กรอกเกรดและบันทึกส่ง ({currentCourseInstructorName})
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                    <AlertCircle className="w-3.5 h-3.5" /> เฉพาะอาจารย์ผู้สอน ({currentCourseInstructorName}) เท่านั้นที่มีสิทธิ์แก้ไข
-                  </span>
-                )}
+              {/* Right: Export & Save buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  onClick={() => handleExportCSV("grades")}
+                  variant="outline"
+                  size="sm"
+                  disabled={currentClassGrades.length === 0 || availableGradingCourses.length === 0}
+                  className="gap-2 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> ส่งออก ปพ.5 (CSV)
+                </Button>
+                <Button
+                  onClick={handleSaveAllGrades}
+                  disabled={isPending || !canGradeCurrentCourse || currentClassGrades.length === 0 || availableGradingCourses.length === 0}
+                  size="sm"
+                  className="gap-2 bg-blue-700 hover:bg-blue-800 text-white shadow-2xs font-semibold disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" /> บันทึกและส่งผลการเรียน
+                </Button>
               </div>
             </div>
           </div>
@@ -2924,7 +3060,23 @@ export function RegistrationClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {currentClassGrades.length === 0 ? (
+                  {availableGradingCourses.length === 0 ? (
+                    <tr>
+                      <td colSpan={enableAttendance ? 13 : 12} className="text-center py-12 text-slate-500 font-medium">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <AlertCircle className="w-8 h-8 text-amber-500" />
+                          <span className="font-semibold text-sm text-slate-700">
+                            ไม่พบรายวิชาที่ตรงตามเงื่อนไข (ห้อง {selectedClassRoom} ภาคเรียนที่ {selectedGradingSemester}/{selectedAcademicYear})
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {filterGradingInstructor !== "ALL"
+                              ? `อาจารย์ ${filterGradingInstructor} ไม่มีรายวิชาที่สอนในห้องนี้ กรุณาเลือกอาจารย์ผู้สอนอื่น หรือเลือก "แสดงทุกผู้สอน"`
+                              : "กรุณาตรวจสอบรายวิชาที่เปิดสอนในระดับชั้นและภาคเรียนนี้"}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : currentClassGrades.length === 0 ? (
                     <tr>
                       <td colSpan={enableAttendance ? 13 : 12} className="text-center py-10 text-slate-400">
                         ไม่พบข้อมูลนักเรียนที่ตรงกับเงื่อนไขที่เลือก (ปีการศึกษา {selectedAcademicYear} เทอม {selectedGradingSemester}{" "}
