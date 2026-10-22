@@ -107,9 +107,16 @@ async function main() {
   const createdM1Students = [];
   for (const s of m1Students) {
     const student = await prisma.student.upsert({
-      where: { tenantId_studentCode: { tenantId, studentCode: s.studentCode } },
+      where: {
+        tenantId_studentCode_academicYear_semester: {
+          tenantId,
+          studentCode: s.studentCode,
+          academicYear: "2569",
+          semester: 1,
+        },
+      },
       update: { title: s.title, firstName: s.firstName, lastName: s.lastName, classRoom: s.classRoom, seatNo: s.seatNo, gender: s.gender },
-      create: { tenantId, studentCode: s.studentCode, title: s.title, firstName: s.firstName, lastName: s.lastName, classRoom: s.classRoom, seatNo: s.seatNo, gender: s.gender },
+      create: { tenantId, studentCode: s.studentCode, title: s.title, firstName: s.firstName, lastName: s.lastName, classRoom: s.classRoom, seatNo: s.seatNo, gender: s.gender, academicYear: "2569", semester: 1 },
     });
     createdM1Students.push(student);
   }
@@ -117,9 +124,16 @@ async function main() {
   const createdM4Students = [];
   for (const s of m4Students) {
     const student = await prisma.student.upsert({
-      where: { tenantId_studentCode: { tenantId, studentCode: s.studentCode } },
+      where: {
+        tenantId_studentCode_academicYear_semester: {
+          tenantId,
+          studentCode: s.studentCode,
+          academicYear: "2569",
+          semester: 1,
+        },
+      },
       update: { title: s.title, firstName: s.firstName, lastName: s.lastName, classRoom: s.classRoom, seatNo: s.seatNo, gender: s.gender },
-      create: { tenantId, studentCode: s.studentCode, title: s.title, firstName: s.firstName, lastName: s.lastName, classRoom: s.classRoom, seatNo: s.seatNo, gender: s.gender },
+      create: { tenantId, studentCode: s.studentCode, title: s.title, firstName: s.firstName, lastName: s.lastName, classRoom: s.classRoom, seatNo: s.seatNo, gender: s.gender, academicYear: "2569", semester: 1 },
     });
     createdM4Students.push(student);
   }

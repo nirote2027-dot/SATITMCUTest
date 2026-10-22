@@ -23,6 +23,8 @@ export interface CourseDto {
   academicYear?: string;
   curriculumName?: string;
   curriculumId?: string;
+  degreeLevel?: string | null;
+  targetGrade?: string | null;
   subjectGroup?: string | null;
   instructorName?: string | null;
   instructorId?: string | null;
@@ -137,5 +139,65 @@ export interface ImportBatchStudentsResult {
   failed: number;
   errors: { row: number; studentCode?: string; message: string }[];
   students: StudentDto[];
+}
+
+export interface BulkPromoteStudentsInput {
+  studentIds: string[];
+  mode: "PROMOTE_NEXT" | "SPECIFY_ROOM" | "RETAIN" | "GRADUATE";
+  targetAcademicYear: string;
+  targetSemester: number;
+  targetClassRoom?: string;
+  studentOverrides?: Record<
+    string,
+    {
+      mode?: "PROMOTE_NEXT" | "SPECIFY_ROOM" | "RETAIN" | "GRADUATE";
+      targetClassRoom?: string;
+    }
+  >;
+}
+
+export interface BulkUpdateStudentsInput {
+  studentIds: string[];
+  classRoom?: string;
+  academicYear?: string;
+  semester?: number;
+  status?: string;
+}
+
+export interface BulkCopyStudentInputItem {
+  sourceStudentId?: string;
+  studentCode: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  classRoom: string;
+  seatNo: number;
+  academicYear: string;
+  semester: number;
+  gender?: string;
+  status?: string;
+}
+
+export interface BulkCopyCourseInputItem {
+  sourceCourseId?: string;
+  courseCode: string;
+  name: string;
+  credits: number;
+  targetGrade: string;
+  semester: number;
+  academicYear: string;
+  subjectGroup?: string | null;
+  instructorId?: string | null;
+  instructorName?: string | null;
+}
+
+export interface BulkUpdateCoursesInput {
+  courseIds: string[];
+  targetGrade?: string;
+  academicYear?: string;
+  semester?: number;
+  subjectGroup?: string;
+  instructorId?: string;
+  instructorName?: string;
 }
 

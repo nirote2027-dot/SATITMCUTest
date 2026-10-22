@@ -19,7 +19,7 @@ export const CreateCurriculumSchema = z.object({
   objectives: z.string().optional().nullable(),
   careerProspects: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
-  pdfUrl: z.string().max(500).optional().nullable(),
+  pdfUrl: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
 });
 

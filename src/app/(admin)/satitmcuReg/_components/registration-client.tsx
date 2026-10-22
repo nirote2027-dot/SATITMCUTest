@@ -31,6 +31,10 @@ import {
   ShieldCheck,
   Lock,
   RefreshCw,
+  Copy,
+  ArrowUpRight,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -53,16 +57,24 @@ import type {
   ParsedCsvStudent,
   CourseAttendanceCell,
   CourseAttendanceMatrixDto,
+  BulkCopyStudentInputItem,
+  BulkCopyCourseInputItem,
 } from "@/features/registration";
 import {
   createStudentAction,
   updateStudentAction,
   deleteStudentAction,
+  copyStudentsAction,
+  bulkDeleteStudentsAction,
+  bulkUpdateStudentsAction,
   importBatchStudentsAction,
   parseStudentsCsv,
   createCourseAction,
   updateCourseAction,
   deleteCourseAction,
+  bulkCopyCoursesAction,
+  bulkDeleteCoursesAction,
+  bulkUpdateCoursesAction,
   getInstructorsAction,
   recordBatchAttendanceAction,
   saveBatchGradesAction,
@@ -94,37 +106,37 @@ interface Props {
   };
 }
 
+function getCourseGrade(course: CourseDto): string {
+  if (course.targetGrade && /^ม\.[1-6]$/.test(course.targetGrade)) {
+    return course.targetGrade;
+  }
+  const match = course.name.match(/ม\.([1-6])/);
+  if (match) return `ม.${match[1]}`;
+  const digits = course.courseCode.replace(/^[^\d]+/, "");
+  if (digits.length >= 2) {
+    const p = digits.slice(0, 2);
+    if (p === "21") return "ม.1";
+    if (p === "22") return "ม.2";
+    if (p === "23") return "ม.3";
+    if (p === "31") return "ม.4";
+    if (p === "32") return "ม.5";
+    if (p === "33") return "ม.6";
+  }
+  if (course.degreeLevel?.includes("ปลาย")) return "ม.4";
+  return "ม.1";
+}
+
+function isCourseJunior(course: CourseDto): boolean {
+  const grade = getCourseGrade(course);
+  return ["ม.1", "ม.2", "ม.3"].includes(grade);
+}
+
 function isCourseMatchingClassRoom(course: CourseDto, classRoom: string): boolean {
   if (!classRoom || classRoom === "ALL") return true;
   const match = classRoom.match(/ม\.([1-6])/);
   if (!match) return true;
-  const gradeNum = match[1];
-  const gradeLabel = `ม.${gradeNum}`;
-
-  // 1. Course name includes "ม.X" or "(ม.X)"
-  if (course.name.includes(gradeLabel)) return true;
-
-  // 2. Course code digits start with 2X (for lower sec) or 3X (for upper sec)
-  const digits = course.courseCode.replace(/^[^\d]+/, "");
-  if (digits.length >= 2) {
-    const p = digits.slice(0, 2);
-    if (gradeNum === "1" && p === "21") return true;
-    if (gradeNum === "2" && p === "22") return true;
-    if (gradeNum === "3" && p === "23") return true;
-    if (gradeNum === "4" && p === "31") return true;
-    if (gradeNum === "5" && p === "32") return true;
-    if (gradeNum === "6" && p === "33") return true;
-  }
-
-  // 3. Curriculum degree level match
-  const isLowerSec = ["1", "2", "3"].includes(gradeNum);
-  const isUpperSec = ["4", "5", "6"].includes(gradeNum);
-  if (course.curriculumName) {
-    if (isLowerSec && course.curriculumName.includes("ตอนต้น") && !course.name.includes("ม.")) return true;
-    if (isUpperSec && course.curriculumName.includes("ตอนปลาย") && !course.name.includes("ม.")) return true;
-  }
-
-  return false;
+  const gradeLabel = `ม.${match[1]}`;
+  return getCourseGrade(course) === gradeLabel;
 }
 
 export function RegistrationClient({
@@ -208,6 +220,8 @@ export function RegistrationClient({
 
   const [formCourseCode, setFormCourseCode] = useState("");
   const [formCourseName, setFormCourseName] = useState("");
+  const [formCourseDegreeLevel, setFormCourseDegreeLevel] = useState("มัธยมศึกษาตอนต้น (ม.1 - ม.3)");
+  const [formCourseTargetGrade, setFormCourseTargetGrade] = useState("ม.1");
   const [formCredits, setFormCredits] = useState("1.0");
   const [formCourseSemester, setFormCourseSemester] = useState("1");
   const [formCourseAcademicYear, setFormCourseAcademicYear] = useState("2569");
@@ -217,9 +231,40 @@ export function RegistrationClient({
 
   // Course Filter & Search in Tab 2
   const [searchCourse, setSearchCourse] = useState("");
+  const [filterCourseLevel, setFilterCourseLevel] = useState("ALL");
   const [filterSubjectGroup, setFilterSubjectGroup] = useState("ALL");
   const [filterCourseSemester, setFilterCourseSemester] = useState("ALL");
   const [filterCourseYear, setFilterCourseYear] = useState("ALL");
+
+  // ═══ Bulk Selection & Action States: Students (Tab 1) ═══
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  // Student Bulk Copy to New Year/Semester (คัดลอกรายชื่อไปปี/เทอมใหม่)
+  const [bulkCopyStudentsModalOpen, setBulkCopyStudentsModalOpen] = useState(false);
+  const [bulkCopyStudentTargetYear, setBulkCopyStudentTargetYear] = useState<string>("2570");
+  const [bulkCopyStudentTargetSem, setBulkCopyStudentTargetSem] = useState<number>(1);
+  const [bulkCopyStudentItems, setBulkCopyStudentItems] = useState<BulkCopyStudentInputItem[]>([]);
+
+  const [bulkEditStudentsModalOpen, setBulkEditStudentsModalOpen] = useState(false);
+  const [bulkEditStudentClass, setBulkEditStudentClass] = useState<string>("");
+  const [bulkEditStudentYear, setBulkEditStudentYear] = useState<string>("");
+  const [bulkEditStudentSem, setBulkEditStudentSem] = useState<string>("");
+  const [bulkEditStudentStatus, setBulkEditStudentStatus] = useState<string>("");
+  const [bulkDeleteStudentsModalOpen, setBulkDeleteStudentsModalOpen] = useState(false);
+
+  // ═══ Bulk Selection & Action States: Courses (Tab 2) ═══
+  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+  const [bulkCopyModalOpen, setBulkCopyModalOpen] = useState(false);
+  const [bulkCopyTargetYear, setBulkCopyTargetYear] = useState<string>("2570");
+  const [bulkCopyTargetSem, setBulkCopyTargetSem] = useState<number>(1);
+  const [bulkCopyItems, setBulkCopyItems] = useState<BulkCopyCourseInputItem[]>([]);
+
+  const [bulkEditCoursesModalOpen, setBulkEditCoursesModalOpen] = useState(false);
+  const [bulkEditCourseGrade, setBulkEditCourseGrade] = useState<string>("");
+  const [bulkEditCourseYear, setBulkEditCourseYear] = useState<string>("");
+  const [bulkEditCourseSem, setBulkEditCourseSem] = useState<string>("");
+  const [bulkEditCourseGroup, setBulkEditCourseGroup] = useState<string>("");
+  const [bulkEditCourseInstructorId, setBulkEditCourseInstructorId] = useState<string>("");
+  const [bulkDeleteCoursesModalOpen, setBulkDeleteCoursesModalOpen] = useState(false);
 
   // Instructors list
   const [instructors, setInstructors] = useState<InstructorDto[]>(initialInstructors);
@@ -322,14 +367,16 @@ export function RegistrationClient({
 
   // Base courses matching classroom, academic year, and semester (before instructor filter)
   const coursesInClassAndSem = useMemo(() => {
+    // 1. Filter by academic year
     const byYear = courses.filter((c) => !c.academicYear || c.academicYear === selectedAcademicYear);
-    const yearList = byYear.length > 0 ? byYear : courses;
 
-    const byClass = yearList.filter((c) => isCourseMatchingClassRoom(c, selectedClassRoom));
-    const baseList = byClass.length > 0 ? byClass : yearList;
+    // 2. Filter by semester
+    const bySemester = byYear.filter((c) => !c.semester || c.semester === selectedGradingSemester);
 
-    const bySemester = baseList.filter((c) => !c.semester || c.semester === selectedGradingSemester);
-    return bySemester.length > 0 ? bySemester : baseList;
+    // 3. Filter strictly by classroom grade
+    const byClass = bySemester.filter((c) => isCourseMatchingClassRoom(c, selectedClassRoom));
+
+    return byClass;
   }, [courses, selectedClassRoom, selectedAcademicYear, selectedGradingSemester]);
 
   // Distinct instructors list for Attendance Tab filter
@@ -387,6 +434,8 @@ export function RegistrationClient({
       if (!exists) {
         setSelectedCourseId(availableCourses[0].id);
       }
+    } else {
+      setSelectedCourseId("");
     }
   }, [availableCourses, selectedCourseId]);
 
@@ -500,6 +549,16 @@ export function RegistrationClient({
       if (filterSubjectGroup !== "ALL" && c.subjectGroup !== filterSubjectGroup) {
         return false;
       }
+      if (filterCourseLevel !== "ALL") {
+        const cGrade = getCourseGrade(c);
+        if (filterCourseLevel === "JUNIOR") {
+          if (!["ม.1", "ม.2", "ม.3"].includes(cGrade)) return false;
+        } else if (filterCourseLevel === "SENIOR") {
+          if (!["ม.4", "ม.5", "ม.6"].includes(cGrade)) return false;
+        } else if (cGrade !== filterCourseLevel) {
+          return false;
+        }
+      }
       if (searchCourse) {
         const q = searchCourse.toLowerCase().trim();
         const codeMatch = c.courseCode.toLowerCase().includes(q);
@@ -511,7 +570,7 @@ export function RegistrationClient({
       }
       return true;
     });
-  }, [courses, filterCourseYear, filterCourseSemester, filterSubjectGroup, searchCourse]);
+  }, [courses, filterCourseYear, filterCourseSemester, filterSubjectGroup, filterCourseLevel, searchCourse]);
 
   // Tab 1 & Grading & Courses: Academic Years List
   const academicYearsList = useMemo(() => {
@@ -1079,6 +1138,18 @@ export function RegistrationClient({
     setEditingCourse(null);
     setFormCourseCode("");
     setFormCourseName("");
+    let initialGrade = "ม.1";
+    if (["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"].includes(filterCourseLevel)) {
+      initialGrade = filterCourseLevel;
+    } else if (filterCourseLevel === "SENIOR") {
+      initialGrade = "ม.4";
+    }
+    setFormCourseTargetGrade(initialGrade);
+    setFormCourseDegreeLevel(
+      ["ม.4", "ม.5", "ม.6"].includes(initialGrade)
+        ? "มัธยมศึกษาตอนปลาย (ม.4 - ม.6)"
+        : "มัธยมศึกษาตอนต้น (ม.1 - ม.3)"
+    );
     setFormCredits("1.0");
     setFormCourseSemester(filterCourseSemester !== "ALL" ? filterCourseSemester : "1");
     setFormCourseAcademicYear(filterCourseYear !== "ALL" ? filterCourseYear : selectedAcademicYear || "2569");
@@ -1090,9 +1161,16 @@ export function RegistrationClient({
 
   // Open Edit Course
   const openEditCourse = (course: CourseDto) => {
+    const grade = getCourseGrade(course);
     setEditingCourse(course);
     setFormCourseCode(course.courseCode);
     setFormCourseName(course.name);
+    setFormCourseTargetGrade(grade);
+    setFormCourseDegreeLevel(
+      ["ม.4", "ม.5", "ม.6"].includes(grade)
+        ? "มัธยมศึกษาตอนปลาย (ม.4 - ม.6)"
+        : "มัธยมศึกษาตอนต้น (ม.1 - ม.3)"
+    );
     setFormCredits(String(course.credits || 1.0));
     setFormCourseSemester(String(course.semester || 1));
     setFormCourseAcademicYear(course.academicYear || "2569");
@@ -1115,6 +1193,8 @@ export function RegistrationClient({
           const res = await updateCourseAction(editingCourse.id, {
             courseCode: formCourseCode,
             name: formCourseName,
+            targetGrade: formCourseTargetGrade,
+            degreeLevel: formCourseDegreeLevel,
             credits: parseFloat(formCredits) || 1.0,
             semester: parseInt(formCourseSemester, 10) || 1,
             academicYear: formCourseAcademicYear,
@@ -1133,6 +1213,8 @@ export function RegistrationClient({
           const res = await createCourseAction({
             courseCode: formCourseCode,
             name: formCourseName,
+            targetGrade: formCourseTargetGrade,
+            degreeLevel: formCourseDegreeLevel,
             credits: parseFloat(formCredits) || 1.0,
             semester: parseInt(formCourseSemester, 10) || 1,
             academicYear: formCourseAcademicYear,
@@ -1145,7 +1227,7 @@ export function RegistrationClient({
             return;
           }
           setCourses((prev) => [...prev, res.data]);
-          toast.success("เพิ่มรายวิชาใหม่สำเร็จ");
+          toast.success(`เพิ่มรายวิชาใหม่สำเร็จ (ลงทะเบียนนักเรียนระดับ ${formCourseTargetGrade} เทอม ${formCourseSemester} อัตโนมัติ)`);
           setCourseModalOpen(false);
         }
       } catch (e: any) {
@@ -1169,6 +1251,302 @@ export function RegistrationClient({
         setDeleteConfirmCourse(null);
       } catch (e: any) {
         toast.error(e.message || "เกิดข้อผิดพลาด");
+      }
+    });
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BULK ACTIONS: STUDENTS
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleToggleStudentSelect = (id: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleAllFilteredStudents = () => {
+    const filteredIds = filteredStudents.map((s) => s.id);
+    const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedStudentIds.includes(id));
+    if (allSelected) {
+      setSelectedStudentIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+    } else {
+      setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
+  const handleOpenBulkCopyStudentsModal = () => {
+    if (selectedStudentIds.length === 0) {
+      toast.error("กรุณาเลือกนักเรียนอย่างน้อย 1 คน");
+      return;
+    }
+    const targetStudents = students.filter((s) => selectedStudentIds.includes(s.id));
+    const currentYear = studentFilterYear !== "ALL" ? studentFilterYear : (targetStudents[0]?.academicYear || "2569");
+    const nextYear = String(Number(currentYear) + 1);
+    setBulkCopyStudentTargetYear(nextYear);
+    setBulkCopyStudentTargetSem(1);
+
+    const items: BulkCopyStudentInputItem[] = targetStudents.map((s) => ({
+      sourceStudentId: s.id,
+      studentCode: s.studentCode,
+      title: s.title,
+      firstName: s.firstName,
+      lastName: s.lastName,
+      classRoom: s.classRoom,
+      seatNo: s.seatNo,
+      academicYear: nextYear,
+      semester: 1,
+      gender: s.gender || "ชาย",
+      status: s.status || "ACTIVE",
+    }));
+
+    setBulkCopyStudentItems(items);
+    setBulkCopyStudentsModalOpen(true);
+  };
+
+  const handleApplyBulkCopyStudentYearSem = (year: string, sem: number) => {
+    setBulkCopyStudentTargetYear(year);
+    setBulkCopyStudentTargetSem(sem);
+    setBulkCopyStudentItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        academicYear: year,
+        semester: sem,
+      }))
+    );
+  };
+
+  const handleConfirmBulkCopyStudents = () => {
+    if (bulkCopyStudentItems.length === 0) return;
+    startTransition(async () => {
+      try {
+        const res = await copyStudentsAction(bulkCopyStudentItems);
+        if (!res.ok) {
+          toast.error(res.error.message || "เกิดข้อผิดพลาดในการคัดลอกรายชื่อนักเรียน");
+          return;
+        }
+
+        const data = res.data;
+        setStudents((prev) => {
+          const map = new Map(prev.map((s) => [s.id, s]));
+          for (const s of data.students) {
+            map.set(s.id, s);
+          }
+          return Array.from(map.values()).sort((a, b) => {
+            if (a.classRoom !== b.classRoom) return a.classRoom.localeCompare(b.classRoom);
+            return a.seatNo - b.seatNo;
+          });
+        });
+
+        toast.success(`คัดลอก/บันทึกรายชื่อนักเรียนสำเร็จ ${data.copiedCount} คน (ลงทะเบียนวิชาให้อัตโนมัติ)`);
+        setSelectedStudentIds([]);
+        setBulkCopyStudentsModalOpen(false);
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการคัดลอกรายชื่อนักเรียน");
+      }
+    });
+  };
+
+  const handleConfirmBulkDeleteStudents = () => {
+    if (selectedStudentIds.length === 0) return;
+    startTransition(async () => {
+      try {
+        const res = await bulkDeleteStudentsAction(selectedStudentIds);
+        if (!res.ok) {
+          toast.error(res.error.message || "ไม่สามารถลบข้อมูลนักเรียนได้");
+          return;
+        }
+        setStudents((prev) => prev.filter((s) => !selectedStudentIds.includes(s.id)));
+        toast.success(`ลบข้อมูลนักเรียนเรียบร้อยแล้ว ${res.data} คน`);
+        setSelectedStudentIds([]);
+        setBulkDeleteStudentsModalOpen(false);
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
+      }
+    });
+  };
+
+  const handleConfirmBulkEditStudents = () => {
+    if (selectedStudentIds.length === 0) return;
+    startTransition(async () => {
+      try {
+        const res = await bulkUpdateStudentsAction({
+          studentIds: selectedStudentIds,
+          classRoom: bulkEditStudentClass.trim() || undefined,
+          academicYear: bulkEditStudentYear.trim() || undefined,
+          semester: bulkEditStudentSem ? Number(bulkEditStudentSem) : undefined,
+          status: bulkEditStudentStatus.trim() || undefined,
+        });
+        if (!res.ok) {
+          toast.error(res.error.message || "เกิดข้อผิดพลาดในการแก้ไข");
+          return;
+        }
+        setStudents((prev) => {
+          const map = new Map(prev.map((s) => [s.id, s]));
+          for (const s of res.data.students) {
+            map.set(s.id, s);
+          }
+          return Array.from(map.values());
+        });
+        toast.success(`แก้ไขข้อมูลนักเรียนสำเร็จ ${res.data.updatedCount} คน`);
+        setSelectedStudentIds([]);
+        setBulkEditStudentsModalOpen(false);
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการแก้ไขกลุ่ม");
+      }
+    });
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BULK ACTIONS: COURSES
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleToggleCourseSelect = (id: string) => {
+    setSelectedCourseIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleAllFilteredCourses = () => {
+    const filteredIds = filteredCoursesList.map((c) => c.id);
+    const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedCourseIds.includes(id));
+    if (allSelected) {
+      setSelectedCourseIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+    } else {
+      setSelectedCourseIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
+  const handleOpenBulkCopyCoursesModal = () => {
+    if (selectedCourseIds.length === 0) {
+      toast.error("กรุณาเลือกรายวิชาอย่างน้อย 1 วิชา");
+      return;
+    }
+    const targetCourses = courses.filter((c) => selectedCourseIds.includes(c.id));
+    const currentYear = filterCourseYear !== "ALL" ? filterCourseYear : (targetCourses[0]?.academicYear || "2569");
+    const nextYear = String(Number(currentYear) + 1);
+    setBulkCopyTargetYear(nextYear);
+    setBulkCopyTargetSem(1);
+
+    const items: BulkCopyCourseInputItem[] = targetCourses.map((c) => ({
+      sourceCourseId: c.id,
+      courseCode: c.courseCode,
+      name: c.name,
+      credits: c.credits || 1.0,
+      targetGrade: getCourseGrade(c),
+      semester: 1,
+      academicYear: nextYear,
+      subjectGroup: c.subjectGroup,
+      instructorId: c.instructorId,
+      instructorName: c.instructorName,
+    }));
+    setBulkCopyItems(items);
+    setBulkCopyModalOpen(true);
+  };
+
+  const handleApplyBulkCopyYearSem = (year: string, sem: number) => {
+    setBulkCopyTargetYear(year);
+    setBulkCopyTargetSem(sem);
+    setBulkCopyItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        academicYear: year,
+        semester: sem,
+      }))
+    );
+  };
+
+  const handleAdjustCoursesForSem2 = () => {
+    setBulkCopyTargetSem(2);
+    setBulkCopyItems((prev) =>
+      prev.map((item) => {
+        let code = item.courseCode;
+        let name = item.name;
+        if (code.endsWith("1")) {
+          code = code.slice(0, -1) + "2";
+        }
+        if (/ 1$/.test(name) || /1$/.test(name)) {
+          name = name.replace(/1$/, "2");
+        } else if (/ ๑$/.test(name)) {
+          name = name.replace(/๑$/, "๒");
+        }
+        return {
+          ...item,
+          courseCode: code,
+          name: name,
+          semester: 2,
+        };
+      })
+    );
+    toast.info("ปรับรหัสวิชาและชื่อวิชาสำหรับภาคเรียนที่ 2 เรียบร้อยแล้ว (สามารถแก้ไขเพิ่มเติมได้ตามต้องการ)");
+  };
+
+  const handleConfirmBulkCopyCourses = () => {
+    if (bulkCopyItems.length === 0) return;
+    startTransition(async () => {
+      try {
+        const res = await bulkCopyCoursesAction(bulkCopyItems);
+        if (!res.ok) {
+          toast.error(res.error.message || "เกิดข้อผิดพลาดในการคัดลอกรายวิชา");
+          return;
+        }
+        setCourses((prev) => [...prev, ...res.data]);
+        toast.success(`คัดลอกรายวิชาใหม่สำเร็จ ${res.data.length} รายวิชา (ลงทะเบียนนักเรียนให้อัตโนมัติ)`);
+        setSelectedCourseIds([]);
+        setBulkCopyModalOpen(false);
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการคัดลอกรายวิชา");
+      }
+    });
+  };
+
+  const handleConfirmBulkDeleteCourses = () => {
+    if (selectedCourseIds.length === 0) return;
+    startTransition(async () => {
+      try {
+        const res = await bulkDeleteCoursesAction(selectedCourseIds);
+        if (!res.ok) {
+          toast.error(res.error.message || "ไม่สามารถลบรายวิชาได้");
+          return;
+        }
+        setCourses((prev) => prev.filter((c) => !selectedCourseIds.includes(c.id)));
+        toast.success(`ลบรายวิชาเรียบร้อยแล้ว ${res.data} วิชา`);
+        setSelectedCourseIds([]);
+        setBulkDeleteCoursesModalOpen(false);
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการลบรายวิชา");
+      }
+    });
+  };
+
+  const handleConfirmBulkEditCourses = () => {
+    if (selectedCourseIds.length === 0) return;
+    startTransition(async () => {
+      try {
+        const ins = instructors.find((i) => i.id === bulkEditCourseInstructorId);
+        const res = await bulkUpdateCoursesAction({
+          courseIds: selectedCourseIds,
+          targetGrade: bulkEditCourseGrade || undefined,
+          academicYear: bulkEditCourseYear || undefined,
+          semester: bulkEditCourseSem ? Number(bulkEditCourseSem) : undefined,
+          subjectGroup: bulkEditCourseGroup || undefined,
+          instructorId: bulkEditCourseInstructorId || undefined,
+          instructorName: ins?.fullName || undefined,
+        });
+        if (!res.ok) {
+          toast.error(res.error.message || "เกิดข้อผิดพลาดในการแก้ไข");
+          return;
+        }
+        setCourses((prev) => {
+          const map = new Map(prev.map((c) => [c.id, c]));
+          for (const c of res.data.courses) {
+            map.set(c.id, c);
+          }
+          return Array.from(map.values());
+        });
+        toast.success(`แก้ไขรายวิชาสำเร็จ ${res.data.updatedCount} วิชา`);
+        setSelectedCourseIds([]);
+        setBulkEditCoursesModalOpen(false);
+      } catch (err: any) {
+        toast.error(err.message || "เกิดข้อผิดพลาดในการแก้ไขกลุ่ม");
       }
     });
   };
@@ -1958,12 +2336,88 @@ export function RegistrationClient({
             </div>
           </div>
 
+          {/* Student Bulk Action Bar */}
+          {canManage && selectedStudentIds.length > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-sm animate-in fade-in">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-full bg-blue-600 text-white font-bold text-xs shadow-xs">
+                  {selectedStudentIds.length}
+                </span>
+                <div>
+                  <span className="text-xs font-bold text-blue-950">
+                    เลือกนักเรียนอยู่ {selectedStudentIds.length} คน
+                  </span>
+                  <span className="text-[11px] text-blue-700 ml-1.5 hidden sm:inline">
+                    (จากที่แสดง {filteredStudents.length} คน)
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleOpenBulkCopyStudentsModal}
+                  className="h-8 gap-1.5 bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs shadow-xs"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  คัดลอกรายชื่อไปปี/เทอมใหม่
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setBulkEditStudentClass("");
+                    setBulkEditStudentYear("");
+                    setBulkEditStudentSem("");
+                    setBulkEditStudentStatus("");
+                    setBulkEditStudentsModalOpen(true);
+                  }}
+                  className="h-8 gap-1.5 border-blue-300 text-blue-800 hover:bg-blue-100 font-semibold text-xs bg-white"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  แก้ไขข้อมูลกลุ่ม
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setBulkDeleteStudentsModalOpen(true)}
+                  className="h-8 gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50 font-semibold text-xs bg-white"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  ลบที่เลือก
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedStudentIds([])}
+                  className="h-8 text-xs text-slate-500 hover:text-slate-800"
+                >
+                  ยกเลิก
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Students Table */}
           <LiyonCard>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-bold uppercase">
+                    {canManage && (
+                      <th className="py-3 px-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={filteredStudents.length > 0 && filteredStudents.every((s) => selectedStudentIds.includes(s.id))}
+                          onChange={handleToggleAllFilteredStudents}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          title="เลือกทั้งหมด / ยกเลิกทั้งหมด"
+                        />
+                      </th>
+                    )}
                     <th className="py-3 px-4 w-14 text-center">เลขที่</th>
                     <th className="py-3 px-4 w-32">รหัสนักเรียน</th>
                     <th className="py-3 px-4">ชื่อ - นามสกุล</th>
@@ -1977,70 +2431,86 @@ export function RegistrationClient({
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-10 text-slate-400">
+                      <td colSpan={canManage ? 9 : 8} className="text-center py-10 text-slate-400">
                         ไม่พบข้อมูลนักเรียนที่ตรงกับเงื่อนไขที่เลือก (ปีการศึกษา {studentFilterYear} เทอม {studentFilterSemester} {studentFilterClass})
                       </td>
                     </tr>
                   ) : (
-                    filteredStudents.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4 text-center font-bold text-slate-700">{s.seatNo}</td>
-                        <td className="py-3 px-4 font-mono text-xs font-semibold text-blue-700">{s.studentCode}</td>
-                        <td className="py-3 px-4 font-semibold text-slate-900">{s.fullName}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                            {s.classRoom}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-mono">
-                            {s.academicYear || "2569"}/{s.semester || 1}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center text-xs text-slate-600">{s.gender || "-"}</td>
-                        <td className="py-3 px-4 text-center">
-                          {s.status === "GRADUATED" ? (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              สำเร็จการศึกษา
-                            </span>
-                          ) : s.status === "SUSPENDED" ? (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                              พักการเรียน
-                            </span>
-                          ) : s.status === "TRANSFERRED" ? (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                              ย้ายสถานศึกษา
-                            </span>
-                          ) : s.status === "DROPOUT" ? (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                              พ้นสภาพ
-                            </span>
-                          ) : (
-                            <StatusPill tone="ok">กำลังศึกษา</StatusPill>
+                    filteredStudents.map((s) => {
+                      const isSelected = selectedStudentIds.includes(s.id);
+                      return (
+                        <tr
+                          key={s.id}
+                          className={`transition-colors ${isSelected ? "bg-blue-50/60 hover:bg-blue-50" : "hover:bg-slate-50/80"}`}
+                        >
+                          {canManage && (
+                            <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleStudentSelect(s.id)}
+                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </td>
                           )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => openEditStudent(s)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                              title="แก้ไข"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeleteConfirmStudent(s)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                              title="ลบ"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          <td className="py-3 px-4 text-center font-bold text-slate-700">{s.seatNo}</td>
+                          <td className="py-3 px-4 font-mono text-xs font-semibold text-blue-700">{s.studentCode}</td>
+                          <td className="py-3 px-4 font-semibold text-slate-900">{s.fullName}</td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              {s.classRoom}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+                              {s.academicYear || "2569"}/{s.semester || 1}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center text-xs text-slate-600">{s.gender || "-"}</td>
+                          <td className="py-3 px-4 text-center">
+                            {s.status === "GRADUATED" ? (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                สำเร็จการศึกษา
+                              </span>
+                            ) : s.status === "SUSPENDED" ? (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                พักการเรียน
+                              </span>
+                            ) : s.status === "TRANSFERRED" ? (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                ย้ายสถานศึกษา
+                              </span>
+                            ) : s.status === "DROPOUT" ? (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                พ้นสภาพ
+                              </span>
+                            ) : (
+                              <StatusPill tone="ok">กำลังศึกษา</StatusPill>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => openEditStudent(s)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                title="แก้ไข"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmStudent(s)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                title="ลบ"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -2080,6 +2550,30 @@ export function RegistrationClient({
             {/* Filter & Search Controls */}
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-2 border-t border-slate-100">
               <div className="flex flex-wrap items-center gap-3">
+                {/* 0. ระดับชั้น (ม.ต้น / ม.ปลาย) */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 shrink-0">ระดับชั้น:</span>
+                  <select
+                    value={filterCourseLevel}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterCourseLevel(e.target.value)}
+                    className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-hidden focus:border-blue-500 shadow-2xs"
+                  >
+                    <option value="ALL">ทุกระดับชั้น (ม.1 - ม.6)</option>
+                    <optgroup label="เลือกระดับชั้นรายปี">
+                      <option value="ม.1">มัธยมศึกษาปีที่ 1 (ม.1)</option>
+                      <option value="ม.2">มัธยมศึกษาปีที่ 2 (ม.2)</option>
+                      <option value="ม.3">มัธยมศึกษาปีที่ 3 (ม.3)</option>
+                      <option value="ม.4">มัธยมศึกษาปีที่ 4 (ม.4)</option>
+                      <option value="ม.5">มัธยมศึกษาปีที่ 5 (ม.5)</option>
+                      <option value="ม.6">มัธยมศึกษาปีที่ 6 (ม.6)</option>
+                    </optgroup>
+                    <optgroup label="เลือกตามช่วงชั้น">
+                      <option value="JUNIOR">มัธยมศึกษาตอนต้น ทั้งหมด (ม.1 - ม.3)</option>
+                      <option value="SENIOR">มัธยมศึกษาตอนปลาย ทั้งหมด (ม.4 - ม.6)</option>
+                    </optgroup>
+                  </select>
+                </div>
+
                 {/* 1. ปีการศึกษา */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-700 shrink-0">ปีการศึกษา:</span>
@@ -2147,14 +2641,91 @@ export function RegistrationClient({
             </div>
           </div>
 
+          {/* Course Bulk Action Bar */}
+          {canManage && selectedCourseIds.length > 0 && (
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-sm animate-in fade-in">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-full bg-emerald-600 text-white font-bold text-xs shadow-xs">
+                  {selectedCourseIds.length}
+                </span>
+                <div>
+                  <span className="text-xs font-bold text-emerald-950">
+                    เลือกรายวิชาอยู่ {selectedCourseIds.length} วิชา
+                  </span>
+                  <span className="text-[11px] text-emerald-700 ml-1.5 hidden sm:inline">
+                    (จากที่แสดง {filteredCoursesList.length} วิชา)
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleOpenBulkCopyCoursesModal}
+                  className="h-8 gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  คัดลอกรายวิชาไปปี/เทอมใหม่
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setBulkEditCourseGrade("");
+                    setBulkEditCourseYear("");
+                    setBulkEditCourseSem("");
+                    setBulkEditCourseGroup("");
+                    setBulkEditCourseInstructorId("");
+                    setBulkEditCoursesModalOpen(true);
+                  }}
+                  className="h-8 gap-1.5 border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-semibold text-xs bg-white"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  แก้ไขข้อมูลกลุ่ม
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setBulkDeleteCoursesModalOpen(true)}
+                  className="h-8 gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50 font-semibold text-xs bg-white"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  ลบที่เลือก
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedCourseIds([])}
+                  className="h-8 text-xs text-slate-500 hover:text-slate-800"
+                >
+                  ยกเลิก
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Courses Table */}
           <LiyonCard>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-bold uppercase">
+                    {canManage && (
+                      <th className="py-3 px-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={filteredCoursesList.length > 0 && filteredCoursesList.every((c) => selectedCourseIds.includes(c.id))}
+                          onChange={handleToggleAllFilteredCourses}
+                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          title="เลือกทั้งหมด / ยกเลิกทั้งหมด"
+                        />
+                      </th>
+                    )}
                     <th className="py-3 px-4 w-28">รหัสวิชา</th>
-                    <th className="py-3 px-4">ชื่อรายวิชา</th>
+                    <th className="py-3 px-4">ชื่อรายวิชา / ระดับชั้น</th>
                     <th className="py-3 px-4 w-24 text-center">หน่วยกิต</th>
                     <th className="py-3 px-4 w-36 text-center">ปีการศึกษา / ภาคเรียน</th>
                     <th className="py-3 px-4 w-52">กลุ่มสาระฯ / หลักสูตรที่สังกัด</th>
@@ -2165,27 +2736,55 @@ export function RegistrationClient({
                 <tbody className="divide-y divide-slate-100">
                   {filteredCoursesList.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-slate-400">
+                      <td colSpan={canManage ? 8 : 7} className="text-center py-10 text-slate-400">
                         ไม่พบข้อมูลรายวิชาที่ตรงกับเงื่อนไขการค้นหา
                       </td>
                     </tr>
                   ) : (
-                    filteredCoursesList.map((c) => (
-                      <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                        {/* รหัสวิชา */}
-                        <td className="py-3 px-4">
-                          <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200">
-                            {c.courseCode}
-                          </span>
-                        </td>
+                    filteredCoursesList.map((c) => {
+                      const cGrade = getCourseGrade(c);
+                      const isJunior = isCourseJunior(c);
+                      const isSelected = selectedCourseIds.includes(c.id);
+                      return (
+                        <tr
+                          key={c.id}
+                          className={`transition-colors ${isSelected ? "bg-emerald-50/60 hover:bg-emerald-50" : "hover:bg-slate-50/80"}`}
+                        >
+                          {canManage && (
+                            <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleCourseSelect(c.id)}
+                                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                              />
+                            </td>
+                          )}
+                          {/* รหัสวิชา */}
+                          <td className="py-3 px-4">
+                            <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                              {c.courseCode}
+                            </span>
+                          </td>
 
-                        {/* ชื่อรายวิชา */}
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">{c.name}</div>
-                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                            {c.curriculumName || "หลักสูตรสถานศึกษา"}
-                          </div>
-                        </td>
+                          {/* ชื่อรายวิชา */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-slate-900">{c.name}</span>
+                              {isJunior ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                  <span className="font-extrabold">{cGrade}</span> (ม.ต้น)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                  <span className="font-extrabold">{cGrade}</span> (ม.ปลาย)
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                              {c.curriculumName || (isJunior ? "หลักสูตรมัธยมศึกษาตอนต้น" : "หลักสูตรมัธยมศึกษาตอนปลาย")}
+                            </div>
+                          </td>
 
                         {/* หน่วยกิต */}
                         <td className="py-3 px-4 text-center">
@@ -2254,8 +2853,9 @@ export function RegistrationClient({
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    );
+                  })
+                )}
                 </tbody>
               </table>
             </div>
@@ -3358,6 +3958,99 @@ export function RegistrationClient({
       <LiyonDialog open={courseModalOpen} onOpenChange={setCourseModalOpen}>
         <LiyonDialogHeader title={editingCourse ? "แก้ไขข้อมูลรายวิชา" : "เพิ่มรายวิชาใหม่"} />
         <LiyonDialogBody className="space-y-4">
+          {/* เลือกระดับชั้นการศึกษา (ม.1 - ม.6) */}
+          <div className="bg-slate-50/90 p-3.5 rounded-xl border border-slate-200/90 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-800">
+                🎓 เลือกระดับชั้นการศึกษา (ม.1 - ม.6) *
+              </label>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">
+                ระดับชั้น: <span className="text-blue-700 font-extrabold">{formCourseTargetGrade}</span> (
+                {["ม.1", "ม.2", "ม.3"].includes(formCourseTargetGrade) ? "ม.ต้น" : "ม.ปลาย"})
+              </span>
+            </div>
+
+            {/* กลุ่ม มัธยมศึกษาตอนต้น */}
+            <div>
+              <div className="text-[11px] font-bold text-sky-800 mb-1.5 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-sky-500 inline-block" />
+                ระดับมัธยมศึกษาตอนต้น (ม.ต้น)
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { key: "ม.1", label: "ม.1", name: "มัธยมศึกษาปีที่ 1" },
+                  { key: "ม.2", label: "ม.2", name: "มัธยมศึกษาปีที่ 2" },
+                  { key: "ม.3", label: "ม.3", name: "มัธยมศึกษาปีที่ 3" },
+                ].map((g) => {
+                  const active = formCourseTargetGrade === g.key;
+                  return (
+                    <button
+                      key={g.key}
+                      type="button"
+                      onClick={() => {
+                        setFormCourseTargetGrade(g.key);
+                        setFormCourseDegreeLevel("มัธยมศึกษาตอนต้น (ม.1 - ม.3)");
+                      }}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                        active
+                          ? "border-sky-500 bg-sky-100/90 text-sky-950 ring-2 ring-sky-400/30 shadow-xs font-bold"
+                          : "border-slate-200 bg-white hover:bg-sky-50/50 text-slate-700"
+                      }`}
+                    >
+                      <span className={`text-sm font-extrabold ${active ? "text-sky-700" : "text-slate-800"}`}>
+                        {g.label}
+                      </span>
+                      <span className="text-[10px] text-slate-500">{g.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* กลุ่ม มัธยมศึกษาตอนปลาย */}
+            <div>
+              <div className="text-[11px] font-bold text-purple-800 mb-1.5 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
+                ระดับมัธยมศึกษาตอนปลาย (ม.ปลาย)
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { key: "ม.4", label: "ม.4", name: "มัธยมศึกษาปีที่ 4" },
+                  { key: "ม.5", label: "ม.5", name: "มัธยมศึกษาปีที่ 5" },
+                  { key: "ม.6", label: "ม.6", name: "มัธยมศึกษาปีที่ 6" },
+                ].map((g) => {
+                  const active = formCourseTargetGrade === g.key;
+                  return (
+                    <button
+                      key={g.key}
+                      type="button"
+                      onClick={() => {
+                        setFormCourseTargetGrade(g.key);
+                        setFormCourseDegreeLevel("มัธยมศึกษาตอนปลาย (ม.4 - ม.6)");
+                      }}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                        active
+                          ? "border-purple-500 bg-purple-100/90 text-purple-950 ring-2 ring-purple-400/30 shadow-xs font-bold"
+                          : "border-slate-200 bg-white hover:bg-purple-50/50 text-slate-700"
+                      }`}
+                    >
+                      <span className={`text-sm font-extrabold ${active ? "text-purple-700" : "text-slate-800"}`}>
+                        {g.label}
+                      </span>
+                      <span className="text-[10px] text-slate-500">{g.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="text-[11px] text-slate-500 bg-white/70 px-2.5 py-1.5 rounded-lg border border-slate-200/60 flex items-center gap-1.5">
+              <span>✨</span>
+              <span>
+                เมื่อบันทึก นักเรียนระดับชั้น <strong>{formCourseTargetGrade}</strong> ในภาคเรียนที่เลือกจะได้รับวิชานี้และเข้าเรียนโดยอัตโนมัติ
+              </span>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">รหัสวิชา *</label>
@@ -3986,6 +4679,712 @@ export function RegistrationClient({
           >
             <Upload className="w-4 h-4" />
             ยืนยันนำเข้าข้อมูล ({parsedRows.filter((r) => r.isValid).length} คน)
+          </Button>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MODAL: BULK COPY STUDENTS (คัดลอกรายชื่อนักเรียนไปปี/เทอมใหม่ & ปรับเปลี่ยนข้อมูล)
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <LiyonDialog open={bulkCopyStudentsModalOpen} onOpenChange={setBulkCopyStudentsModalOpen} wide className="max-w-5xl">
+        <LiyonDialogHeader
+          title="คัดลอกรายชื่อนักเรียนไปปีการศึกษา / ภาคเรียนใหม่"
+          description={`คัดลอกและปรับปรุงรายละเอียดข้อมูลนักเรียนที่เลือกทั้งหมด ${bulkCopyStudentItems.length} คน`}
+        />
+        <LiyonDialogBody className="space-y-4 max-h-[75vh] overflow-y-auto">
+          {/* Quick Toolbar */}
+          <div className="bg-indigo-50/80 border border-indigo-200 rounded-xl p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-indigo-950">
+                1. กำหนดปีการศึกษาและภาคเรียนเป้าหมายที่ต้องการคัดลอกไป
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">ปีการศึกษาเป้าหมาย</label>
+                <input
+                  type="text"
+                  value={bulkCopyStudentTargetYear}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    const y = e.target.value;
+                    handleApplyBulkCopyStudentYearSem(y, bulkCopyStudentTargetSem);
+                  }}
+                  className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-mono font-bold"
+                  placeholder="เช่น 2570"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">ภาคเรียนเป้าหมาย</label>
+                <select
+                  value={bulkCopyStudentTargetSem}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                    const s = Number(e.target.value);
+                    handleApplyBulkCopyStudentYearSem(bulkCopyStudentTargetYear, s);
+                  }}
+                  className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-semibold"
+                >
+                  <option value={1}>ภาคเรียนที่ 1</option>
+                  <option value={2}>ภาคเรียนที่ 2</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleApplyBulkCopyStudentYearSem(bulkCopyStudentTargetYear, bulkCopyStudentTargetSem)}
+                  className="w-full h-8 text-xs bg-indigo-700 hover:bg-indigo-800 text-white font-bold"
+                >
+                  ปรับใช้ปี/เทอมนี้กับทุกคน
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Editable Students Table */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800">
+                2. ตรวจสอบและปรับปรุงข้อมูลนักเรียน (แก้ไขเลขที่, ห้อง, รหัส, ชื่อ-นามสกุล ได้โดยตรงในตาราง)
+              </span>
+              <span className="text-[11px] text-slate-500">
+                ทั้งหมด {bulkCopyStudentItems.length} คน
+              </span>
+            </div>
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden max-h-72 overflow-y-auto text-xs shadow-2xs">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-100 sticky top-0 text-slate-600 font-bold uppercase text-[11px]">
+                  <tr className="border-b border-slate-200">
+                    <th className="py-2 px-2.5 text-center w-14">เลขที่</th>
+                    <th className="py-2 px-2.5 w-28">รหัสนักเรียน</th>
+                    <th className="py-2 px-2.5 w-20">คำนำหน้า</th>
+                    <th className="py-2 px-2.5 w-32">ชื่อจริง</th>
+                    <th className="py-2 px-2.5 w-32">นามสกุล</th>
+                    <th className="py-2 px-2.5 w-24 text-center">ระดับชั้น/ห้อง</th>
+                    <th className="py-2 px-2.5 w-18 text-center">เพศ</th>
+                    <th className="py-2 px-2.5 w-28 text-center">สถานะ</th>
+                    <th className="py-2 px-2.5 w-12 text-center">ลบ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {bulkCopyStudentItems.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50">
+                      {/* เลขที่ */}
+                      <td className="py-1.5 px-2 text-center">
+                        <input
+                          type="number"
+                          min="1"
+                          max="99"
+                          value={item.seatNo}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const val = parseInt(e.target.value, 10) || 1;
+                            setBulkCopyStudentItems((prev) =>
+                              prev.map((s, i) => (i === idx ? { ...s, seatNo: val } : s))
+                            );
+                          }}
+                          className="w-12 text-center text-xs font-bold border border-slate-200 rounded px-1 py-1 bg-white"
+                        />
+                      </td>
+
+                      {/* รหัสนักเรียน */}
+                      <td className="py-1.5 px-2">
+                        <input
+                          type="text"
+                          value={item.studentCode}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyStudentItems((prev) =>
+                              prev.map((s, i) => (i === idx ? { ...s, studentCode: val } : s))
+                            );
+                          }}
+                          className="w-full text-xs font-mono font-bold text-blue-700 border border-slate-200 rounded px-1.5 py-1 bg-white"
+                        />
+                      </td>
+
+                      {/* คำนำหน้า */}
+                      <td className="py-1.5 px-2">
+                        <select
+                          value={item.title}
+                          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyStudentItems((prev) =>
+                              prev.map((s, i) => (i === idx ? { ...s, title: val } : s))
+                            );
+                          }}
+                          className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 bg-white"
+                        >
+                          <option value="ด.ช.">ด.ช.</option>
+                          <option value="ด.ญ.">ด.ญ.</option>
+                          <option value="นาย">นาย</option>
+                          <option value="น.ส.">น.ส.</option>
+                        </select>
+                      </td>
+
+                      {/* ชื่อจริง */}
+                      <td className="py-1.5 px-2">
+                        <input
+                          type="text"
+                          value={item.firstName}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyStudentItems((prev) =>
+                              prev.map((s, i) => (i === idx ? { ...s, firstName: val } : s))
+                            );
+                          }}
+                          className="w-full text-xs font-medium text-slate-900 border border-slate-200 rounded px-2 py-1 bg-white"
+                        />
+                      </td>
+
+                      {/* นามสกุล */}
+                      <td className="py-1.5 px-2">
+                        <input
+                          type="text"
+                          value={item.lastName}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyStudentItems((prev) =>
+                              prev.map((s, i) => (i === idx ? { ...s, lastName: val } : s))
+                            );
+                          }}
+                          className="w-full text-xs font-medium text-slate-900 border border-slate-200 rounded px-2 py-1 bg-white"
+                        />
+                      </td>
+
+                      {/* ระดับชั้น/ห้อง */}
+                      <td className="py-1.5 px-2 text-center">
+                        <input
+                          type="text"
+                          value={item.classRoom}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyStudentItems((prev) =>
+                              prev.map((s, i) => (i === idx ? { ...s, classRoom: val } : s))
+                            );
+                          }}
+                          className="w-20 text-center text-xs font-bold text-blue-700 border border-slate-200 rounded px-1.5 py-1 bg-white"
+                          placeholder="เช่น ม.2/1"
+                        />
+                      </td>
+
+                      {/* เพศ */}
+                      <td className="py-1.5 px-2 text-center">
+                        <select
+                          value={item.gender || "ชาย"}
+                          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyStudentItems((prev) =>
+                              prev.map((s, i) => (i === idx ? { ...s, gender: val } : s))
+                            );
+                          }}
+                          className="text-xs border border-slate-200 rounded px-1 py-1 bg-white text-slate-700"
+                        >
+                          <option value="ชาย">ชาย</option>
+                          <option value="หญิง">หญิง</option>
+                        </select>
+                      </td>
+
+                      {/* สถานะ */}
+                      <td className="py-1.5 px-2 text-center">
+                        <select
+                          value={item.status || "ACTIVE"}
+                          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyStudentItems((prev) =>
+                              prev.map((s, i) => (i === idx ? { ...s, status: val } : s))
+                            );
+                          }}
+                          className="text-xs border border-slate-200 rounded px-1 py-1 bg-white font-semibold text-slate-800"
+                        >
+                          <option value="ACTIVE">กำลังศึกษา</option>
+                          <option value="GRADUATED">สำเร็จการศึกษา</option>
+                          <option value="SUSPENDED">พักการเรียน</option>
+                          <option value="TRANSFERRED">ย้ายสถานศึกษา</option>
+                          <option value="DROPOUT">พ้นสภาพ</option>
+                        </select>
+                      </td>
+
+                      {/* ลบ */}
+                      <td className="py-1.5 px-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setBulkCopyStudentItems((prev) => prev.filter((_, i) => i !== idx))}
+                          className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          title="นำนักเรียนคนนี้ออกจากรายการคัดลอก"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="text-[11px] text-slate-500 bg-indigo-50/60 border border-indigo-100 rounded-lg p-2.5">
+              💡 <b>คำแนะนำ:</b> เมื่อยืนยัน ระบบจะคัดลอก/อัปเดตข้อมูลนักเรียนไปยังปีการศึกษาและภาคเรียนเป้าหมาย และลงทะเบียนนักเรียนเข้าเรียนในรายวิชาที่ตรงกับระดับชั้นนั้นให้อัตโนมัติ โดยประวัติการเรียนของปีเดิมจะไม่สูญหาย
+            </div>
+          </div>
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setBulkCopyStudentsModalOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleConfirmBulkCopyStudents}
+            disabled={isPending || bulkCopyStudentItems.length === 0}
+            className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold gap-1.5"
+          >
+            <Copy className="w-4 h-4" />
+            ยืนยันคัดลอกรายชื่อ ({bulkCopyStudentItems.length} คน)
+          </Button>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MODAL: BULK EDIT STUDENTS (แก้ไขข้อมูลนักเรียนหลายคนพร้อมกัน)
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <LiyonDialog open={bulkEditStudentsModalOpen} onOpenChange={setBulkEditStudentsModalOpen} className="max-w-md">
+        <LiyonDialogHeader
+          title="แก้ไขข้อมูลนักเรียนพร้อมกัน"
+          description={`ปรับเปลี่ยนข้อมูลสำหรับนักเรียนที่เลือกทั้งหมด ${selectedStudentIds.length} คน (กรอกเฉพาะช่องที่ต้องการเปลี่ยน)`}
+        />
+        <LiyonDialogBody className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">ระดับชั้น/ห้องใหม่ (เว้นว่างไว้หากไม่เปลี่ยน)</label>
+            <input
+              type="text"
+              value={bulkEditStudentClass}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setBulkEditStudentClass(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+              placeholder="เช่น ม.1/2"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">ปีการศึกษา</label>
+              <input
+                type="text"
+                value={bulkEditStudentYear}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setBulkEditStudentYear(e.target.value)}
+                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+                placeholder="เช่น 2570"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">ภาคเรียน</label>
+              <select
+                value={bulkEditStudentSem}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setBulkEditStudentSem(e.target.value)}
+                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+              >
+                <option value="">-- ไม่เปลี่ยน --</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">สถานะนักเรียน</label>
+            <select
+              value={bulkEditStudentStatus}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setBulkEditStudentStatus(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+            >
+              <option value="">-- ไม่เปลี่ยน --</option>
+              <option value="ACTIVE">กำลังศึกษา (ACTIVE)</option>
+              <option value="GRADUATED">สำเร็จการศึกษา (GRADUATED)</option>
+              <option value="SUSPENDED">พักการเรียน (SUSPENDED)</option>
+              <option value="TRANSFERRED">ย้ายสถานศึกษา (TRANSFERRED)</option>
+              <option value="DROPOUT">พ้นสภาพ (DROPOUT)</option>
+            </select>
+          </div>
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setBulkEditStudentsModalOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleConfirmBulkEditStudents}
+            disabled={isPending}
+            className="bg-blue-700 hover:bg-blue-800 text-white font-bold"
+          >
+            บันทึกการแก้ไข ({selectedStudentIds.length} คน)
+          </Button>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MODAL: BULK DELETE STUDENTS CONFIRM
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <LiyonDialog open={bulkDeleteStudentsModalOpen} onOpenChange={setBulkDeleteStudentsModalOpen} danger className="max-w-md">
+        <LiyonDialogHeader
+          title="ยืนยันการลบข้อมูลนักเรียน"
+          description={`คุณกำลังจะลบข้อมูลนักเรียนที่เลือกทั้งหมด ${selectedStudentIds.length} คน`}
+        />
+        <LiyonDialogBody>
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+            ⚠️ <b>คำเตือน:</b> การลบข้อมูลนักเรียนจะลบประวัติและคะแนนที่เกี่ยวข้องทั้งหมดอย่างถาวรและไม่สามารถย้อนกลับได้ คุณแน่ใจหรือไม่ว่าต้องการดำเนินการต่อ?
+          </div>
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setBulkDeleteStudentsModalOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleConfirmBulkDeleteStudents}
+            disabled={isPending}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-1.5"
+          >
+            <Trash2 className="w-4 h-4" />
+            ยืนยันลบ ({selectedStudentIds.length} คน)
+          </Button>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MODAL: BULK COPY COURSES (คัดลอกรายวิชาไปปี/เทอมใหม่ & ปรับเปลี่ยนชื่อวิชา)
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <LiyonDialog open={bulkCopyModalOpen} onOpenChange={setBulkCopyModalOpen} wide className="max-w-5xl">
+        <LiyonDialogHeader
+          title="คัดลอกรายวิชาไปปีการศึกษา / ภาคเรียนใหม่"
+          description={`คัดลอกและปรับปรุงรายละเอียดรายวิชาที่เลือกทั้งหมด ${bulkCopyItems.length} รายวิชา`}
+        />
+        <LiyonDialogBody className="space-y-4 max-h-[75vh] overflow-y-auto">
+          {/* Quick Toolbar */}
+          <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-emerald-950">
+                1. กำหนดปีการศึกษาและภาคเรียนเป้าหมาย
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleAdjustCoursesForSem2}
+                className="h-7 text-xs gap-1 border-emerald-300 text-emerald-800 hover:bg-emerald-100 bg-white font-semibold"
+                title="เปลี่ยนรหัสวิชาลงท้ายด้วย 2 และชื่อวิชาเป็น 2 อัตโนมัติ"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                สลับเป็นเทอม 2 อัตโนมัติ (เช่น ท21101 -&gt; ท21102)
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">ปีการศึกษาเป้าหมาย</label>
+                <input
+                  type="text"
+                  value={bulkCopyTargetYear}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    const y = e.target.value;
+                    handleApplyBulkCopyYearSem(y, bulkCopyTargetSem);
+                  }}
+                  className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-mono font-bold"
+                  placeholder="เช่น 2570"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">ภาคเรียนเป้าหมาย</label>
+                <select
+                  value={bulkCopyTargetSem}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                    const s = Number(e.target.value);
+                    handleApplyBulkCopyYearSem(bulkCopyTargetYear, s);
+                  }}
+                  className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-semibold"
+                >
+                  <option value={1}>ภาคเรียนที่ 1</option>
+                  <option value={2}>ภาคเรียนที่ 2</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleApplyBulkCopyYearSem(bulkCopyTargetYear, bulkCopyTargetSem)}
+                  className="w-full h-8 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+                >
+                  ปรับใช้ปี/เทอมนี้กับทุกวิชา
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Editable Courses Table */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800">
+                2. ตรวจสอบและปรับเปลี่ยนรหัสวิชา / ชื่อวิชา / หน่วยกิต (แก้ไขได้โดยตรงในตาราง)
+              </span>
+              <span className="text-[11px] text-slate-500">
+                ทั้งหมด {bulkCopyItems.length} วิชา
+              </span>
+            </div>
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden max-h-72 overflow-y-auto text-xs shadow-2xs">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-100 sticky top-0 text-slate-600 font-bold uppercase text-[11px]">
+                  <tr className="border-b border-slate-200">
+                    <th className="py-2 px-2.5 w-28">รหัสวิชาใหม่</th>
+                    <th className="py-2 px-2.5">ชื่อรายวิชาใหม่ (แก้ไขได้)</th>
+                    <th className="py-2 px-2.5 w-20 text-center">ระดับชั้น</th>
+                    <th className="py-2 px-2.5 w-20 text-center">หน่วยกิต</th>
+                    <th className="py-2 px-2.5 w-44">อาจารย์ผู้สอน</th>
+                    <th className="py-2 px-2.5 w-12 text-center">ลบ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {bulkCopyItems.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50">
+                      <td className="py-2 px-2.5">
+                        <input
+                          type="text"
+                          value={item.courseCode}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyItems((prev) =>
+                              prev.map((c, i) => (i === idx ? { ...c, courseCode: val } : c))
+                            );
+                          }}
+                          className="w-full text-xs font-mono font-bold text-blue-700 border border-slate-200 rounded px-1.5 py-1 bg-white"
+                        />
+                      </td>
+                      <td className="py-2 px-2.5">
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyItems((prev) =>
+                              prev.map((c, i) => (i === idx ? { ...c, name: val } : c))
+                            );
+                          }}
+                          className="w-full text-xs font-medium text-slate-900 border border-slate-200 rounded px-2 py-1 bg-white"
+                        />
+                      </td>
+                      <td className="py-2 px-2.5 text-center">
+                        <select
+                          value={item.targetGrade}
+                          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            const val = e.target.value;
+                            setBulkCopyItems((prev) =>
+                              prev.map((c, i) => (i === idx ? { ...c, targetGrade: val } : c))
+                            );
+                          }}
+                          className="text-xs border border-slate-200 rounded px-1 py-1 bg-white font-bold text-slate-700"
+                        >
+                          <option value="ม.1">ม.1</option>
+                          <option value="ม.2">ม.2</option>
+                          <option value="ม.3">ม.3</option>
+                          <option value="ม.4">ม.4</option>
+                          <option value="ม.5">ม.5</option>
+                          <option value="ม.6">ม.6</option>
+                        </select>
+                      </td>
+                      <td className="py-2 px-2.5 text-center">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0.5"
+                          max="5"
+                          value={item.credits}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const val = parseFloat(e.target.value) || 1.0;
+                            setBulkCopyItems((prev) =>
+                              prev.map((c, i) => (i === idx ? { ...c, credits: val } : c))
+                            );
+                          }}
+                          className="w-16 text-center text-xs border border-slate-200 rounded px-1 py-1 bg-white font-bold"
+                        />
+                      </td>
+                      <td className="py-2 px-2.5">
+                        <select
+                          value={item.instructorId || ""}
+                          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            const insId = e.target.value;
+                            const ins = instructors.find((inst) => inst.id === insId);
+                            setBulkCopyItems((prev) =>
+                              prev.map((c, i) =>
+                                i === idx
+                                  ? {
+                                      ...c,
+                                      instructorId: insId || null,
+                                      instructorName: ins?.fullName || null,
+                                    }
+                                  : c
+                              )
+                            );
+                          }}
+                          className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 bg-white truncate"
+                        >
+                          <option value="">-- ยังไม่ระบุ --</option>
+                          {instructors.map((ins) => (
+                            <option key={ins.id} value={ins.id}>
+                              {ins.fullName}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="py-2 px-2.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setBulkCopyItems((prev) => prev.filter((_, i) => i !== idx))}
+                          className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          title="นำวิชานี้ออกจากรายการคัดลอก"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="text-[11px] text-slate-500 bg-emerald-50/60 border border-emerald-100 rounded-lg p-2.5">
+              💡 <b>คำแนะนำ:</b> เมื่อบันทึก ระบบจะเชื่อมโยงหลักสูตรสถานศึกษา และลงทะเบียนนักเรียนที่อยู่ในระดับชั้นและปีการศึกษาเป้าหมายเข้าเรียนในวิชาเหล่านี้ให้อัตโนมัติทันที
+            </div>
+          </div>
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setBulkCopyModalOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleConfirmBulkCopyCourses}
+            disabled={isPending || bulkCopyItems.length === 0}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-1.5"
+          >
+            <Copy className="w-4 h-4" />
+            ยืนยันคัดลอกรายวิชา ({bulkCopyItems.length} วิชา)
+          </Button>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MODAL: BULK EDIT COURSES (แก้ไขรายวิชาหลายวิชาพร้อมกัน)
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <LiyonDialog open={bulkEditCoursesModalOpen} onOpenChange={setBulkEditCoursesModalOpen} className="max-w-md">
+        <LiyonDialogHeader
+          title="แก้ไขรายวิชาพร้อมกัน"
+          description={`ปรับเปลี่ยนข้อมูลสำหรับรายวิชาที่เลือกทั้งหมด ${selectedCourseIds.length} วิชา (กรอกเฉพาะช่องที่ต้องการเปลี่ยน)`}
+        />
+        <LiyonDialogBody className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">ระดับชั้นเป้าหมาย</label>
+            <select
+              value={bulkEditCourseGrade}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setBulkEditCourseGrade(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+            >
+              <option value="">-- ไม่เปลี่ยน --</option>
+              <option value="ม.1">มัธยมศึกษาปีที่ 1 (ม.1)</option>
+              <option value="ม.2">มัธยมศึกษาปีที่ 2 (ม.2)</option>
+              <option value="ม.3">มัธยมศึกษาปีที่ 3 (ม.3)</option>
+              <option value="ม.4">มัธยมศึกษาปีที่ 4 (ม.4)</option>
+              <option value="ม.5">มัธยมศึกษาปีที่ 5 (ม.5)</option>
+              <option value="ม.6">มัธยมศึกษาปีที่ 6 (ม.6)</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">ปีการศึกษา</label>
+              <input
+                type="text"
+                value={bulkEditCourseYear}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setBulkEditCourseYear(e.target.value)}
+                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+                placeholder="เช่น 2570"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">ภาคเรียน</label>
+              <select
+                value={bulkEditCourseSem}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setBulkEditCourseSem(e.target.value)}
+                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+              >
+                <option value="">-- ไม่เปลี่ยน --</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">กลุ่มสาระการเรียนรู้</label>
+            <select
+              value={bulkEditCourseGroup}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setBulkEditCourseGroup(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+            >
+              <option value="">-- ไม่เปลี่ยน --</option>
+              <option value="กลุ่มสาระการเรียนรู้ภาษาไทย">กลุ่มสาระการเรียนรู้ภาษาไทย</option>
+              <option value="กลุ่มสาระการเรียนรู้คณิตศาสตร์">กลุ่มสาระการเรียนรู้คณิตศาสตร์</option>
+              <option value="กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี">กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</option>
+              <option value="กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม">กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม</option>
+              <option value="กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ">กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ</option>
+              <option value="กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา">กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา</option>
+              <option value="กลุ่มสาระการเรียนรู้ศิลปะ">กลุ่มสาระการเรียนรู้ศิลปะ</option>
+              <option value="กลุ่มสาระการเรียนรู้การงานอาชีพ">กลุ่มสาระการเรียนรู้การงานอาชีพ</option>
+              <option value="พุทธศาสน์ศึกษาและภาษาบาลี">พุทธศาสน์ศึกษาและภาษาบาลี</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">อาจารย์ผู้สอนประจำวิชา</label>
+            <select
+              value={bulkEditCourseInstructorId}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setBulkEditCourseInstructorId(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5"
+            >
+              <option value="">-- ไม่เปลี่ยน --</option>
+              {instructors.map((ins) => (
+                <option key={ins.id} value={ins.id}>
+                  {ins.fullName} ({ins.position || "อาจารย์"})
+                </option>
+              ))}
+            </select>
+          </div>
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setBulkEditCoursesModalOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleConfirmBulkEditCourses}
+            disabled={isPending}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+          >
+            บันทึกการแก้ไข ({selectedCourseIds.length} วิชา)
+          </Button>
+        </LiyonDialogFooter>
+      </LiyonDialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MODAL: BULK DELETE COURSES CONFIRM
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <LiyonDialog open={bulkDeleteCoursesModalOpen} onOpenChange={setBulkDeleteCoursesModalOpen} danger className="max-w-md">
+        <LiyonDialogHeader
+          title="ยืนยันการลบรายวิชา"
+          description={`คุณกำลังจะลบรายวิชาที่เลือกทั้งหมด ${selectedCourseIds.length} วิชา`}
+        />
+        <LiyonDialogBody>
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+            ⚠️ <b>คำเตือน:</b> การลบรายวิชาจะลบการลงทะเบียน เกรด และการเช็คชื่อทั้งหมดที่ผูกกับวิชานี้อย่างถาวร คุณแน่ใจหรือไม่ว่าต้องการดำเนินการต่อ?
+          </div>
+        </LiyonDialogBody>
+        <LiyonDialogFooter>
+          <Button variant="outline" onClick={() => setBulkDeleteCoursesModalOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleConfirmBulkDeleteCourses}
+            disabled={isPending}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-1.5"
+          >
+            <Trash2 className="w-4 h-4" />
+            ยืนยันลบ ({selectedCourseIds.length} วิชา)
           </Button>
         </LiyonDialogFooter>
       </LiyonDialog>

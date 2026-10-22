@@ -24,8 +24,10 @@ export function ImageUpload({
   onPositionChange,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState("");
+  const [directFallbackUrl, setDirectFallbackUrl] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +56,7 @@ export function ImageUpload({
       if (data.ok && data.url) {
         onChange(data.url);
         setShowUrlInput(false);
+        setDirectFallbackUrl(null);
         toast.success("อัปโหลดรูปภาพเรียบร้อยแล้ว");
       } else {
         toast.error(data.error || "เกิดข้อผิดพลาดในการอัปโหลด");
@@ -66,31 +69,54 @@ export function ImageUpload({
     }
   };
 
-  const handleApplyUrl = () => {
-    const raw = urlInputValue.trim().replace(/^['"]|['"]$/g, "");
+  const handleApplyUrl = async (forceDirect = false) => {
+    const raw = (forceDirect && directFallbackUrl ? directFallbackUrl : urlInputValue)
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+
     if (!raw) {
       toast.error("กรุณาระบุ URL รูปภาพก่อนกดตกลง");
       return;
     }
 
-    // Check if user accidentally pasted a Facebook post URL instead of image address
-    if (
-      raw.includes("facebook.com") &&
-      !raw.includes("fbcdn.net") &&
-      !raw.includes("fna.fbcdn") &&
-      !raw.match(/\.(jpg|jpeg|png|webp|gif)/i)
-    ) {
-      toast.warning(
-        "ข้อสังเกต: ลิงก์นี้อาจเป็นลิงก์หน้าโพสต์ Facebook กรุณาคลิกขวาที่รูปภาพ แล้วเลือก 'คัดลอกที่อยู่รูปภาพ' (Copy image address) เพื่อให้ดึงรูปมาแสดงได้ถูกต้องครับ",
-        { duration: 6000 }
-      );
+    if (forceDirect || raw.startsWith("/uploads/") || raw.startsWith("data:image/")) {
+      setHasError(false);
+      onChange(raw);
+      toast.success("นำรูปภาพมาใช้เรียบร้อยแล้ว");
+      setUrlInputValue("");
+      setDirectFallbackUrl(null);
+      setShowUrlInput(false);
+      return;
     }
 
+    setIsFetchingUrl(true);
     setHasError(false);
-    onChange(raw);
-    toast.success("นำรูปภาพมาใช้เรียบร้อยแล้ว");
-    setUrlInputValue("");
-    setShowUrlInput(false);
+    setDirectFallbackUrl(null);
+
+    try {
+      const res = await fetch("/api/upload/from-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: raw }),
+      });
+
+      const data = await res.json();
+      if (data.ok && data.url) {
+        onChange(data.url);
+        toast.success("ดึงและบันทึกรูปภาพเข้าสู่ระบบเรียบร้อยแล้ว");
+        setUrlInputValue("");
+        setDirectFallbackUrl(null);
+        setShowUrlInput(false);
+      } else {
+        toast.error(data.error || "ไม่สามารถดึงรูปภาพจากลิงก์ได้", { duration: 6000 });
+        setDirectFallbackUrl(raw);
+      }
+    } catch (err: any) {
+      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", { duration: 5000 });
+      setDirectFallbackUrl(raw);
+    } finally {
+      setIsFetchingUrl(false);
+    }
   };
 
   return (
@@ -105,7 +131,6 @@ export function ImageUpload({
               src={value}
               alt="Cover Preview"
               referrerPolicy="no-referrer"
-              crossOrigin="anonymous"
               onError={() => setHasError(true)}
               style={{ objectPosition: position }}
               className={
@@ -263,20 +288,45 @@ export function ImageUpload({
             />
             <button
               type="button"
-              onClick={handleApplyUrl}
-              className="px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-xs shrink-0 inline-flex items-center gap-1 cursor-pointer"
+              disabled={isFetchingUrl}
+              onClick={() => handleApplyUrl(false)}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-xs shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
             >
-              <Check className="w-3.5 h-3.5" />
-              <span>ใช้รูปนี้</span>
+              {isFetchingUrl ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>กำลังดึงรูปภาพ...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>ดึงและใช้รูปนี้</span>
+                </>
+              )}
             </button>
           </div>
+
+          {/* Fallback button if server-side fetch failed */}
+          {directFallbackUrl && (
+            <div className="flex items-center justify-between p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800">
+              <span>ต้องการใช้ URL นี้โดยตรงโดยไม่ต้องดาวน์โหลดหรือไม่?</span>
+              <button
+                type="button"
+                onClick={() => handleApplyUrl(true)}
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-md text-[11px] cursor-pointer"
+              >
+                ใช้ลิงก์นี้โดยตรง
+              </button>
+            </div>
+          )}
+
           <div className="text-[11px] text-slate-500 leading-relaxed bg-white/80 p-2.5 rounded-lg border border-blue-100">
-            💡 <strong>วิธีคัดลอกรูปจาก Facebook มาใช้อย่างถูกต้อง:</strong>
-            <ol className="list-decimal list-inside mt-1 space-y-0.5 text-slate-600">
-              <li>ไปที่โพสต์ Facebook แล้วคลิกเปิดรูปภาพที่ต้องการ</li>
-              <li><strong>คลิกขวาที่ตัวรูปภาพ</strong> แล้วเลือกเมนู <strong>&quot;คัดลอกที่อยู่รูปภาพ&quot; (Copy image address)</strong></li>
-              <li>นำลิงก์ที่ได้มาวางในช่องด้านบน แล้วกดปุ่ม <strong>&quot;ใช้รูปนี้&quot;</strong> หรือกด Enter ได้ทันที</li>
-            </ol>
+            💡 <strong>คำแนะนำการนำรูปลิงก์จาก Facebook มาใช้:</strong>
+            <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-600">
+              <li><strong>วิธีที่แนะนำที่สุด:</strong> คลิกขวาที่ตัวรูปภาพใน Facebook แล้วเลือก <strong>&quot;คัดลอกที่อยู่รูปภาพ&quot; (Copy image address)</strong> แล้วนำมาวาง</li>
+              <li>หรือวางลิงก์โพสต์ Facebook ระบบจะพยายามค้นหาและดึงรูปภาพมาบันทึกเข้าสู่เครื่องให้อัตโนมัติ</li>
+              <li>หากเป็นโพสต์ที่ตั้งค่าความเป็นส่วนตัวเฉพาะกลุ่ม/เพื่อน อาจต้องดาวน์โหลดรูปภาพลงเครื่องก่อน แล้วกดอัปโหลดไฟล์โดยตรงครับ</li>
+            </ul>
           </div>
         </div>
       )}

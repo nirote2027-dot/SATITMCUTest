@@ -16,6 +16,13 @@ import {
   createCourse,
   updateCourse,
   deleteCourse,
+  promoteStudents,
+  bulkDeleteStudents,
+  bulkUpdateStudents,
+  copyStudents,
+  bulkCopyCourses,
+  bulkDeleteCourses,
+  bulkUpdateCourses,
   recordBatchAttendance,
   getStudentAttendanceSummaries,
   getAttendanceForPeriod,
@@ -37,6 +44,11 @@ import type {
   InstructorDto,
   CourseAttendanceCell,
   CourseAttendanceMatrixDto,
+  BulkPromoteStudentsInput,
+  BulkUpdateStudentsInput,
+  BulkCopyStudentInputItem,
+  BulkCopyCourseInputItem,
+  BulkUpdateCoursesInput,
 } from "./types";
 
 export async function getStudentsAction(filter?: {
@@ -102,6 +114,50 @@ export async function deleteStudentAction(id: string): Promise<ActionResult<void
   });
 }
 
+export async function promoteStudentsAction(
+  data: BulkPromoteStudentsInput,
+): Promise<ActionResult<{ updatedCount: number; students: StudentDto[] }>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const result = await promoteStudents(ctx.tenantId, data);
+    revalidatePath("/satitmcuReg");
+    return result;
+  });
+}
+
+export async function bulkDeleteStudentsAction(
+  studentIds: string[],
+): Promise<ActionResult<number>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const count = await bulkDeleteStudents(ctx.tenantId, studentIds);
+    revalidatePath("/satitmcuReg");
+    return count;
+  });
+}
+
+export async function bulkUpdateStudentsAction(
+  data: BulkUpdateStudentsInput,
+): Promise<ActionResult<{ updatedCount: number; students: StudentDto[] }>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const result = await bulkUpdateStudents(ctx.tenantId, data);
+    revalidatePath("/satitmcuReg");
+    return result;
+  });
+}
+
+export async function copyStudentsAction(
+  items: BulkCopyStudentInputItem[],
+): Promise<ActionResult<{ copiedCount: number; students: StudentDto[] }>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const result = await copyStudents(ctx.tenantId, items);
+    revalidatePath("/satitmcuReg");
+    return result;
+  });
+}
+
 export async function importBatchStudentsAction(
   items: ImportStudentInput[],
   options?: { overwriteExisting?: boolean },
@@ -135,6 +191,8 @@ export async function createCourseAction(data: {
   semester?: number;
   academicYear?: string;
   curriculumId?: string;
+  degreeLevel?: string;
+  targetGrade?: string;
   subjectGroup?: string;
   instructorName?: string;
   instructorId?: string;
@@ -156,6 +214,8 @@ export async function updateCourseAction(
     semester?: number;
     academicYear?: string;
     curriculumId?: string;
+    degreeLevel?: string;
+    targetGrade?: string;
     subjectGroup?: string;
     instructorName?: string;
     instructorId?: string;
@@ -174,6 +234,39 @@ export async function deleteCourseAction(id: string): Promise<ActionResult<void>
     const ctx = await requirePermission(DOCUMENT_P.documentManage);
     await deleteCourse(ctx.tenantId, id);
     revalidatePath("/satitmcuReg");
+  });
+}
+
+export async function bulkCopyCoursesAction(
+  items: BulkCopyCourseInputItem[],
+): Promise<ActionResult<CourseDto[]>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const result = await bulkCopyCourses(ctx.tenantId, items);
+    revalidatePath("/satitmcuReg");
+    return result;
+  });
+}
+
+export async function bulkDeleteCoursesAction(
+  courseIds: string[],
+): Promise<ActionResult<number>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const count = await bulkDeleteCourses(ctx.tenantId, courseIds);
+    revalidatePath("/satitmcuReg");
+    return count;
+  });
+}
+
+export async function bulkUpdateCoursesAction(
+  data: BulkUpdateCoursesInput,
+): Promise<ActionResult<{ updatedCount: number; courses: CourseDto[] }>> {
+  return runAction(async () => {
+    const ctx = await requirePermission(DOCUMENT_P.documentManage);
+    const result = await bulkUpdateCourses(ctx.tenantId, data);
+    revalidatePath("/satitmcuReg");
+    return result;
   });
 }
 

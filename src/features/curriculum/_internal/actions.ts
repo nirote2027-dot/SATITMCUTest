@@ -31,7 +31,7 @@ export async function createCurriculumAction(input: CreateCurriculumInput) {
   const ctx = await requirePermission(CURRICULUM_P.manage);
   const parsed = CreateCurriculumSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid input" };
+    return { ok: false, error: "ข้อมูลไม่ถูกต้อง: " + parsed.error.issues.map((i) => i.message).join(", ") };
   }
   
   try {
@@ -39,8 +39,9 @@ export async function createCurriculumAction(input: CreateCurriculumInput) {
     revalidatePath("/curriculum");
     revalidatePath("/");
     return { ok: true, data };
-  } catch (error) {
-    return { ok: false, error: "Failed to create curriculum" };
+  } catch (error: any) {
+    console.error("createCurriculum error:", error);
+    return { ok: false, error: error?.message || "ไม่สามารถเพิ่มหลักสูตรได้" };
   }
 }
 
@@ -48,7 +49,7 @@ export async function updateCurriculumAction(input: UpdateCurriculumInput) {
   const ctx = await requirePermission(CURRICULUM_P.manage);
   const parsed = UpdateCurriculumSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid input" };
+    return { ok: false, error: "ข้อมูลไม่ถูกต้อง: " + parsed.error.issues.map((i) => i.message).join(", ") };
   }
   
   try {
@@ -56,8 +57,9 @@ export async function updateCurriculumAction(input: UpdateCurriculumInput) {
     revalidatePath("/curriculum");
     revalidatePath("/");
     return { ok: true, data };
-  } catch (error) {
-    return { ok: false, error: "Failed to update curriculum" };
+  } catch (error: any) {
+    console.error("updateCurriculum error:", error);
+    return { ok: false, error: error?.message || "ไม่สามารถแก้ไขหลักสูตรได้" };
   }
 }
 

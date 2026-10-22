@@ -9,6 +9,11 @@ import type {
   ImportStudentInput,
   ImportBatchStudentsResult,
   InstructorDto,
+  BulkPromoteStudentsInput,
+  BulkUpdateStudentsInput,
+  BulkCopyStudentInputItem,
+  BulkCopyCourseInputItem,
+  BulkUpdateCoursesInput,
 } from "./types";
 
 export function calculateGrade(
@@ -241,6 +246,8 @@ export async function createStudent(
     },
   });
 
+  await enrollStudentIntoCourses(tenantId, created.id, created.classRoom, created.academicYear, created.semester);
+
   return {
     id: created.id,
     studentCode: created.studentCode,
@@ -313,6 +320,239 @@ export async function deleteStudent(tenantId: string, id: string): Promise<void>
   });
 }
 
+export async function promoteStudents(
+  tenantId: string,
+  data: BulkPromoteStudentsInput,
+): Promise<{ updatedCount: number; students: StudentDto[] }> {
+  const students = await prisma.student.findMany({
+    where: { id: { in: data.studentIds }, tenantId },
+  });
+
+  const updatedStudents: StudentDto[] = [];
+
+  for (const s of students) {
+    let nextClassRoom = s.classRoom;
+    let nextStatus = s.status;
+    let nextTitle = s.title;
+
+    const override = data.studentOverrides?.[s.id];
+    const effectiveMode = override?.mode || data.mode;
+    const effectiveTargetRoom = override?.targetClassRoom || data.targetClassRoom;
+
+    if (effectiveMode === "GRADUATE") {
+      nextStatus = "GRADUATED";
+    } else if (effectiveMode === "RETAIN") {
+      nextClassRoom = s.classRoom;
+    } else if (effectiveMode === "SPECIFY_ROOM") {
+      nextClassRoom = effectiveTargetRoom?.trim() || s.classRoom;
+    } else if (effectiveMode === "PROMOTE_NEXT") {
+      const match = s.classRoom.match(/ม\.([1-6])(.*)/);
+      if (match) {
+        const gradeNum = parseInt(match[1], 10);
+        const suffix = match[2] || "";
+        if (gradeNum >= 6) {
+          nextStatus = "GRADUATED";
+        } else {
+          const nextGrade = gradeNum + 1;
+          nextClassRoom = `ม.${nextGrade}${suffix}`;
+          if (nextGrade >= 4) {
+            if (s.title === "ด.ช.") nextTitle = "นาย";
+            else if (s.title === "ด.ญ.") nextTitle = "น.ส.";
+          }
+        }
+      }
+    }
+
+    const updated = await prisma.student.update({
+      where: { id: s.id },
+      data: {
+        classRoom: nextClassRoom,
+        status: nextStatus,
+        title: nextTitle,
+        academicYear: data.targetAcademicYear.trim(),
+        semester: Number(data.targetSemester) || 1,
+      },
+    });
+
+    if (nextStatus === "ACTIVE") {
+      await enrollStudentIntoCourses(
+        tenantId,
+        updated.id,
+        updated.classRoom,
+        updated.academicYear,
+        updated.semester,
+      );
+    }
+
+    updatedStudents.push({
+      id: updated.id,
+      studentCode: updated.studentCode,
+      title: updated.title,
+      firstName: updated.firstName,
+      lastName: updated.lastName,
+      fullName: `${updated.title}${updated.firstName} ${updated.lastName}`,
+      classRoom: updated.classRoom,
+      seatNo: updated.seatNo,
+      academicYear: updated.academicYear,
+      semester: updated.semester,
+      gender: updated.gender,
+      status: updated.status,
+      createdAt: updated.createdAt.toISOString(),
+    });
+  }
+
+  return { updatedCount: updatedStudents.length, students: updatedStudents };
+}
+
+export async function bulkDeleteStudents(tenantId: string, studentIds: string[]): Promise<number> {
+  const res = await prisma.student.deleteMany({
+    where: { id: { in: studentIds }, tenantId },
+  });
+  return res.count;
+}
+
+export async function bulkUpdateStudents(
+  tenantId: string,
+  data: BulkUpdateStudentsInput,
+): Promise<{ updatedCount: number; students: StudentDto[] }> {
+  const students = await prisma.student.findMany({
+    where: { id: { in: data.studentIds }, tenantId },
+  });
+
+  const updatedStudents: StudentDto[] = [];
+
+  for (const s of students) {
+    const updated = await prisma.student.update({
+      where: { id: s.id },
+      data: {
+        ...(data.classRoom ? { classRoom: data.classRoom.trim() } : {}),
+        ...(data.academicYear ? { academicYear: data.academicYear.trim() } : {}),
+        ...(data.semester !== undefined ? { semester: Number(data.semester) } : {}),
+        ...(data.status ? { status: data.status.trim() } : {}),
+      },
+    });
+
+    if (updated.status === "ACTIVE") {
+      await enrollStudentIntoCourses(
+        tenantId,
+        updated.id,
+        updated.classRoom,
+        updated.academicYear,
+        updated.semester,
+      );
+    }
+
+    updatedStudents.push({
+      id: updated.id,
+      studentCode: updated.studentCode,
+      title: updated.title,
+      firstName: updated.firstName,
+      lastName: updated.lastName,
+      fullName: `${updated.title}${updated.firstName} ${updated.lastName}`,
+      classRoom: updated.classRoom,
+      seatNo: updated.seatNo,
+      academicYear: updated.academicYear,
+      semester: updated.semester,
+      gender: updated.gender,
+      status: updated.status,
+      createdAt: updated.createdAt.toISOString(),
+    });
+  }
+
+  return { updatedCount: updatedStudents.length, students: updatedStudents };
+}
+
+export async function copyStudents(
+  tenantId: string,
+  items: BulkCopyStudentInputItem[],
+): Promise<{ copiedCount: number; students: StudentDto[] }> {
+  const resultStudents: StudentDto[] = [];
+
+  for (const item of items) {
+    const studentCode = item.studentCode.trim();
+    if (!studentCode) continue;
+
+    const academicYear = item.academicYear?.trim() || "2569";
+    const semester = Number(item.semester) || 1;
+
+    const existing = await prisma.student.findUnique({
+      where: {
+        tenantId_studentCode_academicYear_semester: {
+          tenantId,
+          studentCode,
+          academicYear,
+          semester,
+        },
+      },
+    });
+
+    let studentRecord;
+    if (existing) {
+      studentRecord = await prisma.student.update({
+        where: { id: existing.id },
+        data: {
+          title: item.title,
+          firstName: item.firstName.trim(),
+          lastName: item.lastName.trim(),
+          classRoom: item.classRoom.trim(),
+          seatNo: Number(item.seatNo) || 1,
+          academicYear,
+          semester,
+          gender: item.gender || existing.gender,
+          status: item.status || "ACTIVE",
+        },
+      });
+    } else {
+      studentRecord = await prisma.student.create({
+        data: {
+          tenantId,
+          studentCode,
+          title: item.title,
+          firstName: item.firstName.trim(),
+          lastName: item.lastName.trim(),
+          classRoom: item.classRoom.trim(),
+          seatNo: Number(item.seatNo) || 1,
+          academicYear,
+          semester,
+          gender: item.gender || "ชาย",
+          status: item.status || "ACTIVE",
+        },
+      });
+    }
+
+    if (studentRecord.status === "ACTIVE") {
+      await enrollStudentIntoCourses(
+        tenantId,
+        studentRecord.id,
+        studentRecord.classRoom,
+        studentRecord.academicYear,
+        studentRecord.semester,
+      );
+    }
+
+    resultStudents.push({
+      id: studentRecord.id,
+      studentCode: studentRecord.studentCode,
+      title: studentRecord.title,
+      firstName: studentRecord.firstName,
+      lastName: studentRecord.lastName,
+      fullName: `${studentRecord.title}${studentRecord.firstName} ${studentRecord.lastName}`,
+      classRoom: studentRecord.classRoom,
+      seatNo: studentRecord.seatNo,
+      academicYear: studentRecord.academicYear,
+      semester: studentRecord.semester,
+      gender: studentRecord.gender,
+      status: studentRecord.status,
+      createdAt: studentRecord.createdAt.toISOString(),
+    });
+  }
+
+  return {
+    copiedCount: resultStudents.length,
+    students: resultStudents,
+  };
+}
+
 export async function importBatchStudents(
   tenantId: string,
   items: ImportStudentInput[],
@@ -358,7 +598,12 @@ export async function importBatchStudents(
     try {
       const existing = await prisma.student.findUnique({
         where: {
-          tenantId_studentCode: { tenantId, studentCode },
+          tenantId_studentCode_academicYear_semester: {
+            tenantId,
+            studentCode,
+            academicYear,
+            semester,
+          },
         },
       });
 
@@ -455,6 +700,10 @@ export async function importBatchStudents(
     }
   }
 
+  for (const s of processedStudents) {
+    await enrollStudentIntoCourses(tenantId, s.id, s.classRoom, s.academicYear, s.semester);
+  }
+
   return {
     total: items.length,
     created: createdCount,
@@ -485,12 +734,117 @@ export async function listInstructors(tenantId: string): Promise<InstructorDto[]
   });
 }
 
+function detectTargetGrade(c: {
+  name: string;
+  courseCode: string;
+  curriculum?: { degreeLevel?: string | null } | null;
+}): string {
+  const match = c.name.match(/ม\.([1-6])/);
+  if (match) return `ม.${match[1]}`;
+  const digits = c.courseCode.replace(/^[^\d]+/, "");
+  if (digits.length >= 2) {
+    const p = digits.slice(0, 2);
+    if (p === "21") return "ม.1";
+    if (p === "22") return "ม.2";
+    if (p === "23") return "ม.3";
+    if (p === "31") return "ม.4";
+    if (p === "32") return "ม.5";
+    if (p === "33") return "ม.6";
+  }
+  if (c.curriculum?.degreeLevel?.includes("ปลาย")) return "ม.4";
+  return "ม.1";
+}
+
+async function enrollStudentsForCourse(
+  tenantId: string,
+  courseId: string,
+  targetGrade: string,
+  academicYear: string,
+  semester: number,
+) {
+  try {
+    const students = await prisma.student.findMany({
+      where: {
+        tenantId,
+        classRoom: { startsWith: targetGrade },
+        academicYear,
+      },
+      select: { id: true, semester: true },
+    });
+
+    if (students.length === 0) return;
+
+    const data = students
+      .filter((s) => !s.semester || s.semester === semester)
+      .map((s) => ({
+        tenantId,
+        studentId: s.id,
+        courseId,
+        academicYear,
+        semester,
+      }));
+
+    if (data.length > 0) {
+      await prisma.courseEnrollment.createMany({
+        data,
+        skipDuplicates: true,
+      });
+    }
+  } catch (err) {
+    console.error("Auto enrollment error:", err);
+  }
+}
+
+async function enrollStudentIntoCourses(
+  tenantId: string,
+  studentId: string,
+  classRoom: string,
+  academicYear: string,
+  semester: number,
+) {
+  try {
+    const match = classRoom.match(/ม\.([1-6])/);
+    if (!match) return;
+    const gradeLabel = `ม.${match[1]}`;
+
+    const courses = await prisma.course.findMany({
+      where: {
+        curriculum: { tenantId },
+        academicYear,
+        semester,
+        OR: [
+          { targetGrade: gradeLabel },
+          { name: { contains: gradeLabel } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (courses.length === 0) return;
+
+    const data = courses.map((c) => ({
+      tenantId,
+      studentId,
+      courseId: c.id,
+      academicYear,
+      semester,
+    }));
+
+    await prisma.courseEnrollment.createMany({
+      data,
+      skipDuplicates: true,
+    });
+  } catch (err) {
+    console.error("Auto enroll student into courses error:", err);
+  }
+}
+
 export async function listCourses(tenantId: string): Promise<CourseDto[]> {
   const [courses, employees] = await Promise.all([
     prisma.course.findMany({
       where: { curriculum: { tenantId } },
       include: {
-        curriculum: { select: { name: true } },
+        curriculum: { select: { id: true, name: true, degreeLevel: true } },
         instructor: { select: { id: true, firstName: true, lastName: true, position: true } },
       },
       orderBy: { courseCode: "asc" },
@@ -549,6 +903,8 @@ export async function listCourses(tenantId: string): Promise<CourseDto[]> {
       academicYear: c.academicYear || "2569",
       curriculumName: c.curriculum?.name,
       curriculumId: c.curriculumId,
+      degreeLevel: c.curriculum?.degreeLevel || null,
+      targetGrade: c.targetGrade || detectTargetGrade(c),
       subjectGroup: c.subjectGroup,
       instructorName: instName || "อาจารย์ประจำวิชา",
       instructorId: instId,
@@ -567,29 +923,44 @@ export async function createCourse(
     semester?: number;
     academicYear?: string;
     curriculumId?: string;
+    degreeLevel?: string;
+    targetGrade?: string;
     subjectGroup?: string;
     instructorName?: string;
     instructorId?: string;
   },
 ): Promise<CourseDto> {
+  const targetGrade = data.targetGrade || (data.degreeLevel?.includes("ปลาย") ? "ม.4" : "ม.1");
+  const isJunior = ["ม.1", "ม.2", "ม.3"].includes(targetGrade) || (data.degreeLevel ? data.degreeLevel.includes("ต้น") : true);
+
   let currId = data.curriculumId;
   if (!currId) {
-    const firstCurr = await prisma.curriculum.findFirst({ where: { tenantId } });
-    if (firstCurr) {
-      currId = firstCurr.id;
+    const matchedCurr = await prisma.curriculum.findFirst({
+      where: {
+        tenantId,
+        degreeLevel: isJunior ? { contains: "ต้น" } : { contains: "ปลาย" },
+      },
+    });
+    if (matchedCurr) {
+      currId = matchedCurr.id;
     } else {
       const createdCurr = await prisma.curriculum.create({
         data: {
           tenantId,
-          code: "CURR-GEN-01",
-          name: "หลักสูตรสถานศึกษา โรงเรียนสาธิตฯ",
-          degreeLevel: "มัธยมศึกษา",
-          totalCredits: 77,
+          code: isJunior ? "CURR-JHS-GEN" : "CURR-SHS-GEN",
+          name: isJunior
+            ? "หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน ระดับมัธยมศึกษาตอนต้น (ม.1 - ม.3)"
+            : "หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน ระดับมัธยมศึกษาตอนปลาย (ม.4 - ม.6)",
+          degreeLevel: isJunior ? "มัธยมศึกษาตอนต้น (ม.1 - ม.3)" : "มัธยมศึกษาตอนปลาย (ม.4 - ม.6)",
+          totalCredits: isJunior ? 88 : 84,
         },
       });
       currId = createdCurr.id;
     }
   }
+
+  const semester = data.semester ? Number(data.semester) : 1;
+  const academicYear = data.academicYear?.trim() || "2569";
 
   const created = await prisma.course.create({
     data: {
@@ -597,17 +968,21 @@ export async function createCourse(
       courseCode: data.courseCode.trim(),
       name: data.name.trim(),
       credits: Number(data.credits) || 1.0,
-      semester: data.semester ? Number(data.semester) : 1,
-      academicYear: data.academicYear?.trim() || "2569",
+      semester,
+      academicYear,
+      targetGrade,
       subjectGroup: data.subjectGroup?.trim() || null,
       instructorName: data.instructorName?.trim() || null,
       instructorId: data.instructorId || null,
     },
     include: {
-      curriculum: { select: { name: true } },
+      curriculum: { select: { id: true, name: true, degreeLevel: true } },
       instructor: { select: { id: true, firstName: true, lastName: true, position: true } },
     },
   });
+
+  // Auto-enroll all matching students into this course
+  await enrollStudentsForCourse(tenantId, created.id, targetGrade, academicYear, semester);
 
   return {
     id: created.id,
@@ -618,6 +993,8 @@ export async function createCourse(
     academicYear: created.academicYear || "2569",
     curriculumName: created.curriculum?.name,
     curriculumId: created.curriculumId,
+    degreeLevel: created.curriculum?.degreeLevel || (isJunior ? "มัธยมศึกษาตอนต้น (ม.1 - ม.3)" : "มัธยมศึกษาตอนปลาย (ม.4 - ม.6)"),
+    targetGrade: created.targetGrade || targetGrade,
     subjectGroup: created.subjectGroup,
     instructorName: created.instructor ? `${created.instructor.firstName} ${created.instructor.lastName}` : created.instructorName,
     instructorId: created.instructorId,
@@ -634,11 +1011,55 @@ export async function updateCourse(
     semester?: number;
     academicYear?: string;
     curriculumId?: string;
+    degreeLevel?: string;
+    targetGrade?: string;
     subjectGroup?: string;
     instructorName?: string;
     instructorId?: string;
   },
 ): Promise<CourseDto> {
+  let targetCurriculumId = data.curriculumId;
+  const targetGrade = data.targetGrade;
+
+  if (targetGrade) {
+    const isJunior = ["ม.1", "ม.2", "ม.3"].includes(targetGrade);
+    if (!targetCurriculumId) {
+      const matchedCurr = await prisma.curriculum.findFirst({
+        where: {
+          tenantId,
+          degreeLevel: isJunior ? { contains: "ต้น" } : { contains: "ปลาย" },
+        },
+      });
+      if (matchedCurr) {
+        targetCurriculumId = matchedCurr.id;
+      }
+    }
+  } else if (!targetCurriculumId && data.degreeLevel) {
+    const isJunior = data.degreeLevel.includes("ต้น");
+    const matchedCurr = await prisma.curriculum.findFirst({
+      where: {
+        tenantId,
+        degreeLevel: isJunior ? { contains: "ต้น" } : { contains: "ปลาย" },
+      },
+    });
+    if (matchedCurr) {
+      targetCurriculumId = matchedCurr.id;
+    } else {
+      const createdCurr = await prisma.curriculum.create({
+        data: {
+          tenantId,
+          code: isJunior ? "CURR-JHS-GEN" : "CURR-SHS-GEN",
+          name: isJunior
+            ? "หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน ระดับมัธยมศึกษาตอนต้น (ม.1 - ม.3)"
+            : "หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน ระดับมัธยมศึกษาตอนปลาย (ม.4 - ม.6)",
+          degreeLevel: isJunior ? "มัธยมศึกษาตอนต้น (ม.1 - ม.3)" : "มัธยมศึกษาตอนปลาย (ม.4 - ม.6)",
+          totalCredits: isJunior ? 88 : 84,
+        },
+      });
+      targetCurriculumId = createdCurr.id;
+    }
+  }
+
   const updated = await prisma.course.update({
     where: { id },
     data: {
@@ -647,16 +1068,24 @@ export async function updateCourse(
       ...(data.credits !== undefined ? { credits: Number(data.credits) || 1.0 } : {}),
       ...(data.semester !== undefined ? { semester: Number(data.semester) || 1 } : {}),
       ...(data.academicYear !== undefined ? { academicYear: data.academicYear?.trim() || "2569" } : {}),
-      ...(data.curriculumId ? { curriculumId: data.curriculumId } : {}),
+      ...(targetCurriculumId ? { curriculumId: targetCurriculumId } : {}),
+      ...(targetGrade ? { targetGrade } : {}),
       ...(data.subjectGroup !== undefined ? { subjectGroup: data.subjectGroup?.trim() || null } : {}),
       ...(data.instructorName !== undefined ? { instructorName: data.instructorName?.trim() || null } : {}),
       ...(data.instructorId !== undefined ? { instructorId: data.instructorId || null } : {}),
     },
     include: {
-      curriculum: { select: { name: true } },
+      curriculum: { select: { id: true, name: true, degreeLevel: true } },
       instructor: { select: { id: true, firstName: true, lastName: true, position: true } },
     },
   });
+
+  const resolvedGrade = updated.targetGrade || detectTargetGrade(updated);
+  const resolvedYear = updated.academicYear || "2569";
+  const resolvedSem = updated.semester || 1;
+
+  // Auto-enroll matching students
+  await enrollStudentsForCourse(tenantId, updated.id, resolvedGrade, resolvedYear, resolvedSem);
 
   return {
     id: updated.id,
@@ -667,6 +1096,8 @@ export async function updateCourse(
     academicYear: updated.academicYear || "2569",
     curriculumName: updated.curriculum?.name,
     curriculumId: updated.curriculumId,
+    degreeLevel: updated.curriculum?.degreeLevel || data.degreeLevel || null,
+    targetGrade: resolvedGrade,
     subjectGroup: updated.subjectGroup,
     instructorName: updated.instructor ? `${updated.instructor.firstName} ${updated.instructor.lastName}` : updated.instructorName,
     instructorId: updated.instructorId,
@@ -677,6 +1108,61 @@ export async function deleteCourse(tenantId: string, id: string): Promise<void> 
   await prisma.course.delete({
     where: { id },
   });
+}
+
+export async function bulkCopyCourses(
+  tenantId: string,
+  items: BulkCopyCourseInputItem[],
+): Promise<CourseDto[]> {
+  const createdCourses: CourseDto[] = [];
+
+  for (const item of items) {
+    const created = await createCourse(tenantId, {
+      courseCode: item.courseCode,
+      name: item.name,
+      credits: item.credits,
+      semester: item.semester,
+      academicYear: item.academicYear,
+      targetGrade: item.targetGrade,
+      subjectGroup: item.subjectGroup || undefined,
+      instructorId: item.instructorId || undefined,
+      instructorName: item.instructorName || undefined,
+    });
+    createdCourses.push(created);
+  }
+
+  return createdCourses;
+}
+
+export async function bulkDeleteCourses(tenantId: string, courseIds: string[]): Promise<number> {
+  const res = await prisma.course.deleteMany({
+    where: {
+      id: { in: courseIds },
+      curriculum: { tenantId },
+    },
+  });
+  return res.count;
+}
+
+export async function bulkUpdateCourses(
+  tenantId: string,
+  data: BulkUpdateCoursesInput,
+): Promise<{ updatedCount: number; courses: CourseDto[] }> {
+  const updatedList: CourseDto[] = [];
+
+  for (const id of data.courseIds) {
+    const updated = await updateCourse(tenantId, id, {
+      targetGrade: data.targetGrade,
+      academicYear: data.academicYear,
+      semester: data.semester,
+      subjectGroup: data.subjectGroup,
+      instructorId: data.instructorId,
+      instructorName: data.instructorName,
+    });
+    updatedList.push(updated);
+  }
+
+  return { updatedCount: updatedList.length, courses: updatedList };
 }
 
 export async function recordBatchAttendance(

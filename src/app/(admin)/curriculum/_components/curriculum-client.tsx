@@ -417,7 +417,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
           setModalOpen(false);
           await refreshItems();
         } else {
-          toast.error("ไม่สามารถแก้ไขหลักสูตรได้");
+          toast.error(res.error || "ไม่สามารถแก้ไขหลักสูตรได้");
         }
       } else {
         const res = await createCurriculumAction(payload as any);
@@ -426,7 +426,7 @@ export function CurriculumClient({ initialItems, departments, canManage }: Props
           setModalOpen(false);
           await refreshItems();
         } else {
-          toast.error("ไม่สามารถเพิ่มหลักสูตรได้ (อาจมีรหัสซ้ำ)");
+          toast.error(res.error || "ไม่สามารถเพิ่มหลักสูตรได้ (อาจมีรหัสซ้ำ)");
         }
       }
     });
